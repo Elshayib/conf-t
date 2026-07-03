@@ -22,6 +22,12 @@ dependencies = [
     "questionary>=1.10.0"
 ]
 
+[project.optional-dependencies]
+dev = [
+    "pytest>=7.0"
+]
+
+
 [project.urls]
 "Homepage" = "https://github.com/Elshayib/conf-t"
 "Bug Tracker" = "https://github.com/Elshayib/conf-t/issues"

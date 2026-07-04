@@ -71,7 +71,7 @@ You will be greeted with an interactive menu:
 
 ```
 ╔══════════════════════════════╗
-║         Conf T  v0.3.0       ║
+║         Conf T  v0.3.1       ║
 ╚══════════════════════════════╝
 
 ? Select an option:
@@ -83,7 +83,7 @@ You will be greeted with an interactive menu:
     6. Exit
 ```
 
-When practicing a lesson, the curriculum browser groups lessons by difficulty, shows your progress (✓ ◐ ○), highlights a **recommended next** lesson, and warns softly if prerequisites are not yet completed.
+When practicing a lesson, the curriculum browser groups lessons by difficulty, shows your progress (✓ ◐ ○) and **passed/total** counts (e.g. `7/12`), highlights a **recommended next** lesson, and warns softly if prerequisites are not yet completed. Re-entering a lesson lets you **resume**, **start over**, or **pick a task** to continue from.
 
 During a practice session:
 

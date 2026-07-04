@@ -287,6 +287,72 @@ def test_get_recommended_lesson():
     assert get_recommended_lesson(lessons, ["basic", "vlan"]).id == "ospf"
     assert get_recommended_lesson(lessons, ["basic", "vlan", "ospf"]) is None
 
+def test_lesson_has_resume_state(tmp_path):
+    progress_file = tmp_path / "progress.json"
+    manager = ProgressManager(filepath=progress_file)
+    lesson = Lesson(
+        id="l1",
+        title="Lesson",
+        platform="Linux",
+        description="",
+        tasks=[
+            Task(id="l1__a", prompt="A", prefix="$", expected="^a$"),
+            Task(id="l1__b", prompt="B", prefix="$", expected="^b$"),
+        ],
+    )
+    assert manager.lesson_has_resume_state(lesson) is False
+    manager.record_attempt("l1", "Linux", "l1__a", True, True, False)
+    assert manager.lesson_has_resume_state(lesson) is True
+    manager.record_attempt("l1", "Linux", "l1__b", True, True, False)
+    assert manager.lesson_has_resume_state(lesson) is False
+
+
+def test_get_incomplete_tasks(tmp_path):
+    progress_file = tmp_path / "progress.json"
+    manager = ProgressManager(filepath=progress_file)
+    tasks = [
+        Task(id="l1__a", prompt="A", prefix="$", expected="^a$"),
+        Task(id="l1__b", prompt="B", prefix="$", expected="^b$"),
+    ]
+    manager.record_attempt("l1", "Linux", "l1__a", True, True, False)
+    incomplete = manager.get_incomplete_tasks(tasks)
+    assert [task.id for task in incomplete] == ["l1__b"]
+
+
+def test_reset_lesson_progress(tmp_path):
+    progress_file = tmp_path / "progress.json"
+    manager = ProgressManager(filepath=progress_file)
+    manager.record_attempt("l1", "Linux", "l1__a", True, True, False)
+    manager.record_attempt("l1", "Linux", "l1__b", False, True, False)
+    manager.mark_lesson_completed("l1")
+
+    manager.reset_lesson_progress("l1", ["l1__a", "l1__b"])
+    assert manager.get_task_progress_entry("l1__a") is None
+    assert manager.get_task_progress_entry("l1__b") is None
+    assert manager.data["failed_tasks"] == []
+    assert "l1" not in manager.data["completed_lessons"]
+
+
+def test_is_lesson_fully_passed(tmp_path):
+    progress_file = tmp_path / "progress.json"
+    manager = ProgressManager(filepath=progress_file)
+    lesson = Lesson(
+        id="l1",
+        title="Lesson",
+        platform="Linux",
+        description="",
+        tasks=[
+            Task(id="l1__a", prompt="A", prefix="$", expected="^a$"),
+            Task(id="l1__b", prompt="B", prefix="$", expected="^b$"),
+        ],
+    )
+    assert manager.is_lesson_fully_passed(lesson) is False
+    manager.record_attempt("l1", "Linux", "l1__a", True, True, False)
+    assert manager.is_lesson_fully_passed(lesson) is False
+    manager.record_attempt("l1", "Linux", "l1__b", True, True, False)
+    assert manager.is_lesson_fully_passed(lesson) is True
+
+
 def test_get_lesson_task_summary(tmp_path):
     progress_file = tmp_path / "progress.json"
     manager = ProgressManager(filepath=progress_file)

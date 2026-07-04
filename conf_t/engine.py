@@ -306,6 +306,41 @@ class ProgressManager:
             "incomplete": total - passed,
         }
 
+    def lesson_has_resume_state(self, lesson: Lesson) -> bool:
+        task_ids = [task.id for task in lesson.tasks]
+        summary = self.get_lesson_task_summary(lesson.id, task_ids)
+        if summary["total"] == 0:
+            return False
+        if summary["passed"] == summary["total"]:
+            return False
+        if lesson.id in self.data.get("attempted_lessons", []):
+            return True
+        return any(task_id in self.data.get("task_progress", {}) for task_id in task_ids)
+
+    def get_incomplete_tasks(self, tasks: List[Task]) -> List[Task]:
+        return [task for task in tasks if not self.is_task_passed(task.id)]
+
+    def is_lesson_fully_passed(self, lesson: Lesson) -> bool:
+        task_ids = [task.id for task in lesson.tasks]
+        summary = self.get_lesson_task_summary(lesson.id, task_ids)
+        return summary["total"] > 0 and summary["passed"] == summary["total"]
+
+    def reset_lesson_progress(self, lesson_id: str, task_ids: List[str]) -> None:
+        task_id_set = set(task_ids)
+        self.data["task_progress"] = {
+            task_id: entry
+            for task_id, entry in self.data.get("task_progress", {}).items()
+            if task_id not in task_id_set
+        }
+        self.data["failed_tasks"] = [
+            entry
+            for entry in self.data.get("failed_tasks", [])
+            if entry.get("task_id") not in task_id_set
+        ]
+        if lesson_id in self.data.get("completed_lessons", []):
+            self.data["completed_lessons"].remove(lesson_id)
+        self.save()
+
     def record_attempt(self, lesson_id: str, platform: str, task_id: str, is_correct: bool, is_first_try: bool, is_skipped: bool):
         self.mark_lesson_attempted(lesson_id)
         self._update_task_progress(

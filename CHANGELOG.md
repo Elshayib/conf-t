@@ -5,6 +5,24 @@ All notable changes to Conf T are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.3.1] - 2026-07-04
+
+### Added
+
+- **Resume mid-lesson** — when re-entering a lesson with progress, choose:
+  - Resume at first incomplete task
+  - Start over (reset lesson progress)
+  - Pick a task to start from
+- Lesson browser shows **passed/total** progress (e.g. `7/12`) per lesson
+- Lesson detail panel shows progress summary before starting
+- Lessons marked completed only when **all tasks** are passed first-try
+
+### Changed
+
+- Version bumped to **0.3.1**
+
+---
+
 ## [0.3.0] - 2026-07-04
 
 ### Added
@@ -70,6 +88,7 @@ If you have an older `~/.conf_t_progress.json` from v0.1.x, reset progress from 
 - Lesson creator wizard
 - Starter lessons for Cisco, Linux, PowerShell, Git, and Docker
 
+[0.3.1]: https://github.com/Elshayib/conf-t/releases/tag/v0.3.1
 [0.3.0]: https://github.com/Elshayib/conf-t/releases/tag/v0.3.0
 [0.2.0]: https://github.com/Elshayib/conf-t/releases/tag/v0.2.0
 [0.1.0]: https://github.com/Elshayib/conf-t/releases/tag/v0.1.0

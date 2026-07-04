@@ -111,11 +111,13 @@ class ConfTCLI:
         self,
         lesson: Lesson,
         status: str,
+        passed_count: int,
         failed_count: int,
         prereqs_met: bool,
     ) -> str:
         icon = self._lesson_status_icon(status)
-        label = f"{icon} {lesson.title} ({len(lesson.tasks)} tasks)"
+        total = len(lesson.tasks)
+        label = f"{icon} {lesson.title} ({passed_count}/{total})"
         if lesson.estimated_minutes:
             label += f" · ~{lesson.estimated_minutes}m"
         if failed_count:
@@ -124,17 +126,87 @@ class ConfTCLI:
             label += " · prereqs"
         return label
 
+    def _choose_lesson_tasks(self, lesson: Lesson) -> list[Task] | None:
+        task_ids = [task.id for task in lesson.tasks]
+        summary = self.progress.get_lesson_task_summary(lesson.id, task_ids)
+
+        if summary["total"] == 0:
+            return []
+
+        if summary["passed"] == summary["total"]:
+            practice_again = questionary.confirm(
+                f"All {summary['total']} tasks passed. Practice this lesson again from the start?",
+                default=True,
+            ).ask()
+            if not practice_again:
+                return None
+            self.progress.reset_lesson_progress(lesson.id, task_ids)
+            return list(lesson.tasks)
+
+        if not self.progress.lesson_has_resume_state(lesson):
+            return list(lesson.tasks)
+
+        choice = questionary.select(
+            f"Progress: {summary['passed']}/{summary['total']} tasks passed. How do you want to continue?",
+            choices=[
+                questionary.Choice("Resume at first incomplete task", value="resume"),
+                questionary.Choice("Start over (reset lesson progress)", value="restart"),
+                questionary.Choice("Pick a task to start from", value="pick"),
+                questionary.Choice("Cancel", value="cancel"),
+            ],
+        ).ask()
+
+        if not choice or choice == "cancel":
+            return None
+        if choice == "restart":
+            self.progress.reset_lesson_progress(lesson.id, task_ids)
+            return list(lesson.tasks)
+        if choice == "resume":
+            incomplete = self.progress.get_incomplete_tasks(lesson.tasks)
+            if not incomplete:
+                console.print("[yellow]No incomplete tasks found.[/]")
+                return None
+            return incomplete
+        if choice == "pick":
+            return self._pick_lesson_start_task(lesson)
+
+        return None
+
+    def _pick_lesson_start_task(self, lesson: Lesson) -> list[Task] | None:
+        task_choices = []
+        for index, task in enumerate(lesson.tasks):
+            status = "✓" if self.progress.is_task_passed(task.id) else "○"
+            prompt_preview = task.prompt if len(task.prompt) <= 60 else f"{task.prompt[:57]}..."
+            task_choices.append(
+                questionary.Choice(
+                    title=f"{status} Task {index + 1}: {prompt_preview}",
+                    value=index,
+                )
+            )
+        task_choices.append(questionary.Choice(title="Cancel", value=-1))
+
+        selected_index = questionary.select(
+            "Pick a task to start from:",
+            choices=task_choices,
+        ).ask()
+
+        if selected_index is None or selected_index == -1:
+            return None
+        return lesson.tasks[selected_index:]
+
     def _confirm_lesson_start(self, lesson: Lesson, all_lessons: list[Lesson]) -> bool:
         completed = self.progress.data.get("completed_lessons", [])
         missing_ids = get_missing_prerequisites(lesson, completed)
         lesson_map = {item.id: item for item in all_lessons}
 
         console.print("\n")
+        task_ids = [task.id for task in lesson.tasks]
+        summary = self.progress.get_lesson_task_summary(lesson.id, task_ids)
         detail_lines = [
             f"[bold white]{lesson.description}[/]",
             "",
             f"[cyan]Difficulty:[/] {lesson.difficulty.title()}",
-            f"[cyan]Tasks:[/] {len(lesson.tasks)}",
+            f"[cyan]Progress:[/] {summary['passed']}/{summary['total']} tasks passed",
         ]
         if lesson.estimated_minutes:
             detail_lines.append(f"[cyan]Estimated time:[/] ~{lesson.estimated_minutes} minutes")
@@ -226,12 +298,20 @@ class ConfTCLI:
                 )
             )
             for lesson in group:
+                task_ids = [task.id for task in lesson.tasks]
+                lesson_summary = self.progress.get_lesson_task_summary(lesson.id, task_ids)
                 status = get_lesson_status(
                     lesson.id, completed, attempted, failed_lesson_ids
                 )
+                if (
+                    lesson_summary["total"] > 0
+                    and lesson_summary["passed"] == lesson_summary["total"]
+                ):
+                    status = LESSON_STATUS_COMPLETED
                 label = self._format_lesson_choice_label(
                     lesson,
                     status,
+                    lesson_summary["passed"],
                     failed_counts.get(lesson.id, 0),
                     are_prerequisites_met(lesson, completed),
                 )
@@ -256,14 +336,29 @@ class ConfTCLI:
         if not selected_lesson:
             return
 
-        if self._confirm_lesson_start(selected_lesson, lessons):
-            self.run_practice_session(selected_lesson)
+        if not self._confirm_lesson_start(selected_lesson, lessons):
+            return
 
-    def run_practice_session(self, lesson: Lesson, review_mode: bool = False, review_tasks: list = None):
+        tasks_to_run = self._choose_lesson_tasks(selected_lesson)
+        if tasks_to_run is None:
+            return
+        self.run_practice_session(selected_lesson, tasks_to_run=tasks_to_run)
+
+    def run_practice_session(
+        self,
+        lesson: Lesson,
+        review_mode: bool = False,
+        review_tasks: list | None = None,
+        tasks_to_run: list[Task] | None = None,
+    ):
         """
         Runs the interactive prompt loop for a lesson or a custom set of review tasks.
         """
-        tasks_to_run = review_tasks if review_mode else lesson.tasks
+        if review_mode:
+            tasks_to_run = review_tasks or []
+        elif tasks_to_run is None:
+            tasks_to_run = list(lesson.tasks)
+
         if not tasks_to_run:
             console.print("[yellow]No tasks to practice in this session.[/]")
             return
@@ -272,6 +367,8 @@ class ConfTCLI:
             self.progress.mark_lesson_attempted(lesson.id)
 
         title_text = f"Reviewing {len(tasks_to_run)} Failed Commands" if review_mode else f"Lesson: {lesson.title}"
+        if not review_mode and len(tasks_to_run) < len(lesson.tasks):
+            title_text = f"{lesson.title} — {len(tasks_to_run)} of {len(lesson.tasks)} tasks"
         desc_text = "Retrying commands you previously missed." if review_mode else lesson.description
 
         console.print("\n")
@@ -394,7 +491,7 @@ class ConfTCLI:
                     
                     console.print("[bold red]✗ Incorrect command. Try again, or type 'hint' / 'skip' / 'exit'.[/]")
 
-        if not review_mode:
+        if not review_mode and self.progress.is_lesson_fully_passed(lesson):
             self.progress.mark_lesson_completed(lesson.id)
 
         # Display session stats

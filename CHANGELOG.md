@@ -5,6 +5,24 @@ All notable changes to Conf T are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.3.2] - 2026-07-04
+
+### Added
+
+- **Spaced repetition** — failed/skipped tasks resurface on a schedule (due now → 1d → 3d → 7d)
+- **Daily Review (N due)** — promoted to the top of the main menu when tasks are ready
+- Shared review session flow for daily review and manual failed-command review
+- Stats panel shows **Due for Review** count
+
+### Changed
+
+- "Review Failed Commands" renamed to **Review All Failed Commands** (manual full queue)
+- Correct-but-not-first-try in review reschedules the task instead of clearing it
+- Progress file version bumped to **4** with automatic migration
+- Version bumped to **0.3.2**
+
+---
+
 ## [0.3.1] - 2026-07-04
 
 ### Added
@@ -88,6 +106,7 @@ If you have an older `~/.conf_t_progress.json` from v0.1.x, reset progress from 
 - Lesson creator wizard
 - Starter lessons for Cisco, Linux, PowerShell, Git, and Docker
 
+[0.3.2]: https://github.com/Elshayib/conf-t/releases/tag/v0.3.2
 [0.3.1]: https://github.com/Elshayib/conf-t/releases/tag/v0.3.1
 [0.3.0]: https://github.com/Elshayib/conf-t/releases/tag/v0.3.0
 [0.2.0]: https://github.com/Elshayib/conf-t/releases/tag/v0.2.0

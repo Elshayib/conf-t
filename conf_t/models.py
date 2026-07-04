@@ -87,6 +87,8 @@ class TaskProgress:
     passed_first_try: bool = False
     attempts: int = 0
     last_attempt: Optional[str] = None
+    review_level: int = 0
+    next_review_at: Optional[str] = None
 
     @classmethod
     def from_dict(cls, data: Dict[str, Any]) -> "TaskProgress":
@@ -96,6 +98,8 @@ class TaskProgress:
             passed_first_try=data.get("passed_first_try", False),
             attempts=data.get("attempts", 0),
             last_attempt=data.get("last_attempt"),
+            review_level=data.get("review_level", 0),
+            next_review_at=data.get("next_review_at"),
         )
 
     def to_dict(self) -> Dict[str, Any]:
@@ -104,9 +108,12 @@ class TaskProgress:
             "status": self.status,
             "passed_first_try": self.passed_first_try,
             "attempts": self.attempts,
+            "review_level": self.review_level,
         }
         if self.last_attempt:
             result["last_attempt"] = self.last_attempt
+        if self.next_review_at:
+            result["next_review_at"] = self.next_review_at
         return result
 
 

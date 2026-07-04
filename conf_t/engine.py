@@ -1,6 +1,6 @@
 import json
 import re
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from typing import List, Dict, Any, Optional
 from pathlib import Path
 
@@ -15,11 +15,21 @@ TASK_STATUS_PASSED = "passed"
 TASK_STATUS_FAILED = "failed"
 TASK_STATUS_SKIPPED = "skipped"
 
-PROGRESS_VERSION = 3
+PROGRESS_VERSION = 4
+
+REVIEW_INTERVALS_DAYS = [0, 1, 3, 7]
 
 
 def _utc_now_iso() -> str:
     return datetime.now(timezone.utc).replace(microsecond=0).isoformat()
+
+
+def _utc_now() -> datetime:
+    return datetime.now(timezone.utc).replace(microsecond=0)
+
+
+def _parse_iso_datetime(value: str) -> datetime:
+    return datetime.fromisoformat(value.replace("Z", "+00:00"))
 
 
 def validate_input(user_input: str, task: Task, platform: str) -> bool:
@@ -229,21 +239,30 @@ class ProgressManager:
         if original_version >= PROGRESS_VERSION:
             return data
 
-        task_progress: Dict[str, Any] = dict(data.get("task_progress", {}))
-        for entry in data.get("failed_tasks", []):
-            task_id = entry.get("task_id")
-            lesson_id = entry.get("lesson_id")
-            if not task_id or not lesson_id or task_id in task_progress:
-                continue
-            task_progress[task_id] = TaskProgress(
-                lesson_id=lesson_id,
-                status=TASK_STATUS_FAILED,
-                passed_first_try=False,
-                attempts=1,
-                last_attempt=None,
-            ).to_dict()
+        if original_version < 3:
+            task_progress: Dict[str, Any] = dict(data.get("task_progress", {}))
+            for entry in data.get("failed_tasks", []):
+                task_id = entry.get("task_id")
+                lesson_id = entry.get("lesson_id")
+                if not task_id or not lesson_id or task_id in task_progress:
+                    continue
+                task_progress[task_id] = TaskProgress(
+                    lesson_id=lesson_id,
+                    status=TASK_STATUS_FAILED,
+                    passed_first_try=False,
+                    attempts=1,
+                    last_attempt=None,
+                ).to_dict()
+            data["task_progress"] = task_progress
 
-        data["task_progress"] = task_progress
+        if original_version < 4:
+            now = _utc_now_iso()
+            for entry in data.get("task_progress", {}).values():
+                if is_task_progress_passed(entry):
+                    continue
+                entry["review_level"] = 0
+                entry["next_review_at"] = now
+
         data["progress_version"] = PROGRESS_VERSION
         return data
 
@@ -281,13 +300,88 @@ class ProgressManager:
             status = TASK_STATUS_FAILED
             passed_first_try = False
 
+        review_level = existing.get("review_level", 0)
+        next_review_at = existing.get("next_review_at")
         self.data["task_progress"][task_id] = TaskProgress(
             lesson_id=lesson_id,
             status=status,
             passed_first_try=passed_first_try,
             attempts=attempts,
             last_attempt=now,
+            review_level=review_level,
+            next_review_at=next_review_at,
         ).to_dict()
+
+    def _apply_review_schedule(
+        self,
+        task_id: str,
+        is_correct: bool,
+        is_first_try: bool,
+        is_skipped: bool,
+    ) -> None:
+        entry = self.data["task_progress"][task_id]
+        if is_correct and is_first_try:
+            entry["review_level"] = 0
+            entry.pop("next_review_at", None)
+            return
+
+        level = entry.get("review_level", 0)
+        if is_correct and not is_first_try:
+            level = min(level + 1, len(REVIEW_INTERVALS_DAYS) - 1)
+        else:
+            level = 0
+
+        days = REVIEW_INTERVALS_DAYS[level]
+        due_at = _utc_now() if days == 0 else _utc_now() + timedelta(days=days)
+        entry["review_level"] = level
+        entry["next_review_at"] = due_at.isoformat()
+
+    def is_task_due(self, task_id: str) -> bool:
+        if self.is_task_passed(task_id):
+            return False
+        entry = self.get_task_progress_entry(task_id)
+        if not entry:
+            return task_id in {
+                item.get("task_id") for item in self.data.get("failed_tasks", [])
+            }
+        next_review_at = entry.get("next_review_at")
+        if not next_review_at:
+            return entry.get("status") in (TASK_STATUS_FAILED, TASK_STATUS_SKIPPED)
+        return _parse_iso_datetime(next_review_at) <= _utc_now()
+
+    def get_due_review_entries(self) -> List[Dict[str, str]]:
+        due_entries: List[Dict[str, str]] = []
+        seen: set[str] = set()
+
+        for task_id in self.data.get("task_progress", {}):
+            if not self.is_task_due(task_id):
+                continue
+            entry = self.get_task_progress_entry(task_id)
+            if not entry or not entry.get("lesson_id"):
+                continue
+            due_entries.append(
+                {"lesson_id": entry["lesson_id"], "task_id": task_id}
+            )
+            seen.add(task_id)
+
+        for entry in self.data.get("failed_tasks", []):
+            task_id = entry.get("task_id")
+            lesson_id = entry.get("lesson_id")
+            if not task_id or not lesson_id or task_id in seen:
+                continue
+            if self.is_task_due(task_id):
+                due_entries.append({"lesson_id": lesson_id, "task_id": task_id})
+                seen.add(task_id)
+
+        due_entries.sort(
+            key=lambda item: (
+                self.get_task_progress_entry(item["task_id"]) or {}
+            ).get("next_review_at") or ""
+        )
+        return due_entries
+
+    def get_due_review_count(self) -> int:
+        return len(self.get_due_review_entries())
 
     def get_task_progress_entry(self, task_id: str) -> Optional[Dict[str, Any]]:
         return self.data.get("task_progress", {}).get(task_id)
@@ -346,6 +440,7 @@ class ProgressManager:
         self._update_task_progress(
             lesson_id, task_id, is_correct, is_first_try, is_skipped
         )
+        self._apply_review_schedule(task_id, is_correct, is_first_try, is_skipped)
         self.data["total_attempts"] += 1
         
         # Initialize platform stats

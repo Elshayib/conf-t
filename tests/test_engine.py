@@ -9,11 +9,14 @@ from conf_t.engine import (
     LESSON_STATUS_IN_PROGRESS,
     LESSON_STATUS_NOT_STARTED,
     PROGRESS_VERSION,
+    REVIEW_INTERVALS_DAYS,
     TASK_STATUS_FAILED,
     TASK_STATUS_PASSED,
     TASK_STATUS_SKIPPED,
     LessonLoader,
     ProgressManager,
+    _parse_iso_datetime,
+    _utc_now,
     are_prerequisites_met,
     format_display_answer,
     get_lesson_status,
@@ -396,6 +399,102 @@ def test_is_task_progress_passed_helper():
     assert not is_task_progress_passed({"status": TASK_STATUS_PASSED, "passed_first_try": False})
     assert not is_task_progress_passed({"status": TASK_STATUS_FAILED, "passed_first_try": False})
     assert not is_task_progress_passed(None)
+
+
+def test_fail_schedules_immediate_review(tmp_path):
+    progress_file = tmp_path / "progress.json"
+    manager = ProgressManager(filepath=progress_file)
+    manager.record_attempt("l1", "Linux", "l1__a", False, True, False)
+    entry = manager.get_task_progress_entry("l1__a")
+    assert entry["review_level"] == 0
+    assert entry["next_review_at"] is not None
+    assert manager.is_task_due("l1__a") is True
+    assert manager.get_due_review_count() == 1
+
+
+def test_first_try_pass_clears_review_schedule(tmp_path):
+    progress_file = tmp_path / "progress.json"
+    manager = ProgressManager(filepath=progress_file)
+    manager.record_attempt("l1", "Linux", "l1__a", False, True, False)
+    manager.record_attempt("l1", "Linux", "l1__a", True, True, False)
+    entry = manager.get_task_progress_entry("l1__a")
+    assert entry["status"] == TASK_STATUS_PASSED
+    assert "next_review_at" not in entry
+    assert manager.get_due_review_count() == 0
+
+
+def test_late_pass_bumps_review_interval(tmp_path):
+    progress_file = tmp_path / "progress.json"
+    manager = ProgressManager(filepath=progress_file)
+    manager.record_attempt("l1", "Linux", "l1__a", False, True, False)
+    manager.record_attempt("l1", "Linux", "l1__a", True, False, False)
+    entry = manager.get_task_progress_entry("l1__a")
+    assert entry["review_level"] == 1
+    due_at = _parse_iso_datetime(entry["next_review_at"])
+    assert due_at > _utc_now()
+    assert manager.is_task_due("l1__a") is False
+    assert manager.get_due_review_count() == 0
+
+
+def test_due_review_sorted_by_urgency(tmp_path):
+    progress_file = tmp_path / "progress.json"
+    manager = ProgressManager(filepath=progress_file)
+    manager.data["task_progress"] = {
+        "t1": {
+            "lesson_id": "l1",
+            "status": TASK_STATUS_FAILED,
+            "passed_first_try": False,
+            "attempts": 1,
+            "review_level": 0,
+            "next_review_at": "2020-01-01T00:00:00+00:00",
+        },
+        "t2": {
+            "lesson_id": "l1",
+            "status": TASK_STATUS_FAILED,
+            "passed_first_try": False,
+            "attempts": 1,
+            "review_level": 0,
+            "next_review_at": "2021-01-01T00:00:00+00:00",
+        },
+    }
+    manager.data["failed_tasks"] = [
+        {"lesson_id": "l1", "task_id": "t1"},
+        {"lesson_id": "l1", "task_id": "t2"},
+    ]
+    due = manager.get_due_review_entries()
+    assert [entry["task_id"] for entry in due] == ["t1", "t2"]
+
+
+def test_migration_v3_to_v4_schedules_non_passed(tmp_path):
+    progress_file = tmp_path / "progress.json"
+    legacy = {
+        "progress_version": 3,
+        "completed_lessons": [],
+        "attempted_lessons": ["l1"],
+        "task_progress": {
+            "l1__a": {
+                "lesson_id": "l1",
+                "status": TASK_STATUS_FAILED,
+                "passed_first_try": False,
+                "attempts": 2,
+                "last_attempt": "2026-01-01T00:00:00+00:00",
+            }
+        },
+        "failed_tasks": [{"lesson_id": "l1", "task_id": "l1__a"}],
+        "total_attempts": 2,
+        "correct_first_try": 0,
+        "skipped_count": 0,
+        "platform_stats": {},
+    }
+    progress_file.write_text(json.dumps(legacy), encoding="utf-8")
+    manager = ProgressManager(filepath=progress_file)
+    assert manager.data["progress_version"] == PROGRESS_VERSION
+    assert manager.data["task_progress"]["l1__a"]["next_review_at"] is not None
+    assert manager.is_task_due("l1__a") is True
+
+
+def test_review_interval_constants():
+    assert REVIEW_INTERVALS_DAYS == [0, 1, 3, 7]
 
 
 def test_mark_lesson_attempted(tmp_path):

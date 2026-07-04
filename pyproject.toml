@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "conf_t"
-version = "0.3.1"
+version = "0.3.2"
 description = "Conf T: An extensible interactive CLI simulator for learning and practicing command line tools."
 readme = "README.md"
 authors = [

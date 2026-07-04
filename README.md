@@ -71,12 +71,13 @@ You will be greeted with an interactive menu:
 
 ```
 ╔══════════════════════════════╗
-║         Conf T  v0.3.1       ║
+║         Conf T  v0.3.2       ║
 ╚══════════════════════════════╝
 
 ? Select an option:
-  › 1. Practice a Lesson
-    2. Review Failed Commands
+  › ★ Daily Review (3 due)     ← shown when tasks are ready
+    1. Practice a Lesson
+    2. Review All Failed Commands
     3. View Progress & Stats
     4. Reset All Progress
     5. Create a Custom Lesson
@@ -84,6 +85,8 @@ You will be greeted with an interactive menu:
 ```
 
 When practicing a lesson, the curriculum browser groups lessons by difficulty, shows your progress (✓ ◐ ○) and **passed/total** counts (e.g. `7/12`), highlights a **recommended next** lesson, and warns softly if prerequisites are not yet completed. Re-entering a lesson lets you **resume**, **start over**, or **pick a task** to continue from.
+
+**Spaced repetition:** failed commands resurface on a schedule (due now → 1 day → 3 days → 7 days). When tasks are due, **Daily Review** appears at the top of the main menu.
 
 During a practice session:
 

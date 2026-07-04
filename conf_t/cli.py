@@ -36,22 +36,35 @@ class ConfTCLI:
         self.loader = LessonLoader()
         self.progress = ProgressManager()
 
+    def _main_menu_choices(self) -> list[str]:
+        due_count = self.progress.get_due_review_count()
+        choices = []
+        if due_count > 0:
+            choices.append(f"★ Daily Review ({due_count} due)")
+        choices.extend([
+            "1. Practice a Lesson",
+            "2. Review All Failed Commands",
+            "3. View Progress & Stats",
+            "4. Reset All Progress",
+            "5. Create a Custom Lesson",
+            "6. Exit",
+        ])
+        return choices
+
     def run(self):
         """Main application execution loop."""
         self.show_welcome_banner()
         
         while True:
             try:
+                due_count = self.progress.get_due_review_count()
+                prompt = "Select an option:"
+                if due_count > 0:
+                    prompt = f"[bold yellow]{due_count} task(s) due for review.[/] Select an option:"
+
                 choice = questionary.select(
-                    "Select an option:",
-                    choices=[
-                        "1. Practice a Lesson",
-                        "2. Review Failed Commands",
-                        "3. View Progress & Stats",
-                        "4. Reset All Progress",
-                        "5. Create a Custom Lesson",
-                        "6. Exit"
-                    ],
+                    prompt,
+                    choices=self._main_menu_choices(),
                     style=questionary.Style([
                         ('pointer', 'fg:#00ffff bold'),
                         ('highlighted', 'fg:#00ffff bold'),
@@ -62,7 +75,9 @@ class ConfTCLI:
                 if not choice:
                     break
 
-                if "1. Practice" in choice:
+                if "Daily Review" in choice:
+                    self.daily_review_menu()
+                elif "1. Practice" in choice:
                     self.practice_lessons_menu()
                 elif "2. Review" in choice:
                     self.review_failed_menu()
@@ -511,56 +526,48 @@ class ConfTCLI:
         console.print("[bold green]Practice Session Completed![/]\n")
         questionary.press_any_key_to_continue().ask()
 
-    def review_failed_menu(self):
-        """Loads failed tasks and allows practicing them."""
-        failed_entries = self.progress.get_failed_task_entries()
-        if not failed_entries:
-            console.print("\n[bold green]★ Nice job! You have no failed commands to review.[/]\n")
-            questionary.press_any_key_to_continue().ask()
-            return
-
-        console.print(f"\n[yellow]You have {len(failed_entries)} failed commands in your queue.[/]")
-        
-        confirm = questionary.confirm("Start practicing failed commands?").ask()
-        if not confirm:
-            return
-
-        # Group failed tasks by lesson
+    def _resolve_review_entries(
+        self, entries: list[dict[str, str]]
+    ) -> list[tuple[Lesson, Task]]:
         all_lessons = self.loader.load_all_lessons()
-        tasks_to_review = []
-
-        for entry in failed_entries:
+        tasks_to_review: list[tuple[Lesson, Task]] = []
+        for entry in entries:
             lesson_id = entry["lesson_id"]
             task_id = entry["task_id"]
-            
-            lesson = next((l for l in all_lessons if l.id == lesson_id), None)
-            if lesson:
-                task = next((t for t in lesson.tasks if t.id == task_id), None)
-                if task:
-                    tasks_to_review.append((lesson, task))
-                    
+            lesson = next((item for item in all_lessons if item.id == lesson_id), None)
+            if not lesson:
+                continue
+            task = next((item for item in lesson.tasks if item.id == task_id), None)
+            if task:
+                tasks_to_review.append((lesson, task))
+        return tasks_to_review
+
+    def _run_review_session(
+        self,
+        tasks_to_review: list[tuple[Lesson, Task]],
+        title: str,
+        description: str,
+    ) -> None:
         if not tasks_to_review:
-            console.print("[red]Could not load failed tasks. The source lesson files might have changed.[/]")
+            console.print("[red]Could not load review tasks. The source lesson files might have changed.[/]")
             return
 
-        virtual_tasks = [item[1] for item in tasks_to_review]
-        
         console.print("\n")
         console.print(Panel(
-            f"[bold white]Retrying {len(virtual_tasks)} commands you previously struggled with.[/]\n\n"
+            f"[bold white]{description}[/]\n\n"
             f"[dim green]Type 'hint' for a hint, 'skip' to see the explanation, or 'exit' to quit.[/]",
-            title="[bold yellow]Review Mode[/]",
+            title=f"[bold yellow]{title}[/]",
             border_style="yellow",
-            box=box.ROUNDED
+            box=box.ROUNDED,
         ))
 
-        stats = SessionStats(total_questions=len(virtual_tasks))
-
         for idx, (lesson, task) in enumerate(tasks_to_review, 1):
-            console.print(f"\n[bold cyan]Task {idx}/{len(virtual_tasks)} [{lesson.platform}]:[/] [bold white]{task.prompt}[/]")
-            
+            console.print(
+                f"\n[bold cyan]Task {idx}/{len(tasks_to_review)} [{lesson.platform}]:[/] "
+                f"[bold white]{task.prompt}[/]"
+            )
             is_first_try = True
-            
+
             while True:
                 try:
                     prompt_str = f"{task.prefix} "
@@ -570,7 +577,6 @@ class ConfTCLI:
                     return
 
                 cleaned_input = user_input.strip()
-
                 if not cleaned_input:
                     continue
 
@@ -583,70 +589,112 @@ class ConfTCLI:
                     confirm = questionary.confirm("Are you sure you want to exit review mode?").ask()
                     if confirm:
                         return
-                    else:
-                        continue
+                    continue
 
                 if cleaned_input.lower() == "hint":
                     if task.hint:
-                        console.print(Panel(f"[bold yellow]Hint:[/] {task.hint}", border_style="yellow", box=box.MINIMAL))
+                        console.print(Panel(
+                            f"[bold yellow]Hint:[/] {task.hint}",
+                            border_style="yellow",
+                            box=box.MINIMAL,
+                        ))
                     else:
                         console.print("[dim yellow]No hint available.[/]")
                     continue
 
                 if cleaned_input.lower() == "skip":
-                    stats.skipped_count += 1
-                    stats.total_attempts += 1
                     self.progress.record_attempt(
                         lesson_id=lesson.id,
                         platform=lesson.platform,
                         task_id=task.id,
                         is_correct=False,
                         is_first_try=is_first_try,
-                        is_skipped=True
+                        is_skipped=True,
                     )
                     console.print(Panel(
-                        f"[bold red]Skipped.[/]\n\n[bold white]Correct Command:[/] [bold cyan]{format_display_answer(task, lesson.platform)}[/]\n\n"
+                        f"[bold red]Skipped.[/]\n\n"
+                        f"[bold white]Correct Command:[/] [bold cyan]{format_display_answer(task, lesson.platform)}[/]\n\n"
                         f"[bold white]Explanation:[/] {task.explanation}",
                         border_style="red",
-                        title="[bold red]Task Explanation[/]"
+                        title="[bold red]Task Explanation[/]",
                     ))
                     break
 
                 is_correct = validate_input(cleaned_input, task, lesson.platform)
                 if is_correct:
-                    stats.total_attempts += 1
-                    if is_first_try:
-                        stats.correct_first_try += 1
                     self.progress.record_attempt(
                         lesson_id=lesson.id,
                         platform=lesson.platform,
                         task_id=task.id,
                         is_correct=True,
                         is_first_try=is_first_try,
-                        is_skipped=False
+                        is_skipped=False,
+                    )
+                    cleared = is_first_try
+                    status_msg = (
+                        "✓ Correct! (Removed from review queue)"
+                        if cleared
+                        else "✓ Correct, but not first-try — rescheduled for later review"
                     )
                     console.print(Panel(
-                        f"[bold green]✓ Correct! (Removed from failed queue)[/]\n\n"
+                        f"[bold green]{status_msg}[/]\n\n"
                         f"[bold white]Explanation:[/] {task.explanation}",
                         border_style="green",
-                        box=box.ROUNDED
+                        box=box.ROUNDED,
                     ))
                     break
-                else:
-                    stats.total_attempts += 1
-                    is_first_try = False
-                    self.progress.record_attempt(
-                        lesson_id=lesson.id,
-                        platform=lesson.platform,
-                        task_id=task.id,
-                        is_correct=False,
-                        is_first_try=is_first_try,
-                        is_skipped=False
-                    )
-                    console.print("[bold red]✗ Incorrect command. Try again, or type 'hint' / 'skip' / 'exit'.[/]")
+
+                is_first_try = False
+                self.progress.record_attempt(
+                    lesson_id=lesson.id,
+                    platform=lesson.platform,
+                    task_id=task.id,
+                    is_correct=False,
+                    is_first_try=is_first_try,
+                    is_skipped=False,
+                )
+                console.print("[bold red]✗ Incorrect command. Try again, or type 'hint' / 'skip' / 'exit'.[/]")
 
         console.print("\n[bold green]Review Session Completed![/]\n")
         questionary.press_any_key_to_continue().ask()
+
+    def daily_review_menu(self) -> None:
+        due_entries = self.progress.get_due_review_entries()
+        if not due_entries:
+            console.print("\n[bold green]★ No tasks due for review right now. Check back later![/]\n")
+            questionary.press_any_key_to_continue().ask()
+            return
+
+        tasks_to_review = self._resolve_review_entries(due_entries)
+        self._run_review_session(
+            tasks_to_review,
+            title=f"Daily Review ({len(tasks_to_review)} due)",
+            description=(
+                f"Spaced repetition review for {len(tasks_to_review)} due command(s). "
+                "First-try correct answers clear the task from your queue."
+            ),
+        )
+
+    def review_failed_menu(self):
+        """Loads all failed tasks and allows practicing them."""
+        failed_entries = self.progress.get_failed_task_entries()
+        if not failed_entries:
+            console.print("\n[bold green]★ Nice job! You have no failed commands to review.[/]\n")
+            questionary.press_any_key_to_continue().ask()
+            return
+
+        console.print(f"\n[yellow]You have {len(failed_entries)} failed commands in your queue.[/]")
+        
+        confirm = questionary.confirm("Start practicing all failed commands?").ask()
+        if not confirm:
+            return
+
+        tasks_to_review = self._resolve_review_entries(failed_entries)
+        self._run_review_session(
+            tasks_to_review,
+            title="Review All Failed Commands",
+            description=f"Retrying {len(tasks_to_review)} commands you previously struggled with.",
+        )
 
     def view_stats(self):
         """Displays user stats and accuracy summary."""
@@ -659,8 +707,10 @@ class ConfTCLI:
 
         completed_count = len(data.get("completed_lessons", []))
         failed_count = len(data.get("failed_tasks", []))
+        due_count = self.progress.get_due_review_count()
         
         overview.add_row("Completed Lessons", str(completed_count))
+        overview.add_row("Due for Review", str(due_count))
         overview.add_row("Failed Commands Queue Size", str(failed_count))
         overview.add_row("Total Attempts Registered", str(data.get("total_attempts", 0)))
         overview.add_row("First-Try Correct Commands", str(data.get("correct_first_try", 0)))

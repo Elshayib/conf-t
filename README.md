@@ -71,7 +71,7 @@ You will be greeted with an interactive menu:
 
 ```
 ╔══════════════════════════════╗
-║         Conf T  v0.3.2       ║
+║         Conf T  v0.3.3       ║
 ╚══════════════════════════════╝
 
 ? Select an option:
@@ -87,6 +87,19 @@ You will be greeted with an interactive menu:
 When practicing a lesson, the curriculum browser groups lessons by difficulty, shows your progress (✓ ◐ ○) and **passed/total** counts (e.g. `7/12`), highlights a **recommended next** lesson, and warns softly if prerequisites are not yet completed. Re-entering a lesson lets you **resume**, **start over**, or **pick a task** to continue from.
 
 **Spaced repetition:** failed commands resurface on a schedule (due now → 1 day → 3 days → 7 days). When tasks are due, **Daily Review** appears at the top of the main menu.
+
+### CLI flags (power users)
+
+```bash
+conf-t                              # interactive menu (default)
+conf-t --list                       # list all lessons
+conf-t --list --platform Cisco      # filter by platform
+conf-t --lesson cisco_basic         # start a lesson by ID
+conf-t --review                     # daily review (due tasks)
+conf-t --review-all                 # review entire failed queue
+conf-t --stats                      # print progress and exit
+conf-t --version
+```
 
 During a practice session:
 

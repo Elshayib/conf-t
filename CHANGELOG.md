@@ -5,6 +5,25 @@ All notable changes to Conf T are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.3.3] - 2026-07-04
+
+### Added
+
+- **CLI flags** for power users (interactive menu remains the default):
+  - `conf-t --list` — list lessons with progress
+  - `conf-t --list --platform Cisco` — filter by platform
+  - `conf-t --lesson cisco_basic` — jump into a lesson (resume flow applies)
+  - `conf-t --review` — run daily review for due tasks
+  - `conf-t --review-all` — review entire failed queue
+  - `conf-t --stats` — print progress stats and exit
+  - `conf-t --version` — show version
+
+### Changed
+
+- Version bumped to **0.3.3**
+
+---
+
 ## [0.3.2] - 2026-07-04
 
 ### Added
@@ -106,6 +125,7 @@ If you have an older `~/.conf_t_progress.json` from v0.1.x, reset progress from 
 - Lesson creator wizard
 - Starter lessons for Cisco, Linux, PowerShell, Git, and Docker
 
+[0.3.3]: https://github.com/Elshayib/conf-t/releases/tag/v0.3.3
 [0.3.2]: https://github.com/Elshayib/conf-t/releases/tag/v0.3.2
 [0.3.1]: https://github.com/Elshayib/conf-t/releases/tag/v0.3.1
 [0.3.0]: https://github.com/Elshayib/conf-t/releases/tag/v0.3.0

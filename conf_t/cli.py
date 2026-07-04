@@ -51,6 +51,79 @@ class ConfTCLI:
         ])
         return choices
 
+    def list_lessons(self, platform: str | None = None) -> None:
+        lessons = self.loader.load_all_lessons()
+        if platform:
+            lessons = [
+                lesson
+                for lesson in lessons
+                if lesson.platform.lower() == platform.lower()
+            ]
+        if not lessons:
+            if platform:
+                console.print(f"[yellow]No lessons found for platform '{platform}'.[/]")
+            else:
+                console.print("[yellow]No lessons found.[/]")
+            return
+
+        sorted_lessons = sort_lessons_by_curriculum(lessons)
+        table = Table(
+            title="[bold cyan]Conf T Lessons[/]",
+            box=box.ROUNDED,
+            border_style="cyan",
+        )
+        table.add_column("ID", style="dim")
+        table.add_column("Title", style="white")
+        table.add_column("Platform", style="cyan")
+        table.add_column("Difficulty", style="yellow")
+        table.add_column("Progress", style="green")
+
+        for lesson in sorted_lessons:
+            task_ids = [task.id for task in lesson.tasks]
+            summary = self.progress.get_lesson_task_summary(lesson.id, task_ids)
+            table.add_row(
+                lesson.id,
+                lesson.title,
+                lesson.platform,
+                lesson.difficulty,
+                f"{summary['passed']}/{summary['total']}",
+            )
+
+        console.print(table)
+
+    def run_lesson_by_id(self, lesson_id: str) -> None:
+        lesson = self.loader.get_lesson_by_id(lesson_id)
+        if not lesson:
+            console.print(f"[bold red]Lesson not found:[/] {lesson_id}")
+            console.print("[dim]Use --list to see available lesson IDs.[/]")
+            sys.exit(1)
+
+        lessons = self.loader.load_all_lessons()
+        if not self._confirm_lesson_start(lesson, lessons):
+            return
+
+        tasks_to_run = self._choose_lesson_tasks(lesson)
+        if tasks_to_run is None:
+            return
+        self.run_practice_session(lesson, tasks_to_run=tasks_to_run)
+
+    def run_from_args(self, args) -> None:
+        if args.list:
+            self.list_lessons(args.platform)
+            return
+        if args.stats:
+            self.view_stats(interactive=False)
+            return
+        if args.review:
+            self.daily_review_menu(interactive=False)
+            return
+        if args.review_all:
+            self.review_failed_menu(interactive=False)
+            return
+        if args.lesson:
+            self.run_lesson_by_id(args.lesson)
+            return
+
     def run(self):
         """Main application execution loop."""
         self.show_welcome_banner()
@@ -547,6 +620,7 @@ class ConfTCLI:
         tasks_to_review: list[tuple[Lesson, Task]],
         title: str,
         description: str,
+        interactive: bool = True,
     ) -> None:
         if not tasks_to_review:
             console.print("[red]Could not load review tasks. The source lesson files might have changed.[/]")
@@ -656,13 +730,15 @@ class ConfTCLI:
                 console.print("[bold red]✗ Incorrect command. Try again, or type 'hint' / 'skip' / 'exit'.[/]")
 
         console.print("\n[bold green]Review Session Completed![/]\n")
-        questionary.press_any_key_to_continue().ask()
+        if interactive:
+            questionary.press_any_key_to_continue().ask()
 
-    def daily_review_menu(self) -> None:
+    def daily_review_menu(self, interactive: bool = True) -> None:
         due_entries = self.progress.get_due_review_entries()
         if not due_entries:
             console.print("\n[bold green]★ No tasks due for review right now. Check back later![/]\n")
-            questionary.press_any_key_to_continue().ask()
+            if interactive:
+                questionary.press_any_key_to_continue().ask()
             return
 
         tasks_to_review = self._resolve_review_entries(due_entries)
@@ -673,30 +749,37 @@ class ConfTCLI:
                 f"Spaced repetition review for {len(tasks_to_review)} due command(s). "
                 "First-try correct answers clear the task from your queue."
             ),
+            interactive=interactive,
         )
 
-    def review_failed_menu(self):
+    def review_failed_menu(self, interactive: bool = True) -> None:
         """Loads all failed tasks and allows practicing them."""
         failed_entries = self.progress.get_failed_task_entries()
         if not failed_entries:
             console.print("\n[bold green]★ Nice job! You have no failed commands to review.[/]\n")
-            questionary.press_any_key_to_continue().ask()
+            if interactive:
+                questionary.press_any_key_to_continue().ask()
             return
 
-        console.print(f"\n[yellow]You have {len(failed_entries)} failed commands in your queue.[/]")
-        
-        confirm = questionary.confirm("Start practicing all failed commands?").ask()
-        if not confirm:
-            return
+        if interactive:
+            console.print(f"\n[yellow]You have {len(failed_entries)} failed commands in your queue.[/]")
+            confirm = questionary.confirm("Start practicing all failed commands?").ask()
+            if not confirm:
+                return
+        else:
+            console.print(
+                f"\n[yellow]Reviewing {len(failed_entries)} failed command(s) from the queue.[/]"
+            )
 
         tasks_to_review = self._resolve_review_entries(failed_entries)
         self._run_review_session(
             tasks_to_review,
             title="Review All Failed Commands",
             description=f"Retrying {len(tasks_to_review)} commands you previously struggled with.",
+            interactive=interactive,
         )
 
-    def view_stats(self):
+    def view_stats(self, interactive: bool = True) -> None:
         """Displays user stats and accuracy summary."""
         data = self.progress.data
         console.print("\n")
@@ -738,7 +821,8 @@ class ConfTCLI:
         else:
             console.print("\n[dim yellow]No platform stats recorded yet. Complete some lessons to view platform breakdowns.[/]\n")
 
-        questionary.press_any_key_to_continue().ask()
+        if interactive:
+            questionary.press_any_key_to_continue().ask()
 
     def reset_progress_menu(self):
         """Prompts for resetting all stats."""

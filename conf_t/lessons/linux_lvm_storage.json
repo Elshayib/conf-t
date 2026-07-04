@@ -1,0 +1,102 @@
+{
+    "id": "linux_lvm_storage",
+    "title": "Linux LVM and Storage Management",
+    "platform": "Linux",
+    "description": "Manage logical volumes, inspect disk usage, mount filesystems, and work with block devices using LVM and standard storage tools.",
+    "difficulty": "advanced",
+    "tags": ["lvm", "storage", "filesystem"],
+    "prerequisites": ["linux_basic"],
+    "estimated_minutes": 40,
+    "tasks": [
+        {
+            "id": "linux_lvm_storage__lsblk_list",
+            "prompt": "List all block devices in a tree format showing partitions and mount points.",
+            "prefix": "user@ubuntu:~$",
+            "expected": "^lsblk$",
+            "aliases": ["lsblk -f"],
+            "hint": "Use lsblk: 'lsblk'",
+            "explanation": "'lsblk' displays block devices, their partitions, sizes, and mount points in an easy-to-read tree."
+        },
+        {
+            "id": "linux_lvm_storage__df_human",
+            "prompt": "Show filesystem disk space usage in human-readable format.",
+            "prefix": "user@ubuntu:~$",
+            "expected": "^df\\s+-h$",
+            "aliases": [],
+            "hint": "Use df with human-readable (-h): 'df -h'",
+            "explanation": "'df -h' reports total, used, and available space on mounted filesystems with KB/MB/GB units."
+        },
+        {
+            "id": "linux_lvm_storage__du_summary",
+            "prompt": "Show the total disk usage of the directory '/var/log' in human-readable format.",
+            "prefix": "user@ubuntu:~$",
+            "expected": "^du\\s+-sh\\s+/var/log$",
+            "aliases": [],
+            "hint": "Use du with summary and human flags: 'du -sh /var/log'",
+            "explanation": "'du -sh' summarizes directory size. '-s' gives a total only, and '-h' uses readable units."
+        },
+        {
+            "id": "linux_lvm_storage__pvcreate_init",
+            "prompt": "Initialize '/dev/sdb' as an LVM physical volume.",
+            "prefix": "user@ubuntu:~$",
+            "expected": "^sudo\\s+pvcreate\\s+/dev/sdb$",
+            "aliases": ["pvcreate /dev/sdb"],
+            "hint": "Use pvcreate: 'sudo pvcreate /dev/sdb'",
+            "explanation": "'pvcreate' marks a disk or partition for use by LVM, creating a physical volume."
+        },
+        {
+            "id": "linux_lvm_storage__vgcreate_pool",
+            "prompt": "Create a volume group named 'vg_data' using physical volume '/dev/sdb'.",
+            "prefix": "user@ubuntu:~$",
+            "expected": "^sudo\\s+vgcreate\\s+vg_data\\s+/dev/sdb$",
+            "aliases": ["vgcreate vg_data /dev/sdb"],
+            "hint": "Use vgcreate: 'sudo vgcreate vg_data /dev/sdb'",
+            "explanation": "'vgcreate' combines one or more physical volumes into a storage pool called a volume group."
+        },
+        {
+            "id": "linux_lvm_storage__lvcreate_logical",
+            "prompt": "Create a 10 GB logical volume named 'lv_apps' in volume group 'vg_data'.",
+            "prefix": "user@ubuntu:~$",
+            "expected": "^sudo\\s+lvcreate\\s+-L\\s+10G\\s+-n\\s+lv_apps\\s+vg_data$",
+            "aliases": ["lvcreate -n lv_apps -L 10G vg_data"],
+            "hint": "Use lvcreate with size and name: 'sudo lvcreate -L 10G -n lv_apps vg_data'",
+            "explanation": "'lvcreate' allocates space from a volume group to create a logical volume usable like a disk partition."
+        },
+        {
+            "id": "linux_lvm_storage__lvextend_grow",
+            "prompt": "Extend logical volume 'vg_data/lv_apps' by 5 GB.",
+            "prefix": "user@ubuntu:~$",
+            "expected": "^sudo\\s+lvextend\\s+-L\\s+\\+5G\\s+/dev/vg_data/lv_apps$",
+            "aliases": ["lvextend -L +5G /dev/vg_data/lv_apps"],
+            "hint": "Use lvextend with +size: 'sudo lvextend -L +5G /dev/vg_data/lv_apps'",
+            "explanation": "'lvextend -L +5G' grows the logical volume by 5 GB. The filesystem must also be resized separately."
+        },
+        {
+            "id": "linux_lvm_storage__resize2fs_grow",
+            "prompt": "Resize the ext4 filesystem on '/dev/vg_data/lv_apps' to fill the logical volume.",
+            "prefix": "user@ubuntu:~$",
+            "expected": "^sudo\\s+resize2fs\\s+/dev/vg_data/lv_apps$",
+            "aliases": ["resize2fs /dev/vg_data/lv_apps"],
+            "hint": "Use resize2fs: 'sudo resize2fs /dev/vg_data/lv_apps'",
+            "explanation": "'resize2fs' expands an ext2/ext3/ext4 filesystem to use all available space in its underlying device."
+        },
+        {
+            "id": "linux_lvm_storage__mount_device",
+            "prompt": "Mount '/dev/vg_data/lv_apps' to the mount point '/mnt/apps'.",
+            "prefix": "user@ubuntu:~$",
+            "expected": "^sudo\\s+mount\\s+/dev/vg_data/lv_apps\\s+/mnt/apps$",
+            "aliases": ["mount /dev/vg_data/lv_apps /mnt/apps"],
+            "hint": "Use mount: 'sudo mount /dev/vg_data/lv_apps /mnt/apps'",
+            "explanation": "'mount' attaches a filesystem to a directory, making its contents accessible at that path."
+        },
+        {
+            "id": "linux_lvm_storage__pvs_display",
+            "prompt": "Display a summary of all LVM physical volumes on the system.",
+            "prefix": "user@ubuntu:~$",
+            "expected": "^pvs$",
+            "aliases": ["sudo pvs"],
+            "hint": "Use pvs: 'pvs'",
+            "explanation": "'pvs' provides a concise overview of physical volumes, their volume groups, and free space."
+        }
+    ]
+}

@@ -1,0 +1,147 @@
+{
+    "id": "cisco_acl_extended",
+    "title": "Cisco Extended ACLs",
+    "platform": "Cisco",
+    "description": "Learn advanced extended IP access control lists including protocol and port filtering, named ACLs, logging, established connections, and interface application for granular traffic control.",
+    "difficulty": "advanced",
+    "tags": ["acl", "security", "ccna"],
+    "prerequisites": ["cisco_acl_standard"],
+    "estimated_minutes": 25,
+    "tasks": [
+        {
+            "id": "cisco_acl_extended__permit_tcp_host",
+            "prompt": "Create extended ACL 100 to permit TCP traffic from host 10.1.1.10 to host 10.1.2.20 on destination port 80.",
+            "prefix": "Router(config)#",
+            "expected": "^access-list\\s+100\\s+permit\\s+tcp\\s+host\\s+10\\.1\\.1\\.10\\s+host\\s+10\\.1\\.2\\.20\\s+eq\\s+80$",
+            "aliases": ["access-list 100 permit tcp host 10.1.1.10 host 10.1.2.20 eq 80"],
+            "hint": "Use: 'access-list 100 permit tcp host 10.1.1.10 host 10.1.2.20 eq 80'",
+            "explanation": "Extended ACLs filter on source/destination IP, protocol, and port numbers. The 'eq 80' keyword matches HTTP traffic."
+        },
+        {
+            "id": "cisco_acl_extended__deny_tcp_port",
+            "prompt": "Deny all TCP traffic to any destination on port 23 (Telnet) in extended ACL 100.",
+            "prefix": "Router(config)#",
+            "expected": "^access-list\\s+100\\s+deny\\s+tcp\\s+any\\s+any\\s+eq\\s+23$",
+            "aliases": ["access-list 100 deny tcp any any eq 23"],
+            "hint": "Use: 'access-list 100 deny tcp any any eq 23'",
+            "explanation": "Blocking Telnet (port 23) is a common security practice. Extended ACLs can target specific services regardless of source or destination IP."
+        },
+        {
+            "id": "cisco_acl_extended__permit_udp_dns",
+            "prompt": "Permit UDP traffic from any source to any destination on port 53 (DNS) in extended ACL 100.",
+            "prefix": "Router(config)#",
+            "expected": "^access-list\\s+100\\s+permit\\s+udp\\s+any\\s+any\\s+eq\\s+53$",
+            "aliases": ["access-list 100 permit udp any any eq 53"],
+            "hint": "Use: 'access-list 100 permit udp any any eq 53'",
+            "explanation": "UDP port 53 is used for DNS queries. Extended ACLs allow protocol-specific filtering beyond what standard ACLs support."
+        },
+        {
+            "id": "cisco_acl_extended__permit_icmp",
+            "prompt": "Permit all ICMP traffic from network 10.1.1.0/24 to any destination in extended ACL 100.",
+            "prefix": "Router(config)#",
+            "expected": "^access-list\\s+100\\s+permit\\s+icmp\\s+10\\.1\\.1\\.0\\s+0\\.0\\.0\\.255\\s+any$",
+            "aliases": ["access-list 100 permit icmp 10.1.1.0 0.0.0.255 any"],
+            "hint": "Use: 'access-list 100 permit icmp 10.1.1.0 0.0.0.255 any'",
+            "explanation": "ICMP is commonly permitted for ping and traceroute diagnostics. Extended ACLs support ICMP as a filterable protocol."
+        },
+        {
+            "id": "cisco_acl_extended__established",
+            "prompt": "Permit TCP return traffic for established sessions from any source to network 10.1.1.0/24 in ACL 100.",
+            "prefix": "Router(config)#",
+            "expected": "^access-list\\s+100\\s+permit\\s+tcp\\s+any\\s+10\\.1\\.1\\.0\\s+0\\.0\\.0\\.255\\s+established$",
+            "aliases": ["access-list 100 permit tcp any 10.1.1.0 0.0.0.255 established"],
+            "hint": "Use: 'access-list 100 permit tcp any 10.1.1.0 0.0.0.255 established'",
+            "explanation": "The 'established' keyword matches TCP segments with the ACK flag set, allowing return traffic for outbound-initiated connections."
+        },
+        {
+            "id": "cisco_acl_extended__permit_ip_range",
+            "prompt": "Permit all IP traffic from 172.16.0.0/16 to 172.17.0.0/16 in extended ACL 100.",
+            "prefix": "Router(config)#",
+            "expected": "^access-list\\s+100\\s+permit\\s+ip\\s+172\\.16\\.0\\.0\\s+0\\.0\\.255\\.255\\s+172\\.17\\.0\\.0\\s+0\\.0\\.255\\.255$",
+            "aliases": ["access-list 100 permit ip 172.16.0.0 0.0.255.255 172.17.0.0 0.0.255.255"],
+            "hint": "Use: 'access-list 100 permit ip 172.16.0.0 0.0.255.255 172.17.0.0 0.0.255.255'",
+            "explanation": "Using 'ip' as the protocol permits all IP-based traffic between two subnets, useful as a broad allow rule placed after specific denies."
+        },
+        {
+            "id": "cisco_acl_extended__deny_log",
+            "prompt": "Deny all IP traffic from host 10.1.1.99 to any destination and log matched packets in ACL 100.",
+            "prefix": "Router(config)#",
+            "expected": "^access-list\\s+100\\s+deny\\s+ip\\s+host\\s+10\\.1\\.1\\.99\\s+any\\s+log$",
+            "aliases": ["access-list 100 deny ip host 10.1.1.99 any log"],
+            "hint": "Use: 'access-list 100 deny ip host 10.1.1.99 any log'",
+            "explanation": "The 'log' keyword generates a syslog message for each packet matching the rule, aiding security monitoring and incident investigation."
+        },
+        {
+            "id": "cisco_acl_extended__named_acl",
+            "prompt": "Create a named extended ACL called 'WEB-FILTER'.",
+            "prefix": "Router(config)#",
+            "expected": "^ip\\s+access-list\\s+extended\\s+WEB-FILTER$",
+            "aliases": ["ip access-list extended WEB-FILTER"],
+            "hint": "Use: 'ip access-list extended WEB-FILTER'",
+            "explanation": "Named ACLs use descriptive identifiers instead of numbers, making them easier to manage and reference in large configurations."
+        },
+        {
+            "id": "cisco_acl_extended__named_permit_https",
+            "prompt": "In named ACL 'WEB-FILTER', permit TCP traffic from any source to any destination on port 443.",
+            "prefix": "Router(config-ext-nacl)#",
+            "expected": "^permit\\s+tcp\\s+any\\s+any\\s+eq\\s+443$",
+            "aliases": ["permit tcp any any eq 443"],
+            "hint": "Use: 'permit tcp any any eq 443'",
+            "explanation": "Within named ACL configuration mode, rules are entered without the access-list prefix. Port 443 is used for HTTPS encrypted web traffic."
+        },
+        {
+            "id": "cisco_acl_extended__named_deny_all",
+            "prompt": "In named ACL 'WEB-FILTER', deny all remaining IP traffic.",
+            "prefix": "Router(config-ext-nacl)#",
+            "expected": "^deny\\s+ip\\s+any\\s+any$",
+            "aliases": ["deny ip any any"],
+            "hint": "Use: 'deny ip any any'",
+            "explanation": "An explicit deny ip any any at the end of a named ACL provides a clear deny-all policy, though an implicit deny already exists."
+        },
+        {
+            "id": "cisco_acl_extended__remark_named",
+            "prompt": "Add a remark to named ACL 'WEB-FILTER' stating 'Allow HTTPS only'.",
+            "prefix": "Router(config-ext-nacl)#",
+            "expected": "^remark\\s+Allow\\s+HTTPS\\s+only$",
+            "aliases": ["remark Allow HTTPS only"],
+            "hint": "Use: 'remark Allow HTTPS only'",
+            "explanation": "Remarks in named ACLs document the intent of subsequent rules, improving readability for operations and audit teams."
+        },
+        {
+            "id": "cisco_acl_extended__apply_inbound",
+            "prompt": "Apply extended ACL 100 inbound on interface GigabitEthernet0/0.",
+            "prefix": "Router(config-if)#",
+            "expected": "^ip\\s+access-group\\s+100\\s+in$",
+            "aliases": ["ip access-group 100 in"],
+            "hint": "Use: 'ip access-group 100 in'",
+            "explanation": "Extended ACLs should be placed as close to the source as possible. Applying inbound filters traffic before it enters the network."
+        },
+        {
+            "id": "cisco_acl_extended__apply_named_outbound",
+            "prompt": "Apply named ACL 'WEB-FILTER' outbound on interface GigabitEthernet0/1.",
+            "prefix": "Router(config-if)#",
+            "expected": "^ip\\s+access-group\\s+WEB-FILTER\\s+out$",
+            "aliases": ["ip access-group WEB-FILTER out"],
+            "hint": "Use: 'ip access-group WEB-FILTER out'",
+            "explanation": "Named ACLs are applied to interfaces the same way as numbered ACLs, using the ACL name instead of a number."
+        },
+        {
+            "id": "cisco_acl_extended__show_acl_100",
+            "prompt": "Display the contents and hit counters for extended ACL 100.",
+            "prefix": "Router#",
+            "expected": "^show\\s+access-lists\\s+100$",
+            "aliases": ["sh access-lists 100", "sh access-list 100"],
+            "hint": "Use: 'show access-lists 100'",
+            "explanation": "Viewing a specific ACL shows each rule and its match count, helping verify that traffic is being filtered as intended."
+        },
+        {
+            "id": "cisco_acl_extended__remove_named_acl",
+            "prompt": "Remove the named extended ACL 'WEB-FILTER' from the router.",
+            "prefix": "Router(config)#",
+            "expected": "^no\\s+ip\\s+access-list\\s+extended\\s+WEB-FILTER$",
+            "aliases": ["no ip access-list extended WEB-FILTER"],
+            "hint": "Use: 'no ip access-list extended WEB-FILTER'",
+            "explanation": "Named extended ACLs are removed with 'no ip access-list extended' followed by the ACL name. Detach it from interfaces first."
+        }
+    ]
+}

@@ -1,0 +1,84 @@
+{
+    "id": "powershell_filtering",
+    "title": "PowerShell Filtering & Selection",
+    "platform": "PowerShell",
+    "description": "Learn to filter pipeline output with Where-Object, cmdlet parameters, and Select-String for text search.",
+    "difficulty": "intermediate",
+    "tags": ["filtering", "where-object", "search"],
+    "prerequisites": ["powershell_objects_pipeline"],
+    "estimated_minutes": 25,
+    "tasks": [
+        {
+            "id": "powershell_filtering__where_cpu",
+            "prompt": "List processes where CPU usage is greater than 100.",
+            "prefix": "PS C:\\>",
+            "expected": "^Get-Process\\s+\\|\\s+Where-Object\\s+\\{\\$_\\.CPU\\s+-gt\\s+100\\}$",
+            "aliases": ["Get-Process | Where-Object {$_.CPU -gt 100}", "gps | ? {$_.CPU -gt 100}"],
+            "hint": "Pipe to Where-Object with a CPU comparison script block.",
+            "explanation": "Where-Object filters objects that satisfy a script-block condition."
+        },
+        {
+            "id": "powershell_filtering__where_service_running",
+            "prompt": "List only services that are currently running.",
+            "prefix": "PS C:\\>",
+            "expected": "^Get-Service\\s+\\|\\s+Where-Object\\s+Status\\s+-eq\\s+'Running'$",
+            "aliases": ["Get-Service | Where-Object Status -eq 'Running'", "gsv | ? Status -eq Running"],
+            "hint": "Filter services where Status equals Running.",
+            "explanation": "Where-Object supports simplified property comparison syntax."
+        },
+        {
+            "id": "powershell_filtering__where_file_size",
+            "prompt": "List files in the current directory larger than 1 MB.",
+            "prefix": "PS C:\\>",
+            "expected": "^Get-ChildItem\\s+\\|\\s+Where-Object\\s+\\{\\$_\\.Length\\s+-gt\\s+1MB\\}$",
+            "aliases": ["Get-ChildItem | Where-Object {$_.Length -gt 1MB}"],
+            "hint": "Compare the Length property against 1MB in a script block.",
+            "explanation": "PowerShell supports unit suffixes like MB in numeric comparisons."
+        },
+        {
+            "id": "powershell_filtering__get_process_name",
+            "prompt": "Retrieve only the process named 'powershell'.",
+            "prefix": "PS C:\\>",
+            "expected": "^Get-Process\\s+-Name\\s+powershell$",
+            "aliases": ["Get-Process -Name powershell", "gps -Name powershell"],
+            "hint": "Use Get-Process with the -Name parameter.",
+            "explanation": "Many Get-* cmdlets accept filter parameters for targeted retrieval."
+        },
+        {
+            "id": "powershell_filtering__get_service_name",
+            "prompt": "Retrieve the Windows Update service (wuauserv) by name.",
+            "prefix": "PS C:\\>",
+            "expected": "^Get-Service\\s+-Name\\s+wuauserv$",
+            "aliases": ["Get-Service -Name wuauserv", "gsv wuauserv"],
+            "hint": "Use Get-Service with -Name wuauserv.",
+            "explanation": "Get-Service -Name returns a single service object when the name is known."
+        },
+        {
+            "id": "powershell_filtering__filter_txt",
+            "prompt": "List only .txt files in the current directory.",
+            "prefix": "PS C:\\>",
+            "expected": "^Get-ChildItem\\s+-Filter\\s+\\*\\.txt$",
+            "aliases": ["Get-ChildItem -Filter *.txt", "dir -Filter *.txt"],
+            "hint": "Use Get-ChildItem with -Filter and a wildcard pattern.",
+            "explanation": "The -Filter parameter applies a wildcard pattern at the provider level."
+        },
+        {
+            "id": "powershell_filtering__include_log",
+            "prompt": "Recursively find all .log files under 'C:\\Logs'.",
+            "prefix": "PS C:\\>",
+            "expected": "^Get-ChildItem\\s+-Path\\s+C:\\\\Logs\\s+-Recurse\\s+-Include\\s+\\*\\.log$",
+            "aliases": ["Get-ChildItem -Path C:\\Logs -Recurse -Include *.log"],
+            "hint": "Combine -Recurse and -Include with a path.",
+            "explanation": "-Include works with -Recurse to match files by extension in subfolders."
+        },
+        {
+            "id": "powershell_filtering__select_string",
+            "prompt": "Search 'app.log' for lines containing the word 'error'.",
+            "prefix": "PS C:\\>",
+            "expected": "^Select-String\\s+-Path\\s+app\\.log\\s+-Pattern\\s+\"error\"$",
+            "aliases": ["Select-String -Path app.log -Pattern error", "sls app.log error"],
+            "hint": "Use Select-String with -Path and -Pattern.",
+            "explanation": "Select-String performs pattern matching across file contents like grep."
+        }
+    ]
+}

@@ -1,0 +1,192 @@
+{
+    "id": "cisco_troubleshooting_lab",
+    "title": "Cisco Troubleshooting Capstone Lab",
+    "platform": "Cisco",
+    "description": "A capstone troubleshooting lab covering distinct VLAN, inter-VLAN routing, OSPF, ACL, trunk, and interface scenarios. Diagnose each issue with show commands and apply the correct fix.",
+    "difficulty": "advanced",
+    "tags": ["troubleshooting", "ccna", "capstone"],
+    "prerequisites": ["cisco_vlan_fundamentals", "cisco_ospf_single_area", "cisco_acl_standard"],
+    "estimated_minutes": 40,
+    "tasks": [
+        {
+            "id": "cisco_troubleshooting_lab__show_vlan_brief",
+            "prompt": "Scenario 1 — Users in VLAN 30 cannot reach the network. Inspect VLAN assignments on SW-ACCESS to confirm VLAN 30 exists.",
+            "prefix": "SW-ACCESS#",
+            "expected": "^show\\s+vlan\\s+brief$",
+            "aliases": ["sh vlan brief", "sh vlan br"],
+            "hint": "Use: 'show vlan brief'",
+            "explanation": "Start VLAN troubleshooting by verifying the VLAN database and which ports are assigned to each VLAN."
+        },
+        {
+            "id": "cisco_troubleshooting_lab__fix_access_vlan",
+            "prompt": "Scenario 1 — Port Fa0/12 is in VLAN 1 but should serve VLAN 30 (Marketing). Assign the correct access VLAN.",
+            "prefix": "SW-ACCESS(config-if)#",
+            "expected": "^switchport\\s+access\\s+vlan\\s+30$",
+            "aliases": ["sw acc vlan 30", "switchport access vlan 30"],
+            "hint": "Use: 'switchport access vlan 30'",
+            "explanation": "An access port in the wrong VLAN isolates the host from its intended subnet and default gateway."
+        },
+        {
+            "id": "cisco_troubleshooting_lab__show_interface_status",
+            "prompt": "Scenario 2 — A user reports no link on desk port Gi1/0/5. Check interface status to see if the port is err-disabled or down.",
+            "prefix": "SW-ACCESS#",
+            "expected": "^show\\s+interfaces\\s+status$",
+            "aliases": ["sh int status", "sh interfaces status"],
+            "hint": "Use: 'show interfaces status'",
+            "explanation": "Interface status shows admin/oper state, VLAN, speed, and type—quickly revealing shut down or err-disabled ports."
+        },
+        {
+            "id": "cisco_troubleshooting_lab__no_shutdown_interface",
+            "prompt": "Scenario 2 — Gi1/0/5 is administratively down. Bring the interface up.",
+            "prefix": "SW-ACCESS(config-if)#",
+            "expected": "^no\\s+shutdown$",
+            "aliases": ["no shut"],
+            "hint": "Use: 'no shutdown'",
+            "explanation": "A port left in shutdown state after maintenance blocks all traffic even when the cable is connected."
+        },
+        {
+            "id": "cisco_troubleshooting_lab__show_ip_interface_brief",
+            "prompt": "Scenario 3 — Inter-VLAN routing fails between VLAN 10 and VLAN 20. Check L3 interface status on DSW-CORE.",
+            "prefix": "DSW-CORE#",
+            "expected": "^show\\s+ip\\s+interface\\s+brief$",
+            "aliases": ["sh ip int br", "sh ip interface brief"],
+            "hint": "Use: 'show ip interface brief'",
+            "explanation": "This command reveals whether SVIs are up/up and have correct IP addresses assigned."
+        },
+        {
+            "id": "cisco_troubleshooting_lab__enable_ip_routing",
+            "prompt": "Scenario 3 — DSW-CORE is not routing between VLANs. Enable Layer 3 routing on the multilayer switch.",
+            "prefix": "DSW-CORE(config)#",
+            "expected": "^ip\\s+routing$",
+            "aliases": [],
+            "hint": "Use: 'ip routing'",
+            "explanation": "Without 'ip routing', a multilayer switch acts as a Layer 2 device and cannot forward between SVIs."
+        },
+        {
+            "id": "cisco_troubleshooting_lab__create_svi_vlan20",
+            "prompt": "Scenario 4 — VLAN 20 hosts have no gateway. Enter configuration for the missing VLAN 20 SVI.",
+            "prefix": "DSW-CORE(config)#",
+            "expected": "^interface\\s+vlan\\s+20$",
+            "aliases": ["int vlan 20", "interface vlan20"],
+            "hint": "Use: 'interface vlan 20'",
+            "explanation": "Each routed VLAN requires an SVI. Missing SVIs are a common cause of inter-VLAN connectivity failures."
+        },
+        {
+            "id": "cisco_troubleshooting_lab__svi_ip_address",
+            "prompt": "Scenario 4 — Assign gateway address 192.168.20.1/24 to the VLAN 20 SVI.",
+            "prefix": "DSW-CORE(config-if)#",
+            "expected": "^ip\\s+address\\s+192\\.168\\.20\\.1\\s+255\\.255\\.255\\.0$",
+            "aliases": ["ip add 192.168.20.1 255.255.255.0"],
+            "hint": "Use: 'ip address 192.168.20.1 255.255.255.0'",
+            "explanation": "Hosts in VLAN 20 use this address as their default gateway to reach other subnets."
+        },
+        {
+            "id": "cisco_troubleshooting_lab__show_ip_route",
+            "prompt": "Scenario 5 — Branch office cannot reach HQ subnet 10.50.0.0/16. Inspect the routing table on R1.",
+            "prefix": "R1#",
+            "expected": "^show\\s+ip\\s+route$",
+            "aliases": ["sh ip route", "sh ip ro"],
+            "hint": "Use: 'show ip route'",
+            "explanation": "The routing table shows whether the router has a path to the destination network via connected, static, or dynamic routes."
+        },
+        {
+            "id": "cisco_troubleshooting_lab__static_route",
+            "prompt": "Scenario 5 — Add a static route to 10.50.0.0/16 via next-hop 203.0.113.1 on R1.",
+            "prefix": "R1(config)#",
+            "expected": "^ip\\s+route\\s+10\\.50\\.0\\.0\\s+255\\.255\\.0\\.0\\s+203\\.0\\.113\\.1$",
+            "aliases": ["ip route 10.50.0.0 255.255.0.0 203.0.113.1"],
+            "hint": "Use: 'ip route 10.50.0.0 255.255.0.0 203.0.113.1'",
+            "explanation": "A missing static route prevents the router from forwarding packets toward remote networks not learned dynamically."
+        },
+        {
+            "id": "cisco_troubleshooting_lab__show_ip_ospf_neighbor",
+            "prompt": "Scenario 6 — OSPF neighbors are not forming on R2. Verify OSPF adjacency state.",
+            "prefix": "R2#",
+            "expected": "^show\\s+ip\\s+ospf\\s+neighbor$",
+            "aliases": ["sh ip ospf neighbor", "sh ip ospf nei"],
+            "hint": "Use: 'show ip ospf neighbor'",
+            "explanation": "An empty neighbor table indicates mismatched area IDs, ACL blocks, passive interfaces, or network statement errors."
+        },
+        {
+            "id": "cisco_troubleshooting_lab__ospf_network_statement",
+            "prompt": "Scenario 6 — R2's Gi0/0 (10.1.1.2/30) is not in OSPF area 0. Advertise 10.1.1.0/30 into area 0.",
+            "prefix": "R2(config-router)#",
+            "expected": "^network\\s+10\\.1\\.1\\.0\\s+0\\.0\\.0\\.3\\s+area\\s+0$",
+            "aliases": ["net 10.1.1.0 0.0.0.3 area 0", "network 10.1.1.0 0.0.0.3 a 0"],
+            "hint": "Use: 'network 10.1.1.0 0.0.0.3 area 0'",
+            "explanation": "Interfaces not covered by a network statement do not participate in OSPF and cannot form adjacencies."
+        },
+        {
+            "id": "cisco_troubleshooting_lab__show_access_lists",
+            "prompt": "Scenario 7 — Management host 192.168.99.10 cannot SSH to R3. Check ACL hit counters to find the blocking rule.",
+            "prefix": "R3#",
+            "expected": "^show\\s+access-lists$",
+            "aliases": ["sh access-lists", "sh access-list"],
+            "hint": "Use: 'show access-lists'",
+            "explanation": "ACL hit counters reveal which permit or deny statement is matching traffic, pinpointing overly restrictive rules."
+        },
+        {
+            "id": "cisco_troubleshooting_lab__acl_permit_management",
+            "prompt": "Scenario 7 — ACL 10 is missing a permit for the management subnet. Permit 192.168.99.0/24 in standard ACL 10.",
+            "prefix": "R3(config)#",
+            "expected": "^access-list\\s+10\\s+permit\\s+192\\.168\\.99\\.0\\s+0\\.0\\.0\\.255$",
+            "aliases": ["access-list 10 permit 192.168.99.0 0.0.0.255"],
+            "hint": "Use: 'access-list 10 permit 192.168.99.0 0.0.0.255'",
+            "explanation": "Standard ACLs filter on source address. A missing permit before the implicit deny blocks management traffic."
+        },
+        {
+            "id": "cisco_troubleshooting_lab__apply_acl_inbound",
+            "prompt": "Scenario 8 — ACL 10 exists but is not filtering traffic on R3. Apply ACL 10 inbound on GigabitEthernet0/0.",
+            "prefix": "R3(config-if)#",
+            "expected": "^ip\\s+access-group\\s+10\\s+in$",
+            "aliases": ["ip access-group 10 in"],
+            "hint": "Use: 'ip access-group 10 in'",
+            "explanation": "An ACL has no effect until bound to an interface. Verify both the ACL content and its interface application."
+        },
+        {
+            "id": "cisco_troubleshooting_lab__show_interfaces_trunk",
+            "prompt": "Scenario 9 — VLAN 40 traffic is not reaching the core. Inspect trunk links on SW-DIST to verify allowed VLANs.",
+            "prefix": "SW-DIST#",
+            "expected": "^show\\s+interfaces\\s+trunk$",
+            "aliases": ["sh int trunk", "sh interfaces trunk"],
+            "hint": "Use: 'show interfaces trunk'",
+            "explanation": "Trunk status shows encapsulation, native VLAN, and which VLANs are allowed and actively forwarding."
+        },
+        {
+            "id": "cisco_troubleshooting_lab__trunk_allowed_vlan",
+            "prompt": "Scenario 9 — VLAN 40 is pruned from the trunk to the core. Add VLAN 40 to the allowed list on Gi0/1.",
+            "prefix": "SW-DIST(config-if)#",
+            "expected": "^switchport\\s+trunk\\s+allowed\\s+vlan\\s+add\\s+40$",
+            "aliases": ["sw trunk allowed vlan add 40"],
+            "hint": "Use: 'switchport trunk allowed vlan add 40'",
+            "explanation": "If a VLAN is not in the trunk allowed list, traffic for that VLAN cannot traverse the inter-switch link."
+        },
+        {
+            "id": "cisco_troubleshooting_lab__switchport_mode_trunk",
+            "prompt": "Scenario 10 — The uplink on SW-ACCESS Fa0/24 is stuck in access mode. Configure it as an 802.1Q trunk.",
+            "prefix": "SW-ACCESS(config-if)#",
+            "expected": "^switchport\\s+mode\\s+trunk$",
+            "aliases": ["sw mod trunk", "sw mode trunk"],
+            "hint": "Use: 'switchport mode trunk'",
+            "explanation": "An uplink left in access mode carries only one VLAN, breaking connectivity for all other VLANs on remote switches."
+        },
+        {
+            "id": "cisco_troubleshooting_lab__duplex_full",
+            "prompt": "Scenario 11 — CRC errors on R1 Gi0/1 suggest a duplex mismatch with the ISP router. Set full duplex.",
+            "prefix": "R1(config-if)#",
+            "expected": "^duplex\\s+full$",
+            "aliases": [],
+            "hint": "Use: 'duplex full'",
+            "explanation": "A duplex mismatch causes collisions, CRC errors, and intermittent packet loss on the link."
+        },
+        {
+            "id": "cisco_troubleshooting_lab__show_running_config_interface",
+            "prompt": "Scenario 12 — Final verification: review the full running configuration of R1's GigabitEthernet0/0 after all fixes.",
+            "prefix": "R1#",
+            "expected": "^show\\s+running-config\\s+interface\\s+GigabitEthernet0/0$",
+            "aliases": ["sh run int g0/0", "sh running-config interface gi0/0"],
+            "hint": "Use: 'show running-config interface GigabitEthernet0/0'",
+            "explanation": "Reviewing the interface running config confirms IP address, OSPF settings, ACL bindings, and speed/duplex in one place."
+        }
+    ]
+}

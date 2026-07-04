@@ -6,6 +6,12 @@ from pathlib import Path
 
 from conf_t.models import Lesson, Task, SessionStats
 
+DIFFICULTY_ORDER = {"beginner": 0, "intermediate": 1, "advanced": 2}
+LESSON_STATUS_COMPLETED = "completed"
+LESSON_STATUS_IN_PROGRESS = "in_progress"
+LESSON_STATUS_NOT_STARTED = "not_started"
+
+
 def validate_input(user_input: str, task: Task, platform: str) -> bool:
     """
     Validates the user's input command against the task's expected regex and aliases.
@@ -39,6 +45,71 @@ def validate_input(user_input: str, task: Task, platform: str) -> bool:
                 return True
 
     return False
+
+
+def format_display_answer(task: Task, platform: str) -> str:
+    """Return a human-readable correct answer for hints and skip reveals."""
+    if task.aliases:
+        return task.aliases[0]
+
+    display = task.expected
+    if display.startswith("^"):
+        display = display[1:]
+    if display.endswith("$"):
+        display = display[:-1]
+    display = display.replace(r"\s+", " ")
+    display = display.replace(r"\s", " ")
+    display = display.replace("\\", "")
+    return display
+
+
+def sort_lessons_by_curriculum(lessons: List[Lesson]) -> List[Lesson]:
+    return sorted(
+        lessons,
+        key=lambda lesson: (
+            DIFFICULTY_ORDER.get(lesson.difficulty, 99),
+            lesson.title.lower(),
+        ),
+    )
+
+
+def get_missing_prerequisites(
+    lesson: Lesson, completed_lessons: List[str]
+) -> List[str]:
+    completed = set(completed_lessons)
+    return [prereq for prereq in lesson.prerequisites if prereq not in completed]
+
+
+def are_prerequisites_met(lesson: Lesson, completed_lessons: List[str]) -> bool:
+    return not get_missing_prerequisites(lesson, completed_lessons)
+
+
+def get_lesson_status(
+    lesson_id: str,
+    completed_lessons: List[str],
+    attempted_lessons: List[str],
+    failed_lesson_ids: List[str],
+) -> str:
+    if lesson_id in completed_lessons:
+        return LESSON_STATUS_COMPLETED
+    if lesson_id in attempted_lessons or lesson_id in failed_lesson_ids:
+        return LESSON_STATUS_IN_PROGRESS
+    return LESSON_STATUS_NOT_STARTED
+
+
+def get_recommended_lesson(
+    lessons: List[Lesson], completed_lessons: List[str]
+) -> Optional[Lesson]:
+    for lesson in sort_lessons_by_curriculum(lessons):
+        if lesson.id in completed_lessons:
+            continue
+        if are_prerequisites_met(lesson, completed_lessons):
+            return lesson
+    return None
+
+
+def get_failed_lesson_ids(failed_tasks: List[Dict[str, str]]) -> List[str]:
+    return sorted({entry["lesson_id"] for entry in failed_tasks if "lesson_id" in entry})
 
 
 class LessonLoader:
@@ -116,6 +187,7 @@ class ProgressManager:
     def _default_structure(self) -> Dict[str, Any]:
         return {
             "completed_lessons": [],      # List of lesson IDs completed
+            "attempted_lessons": [],      # Lessons with at least one recorded attempt
             "failed_tasks": [],           # List of task definitions for spaced review/re-queueing
             "total_attempts": 0,
             "correct_first_try": 0,
@@ -130,7 +202,13 @@ class ProgressManager:
         except OSError:
             pass  # Fail silently if directory or permissions block writes
 
+    def mark_lesson_attempted(self, lesson_id: str):
+        if lesson_id not in self.data["attempted_lessons"]:
+            self.data["attempted_lessons"].append(lesson_id)
+            self.save()
+
     def record_attempt(self, lesson_id: str, platform: str, task_id: str, is_correct: bool, is_first_try: bool, is_skipped: bool):
+        self.mark_lesson_attempted(lesson_id)
         self.data["total_attempts"] += 1
         
         # Initialize platform stats

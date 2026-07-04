@@ -1,0 +1,102 @@
+{
+    "id": "cisco_stp",
+    "title": "Cisco Spanning Tree Protocol",
+    "platform": "Cisco",
+    "description": "Learn how to configure Rapid PVST+, enable PortFast and BPDU Guard, tune STP priorities, and verify spanning-tree topology.",
+    "difficulty": "intermediate",
+    "tags": ["stp", "switching", "ccna"],
+    "prerequisites": ["cisco_vlan_fundamentals"],
+    "estimated_minutes": 18,
+    "tasks": [
+        {
+            "id": "cisco_stp__enable",
+            "prompt": "Enter Privileged EXEC mode.",
+            "prefix": "Switch>",
+            "expected": "^enable$",
+            "aliases": ["en"],
+            "hint": "Use the command: 'enable' or 'en'",
+            "explanation": "STP configuration and verification require Privileged EXEC mode."
+        },
+        {
+            "id": "cisco_stp__configure_terminal",
+            "prompt": "Enter Global Configuration mode.",
+            "prefix": "Switch#",
+            "expected": "^configure\\s+terminal$",
+            "aliases": ["conf t", "config terminal", "config t"],
+            "hint": "Use the command: 'configure terminal' or 'conf t'",
+            "explanation": "Global and per-interface STP settings are configured from this mode."
+        },
+        {
+            "id": "cisco_stp__spanning_tree_mode_rapid_pvst",
+            "prompt": "Enable Rapid PVST+ spanning-tree mode globally.",
+            "prefix": "Switch(config)#",
+            "expected": "^spanning-tree\\s+mode\\s+rapid-pvst$",
+            "aliases": ["spanning tree mode rapid-pvst", "span mode rapid-pvst"],
+            "hint": "Use the command: 'spanning-tree mode rapid-pvst'",
+            "explanation": "Rapid PVST+ provides per-VLAN spanning tree with faster convergence than traditional STP."
+        },
+        {
+            "id": "cisco_stp__interface_fa01",
+            "prompt": "Enter Interface Configuration mode for FastEthernet0/1.",
+            "prefix": "Switch(config)#",
+            "expected": "^interface\\s+FastEthernet0/1$",
+            "aliases": ["int fa0/1", "int f0/1", "interface fa0/1", "interface f0/1"],
+            "hint": "Use the command: 'interface FastEthernet0/1' or 'int fa0/1'",
+            "explanation": "PortFast and BPDU Guard are configured on access ports connected to end-user devices."
+        },
+        {
+            "id": "cisco_stp__spanning_tree_portfast",
+            "prompt": "Enable PortFast on FastEthernet0/1 to skip listening and learning states.",
+            "prefix": "Switch(config-if)#",
+            "expected": "^spanning-tree\\s+portfast$",
+            "aliases": ["spanning tree portfast", "span portfast"],
+            "hint": "Use the command: 'spanning-tree portfast'",
+            "explanation": "PortFast allows an access port to transition directly to forwarding, enabling faster device connectivity."
+        },
+        {
+            "id": "cisco_stp__spanning_tree_bpduguard",
+            "prompt": "Enable BPDU Guard on FastEthernet0/1 to protect against rogue switches.",
+            "prefix": "Switch(config-if)#",
+            "expected": "^spanning-tree\\s+bpduguard\\s+enable$",
+            "aliases": ["spanning tree bpduguard enable", "span bpduguard enable"],
+            "hint": "Use the command: 'spanning-tree bpduguard enable'",
+            "explanation": "BPDU Guard disables a PortFast-enabled port if it receives a BPDU, preventing accidental or malicious loops."
+        },
+        {
+            "id": "cisco_stp__spanning_tree_vlan_priority",
+            "prompt": "Set the STP priority for VLAN 10 to 4096, making this switch more likely to become root.",
+            "prefix": "Switch(config-if)#",
+            "expected": "^spanning-tree\\s+vlan\\s+10\\s+priority\\s+4096$",
+            "aliases": ["span vlan 10 priority 4096", "spanning tree vlan 10 priority 4096"],
+            "hint": "Use the command: 'spanning-tree vlan 10 priority 4096'",
+            "explanation": "Lower priority values increase the likelihood of being elected root bridge for that VLAN. 4096 is a common value for a primary root."
+        },
+        {
+            "id": "cisco_stp__spanning_tree_port_priority",
+            "prompt": "Set the STP port priority of FastEthernet0/1 to 64.",
+            "prefix": "Switch(config-if)#",
+            "expected": "^spanning-tree\\s+port-priority\\s+64$",
+            "aliases": ["spanning tree port-priority 64", "span port-priority 64"],
+            "hint": "Use the command: 'spanning-tree port-priority 64'",
+            "explanation": "Port priority influences which port becomes the root or designated port when path costs are equal."
+        },
+        {
+            "id": "cisco_stp__show_spanning_tree",
+            "prompt": "Display the spanning-tree topology for all VLANs.",
+            "prefix": "Switch(config-if)#",
+            "expected": "^show\\s+spanning-tree$",
+            "aliases": ["sh spanning-tree", "sh span"],
+            "hint": "Use the command: 'show spanning-tree'",
+            "explanation": "'show spanning-tree' reveals root bridge IDs, root ports, designated ports, and port roles for each VLAN instance."
+        },
+        {
+            "id": "cisco_stp__show_spanning_tree_vlan_10",
+            "prompt": "Display spanning-tree details for VLAN 10 only.",
+            "prefix": "Switch(config-if)#",
+            "expected": "^show\\s+spanning-tree\\s+vlan\\s+10$",
+            "aliases": ["sh spanning-tree vlan 10", "sh span vlan 10"],
+            "hint": "Use the command: 'show spanning-tree vlan 10'",
+            "explanation": "Filtering by VLAN helps verify root bridge election and port states for a specific broadcast domain."
+        }
+    ]
+}

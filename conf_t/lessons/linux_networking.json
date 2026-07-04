@@ -1,0 +1,120 @@
+{
+    "id": "linux_networking",
+    "title": "Linux Networking Tools",
+    "platform": "Linux",
+    "description": "Explore modern and classic networking utilities including ip, ss, netstat, curl, dig, and traceroute for connectivity diagnostics.",
+    "difficulty": "intermediate",
+    "tags": ["networking", "diagnostics", "dns"],
+    "prerequisites": ["linux_advanced"],
+    "estimated_minutes": 35,
+    "tasks": [
+        {
+            "id": "linux_networking__ip_addr_show",
+            "prompt": "Display all network interface addresses and link states.",
+            "prefix": "user@ubuntu:~$",
+            "expected": "^ip\\s+addr\\s+show$",
+            "aliases": ["ip a", "ip address"],
+            "hint": "Use ip addr show: 'ip addr show'",
+            "explanation": "'ip addr show' replaces 'ifconfig' on modern Linux, listing IP addresses assigned to each interface."
+        },
+        {
+            "id": "linux_networking__ip_link_up",
+            "prompt": "Bring the network interface 'eth0' up (administratively enable it).",
+            "prefix": "user@ubuntu:~$",
+            "expected": "^sudo\\s+ip\\s+link\\s+set\\s+eth0\\s+up$",
+            "aliases": ["ip link set eth0 up"],
+            "hint": "Use ip link set: 'sudo ip link set eth0 up'",
+            "explanation": "'ip link set eth0 up' enables the interface so it can send and receive traffic."
+        },
+        {
+            "id": "linux_networking__ip_route_show",
+            "prompt": "Display the kernel routing table.",
+            "prefix": "user@ubuntu:~$",
+            "expected": "^ip\\s+route\\s+show$",
+            "aliases": ["ip route", "route -n"],
+            "hint": "Use ip route show: 'ip route show'",
+            "explanation": "'ip route show' lists all routes the kernel uses to forward packets to destinations."
+        },
+        {
+            "id": "linux_networking__ss_listening",
+            "prompt": "List all TCP listening sockets with process information.",
+            "prefix": "user@ubuntu:~$",
+            "expected": "^ss\\s+-tlnp$",
+            "aliases": [],
+            "hint": "Use ss with flags -tlnp: 'ss -tlnp'",
+            "explanation": "'ss -tlnp' shows TCP (-t) listening (-l) numeric (-n) sockets with owning processes (-p)."
+        },
+        {
+            "id": "linux_networking__netstat_listening",
+            "prompt": "List all listening TCP ports numerically using netstat.",
+            "prefix": "user@ubuntu:~$",
+            "expected": "^netstat\\s+-tln$",
+            "aliases": [],
+            "hint": "Use netstat with -tln: 'netstat -tln'",
+            "explanation": "'netstat -tln' is the classic tool for viewing listening TCP ports; 'ss' is preferred on newer systems."
+        },
+        {
+            "id": "linux_networking__curl_headers",
+            "prompt": "Fetch only the HTTP response headers from 'https://example.com'.",
+            "prefix": "user@ubuntu:~$",
+            "expected": "^curl\\s+-I\\s+https://example\\.com$",
+            "aliases": ["curl --head https://example.com"],
+            "hint": "Use curl with head flag (-I): 'curl -I https://example.com'",
+            "explanation": "'curl -I' sends a HEAD request and prints response headers without the body."
+        },
+        {
+            "id": "linux_networking__curl_download",
+            "prompt": "Download 'https://releases.example.com/app.tar.gz' and save it as 'app.tar.gz'.",
+            "prefix": "user@ubuntu:~$",
+            "expected": "^curl\\s+-o\\s+app\\.tar\\.gz\\s+https://releases\\.example\\.com/app\\.tar\\.gz$",
+            "aliases": [],
+            "hint": "Use curl with output flag (-o): 'curl -o app.tar.gz https://releases.example.com/app.tar.gz'",
+            "explanation": "'curl -o' writes the downloaded content to the specified local filename."
+        },
+        {
+            "id": "linux_networking__dig_mx",
+            "prompt": "Query DNS MX records for the domain 'example.com'.",
+            "prefix": "user@ubuntu:~$",
+            "expected": "^dig\\s+example\\.com\\s+MX$",
+            "aliases": ["dig MX example.com"],
+            "hint": "Use dig with record type: 'dig example.com MX'",
+            "explanation": "'dig' performs DNS lookups. Specifying 'MX' queries mail exchange records for the domain."
+        },
+        {
+            "id": "linux_networking__dig_short",
+            "prompt": "Resolve the A record for 'google.com' and show only the answer (short output).",
+            "prefix": "user@ubuntu:~$",
+            "expected": "^dig\\s+\\+short\\s+google\\.com$",
+            "aliases": ["dig +short google.com A"],
+            "hint": "Use dig with short flag: 'dig +short google.com'",
+            "explanation": "'dig +short' returns just the resolved IP addresses without verbose diagnostic output."
+        },
+        {
+            "id": "linux_networking__traceroute_host",
+            "prompt": "Trace the network route (hops) to host '8.8.8.8'.",
+            "prefix": "user@ubuntu:~$",
+            "expected": "^traceroute\\s+8\\.8\\.8\\.8$",
+            "aliases": ["tracepath 8.8.8.8"],
+            "hint": "Use traceroute: 'traceroute 8.8.8.8'",
+            "explanation": "'traceroute' shows each router hop between your host and the destination, useful for path diagnosis."
+        },
+        {
+            "id": "linux_networking__hostname_fqdn",
+            "prompt": "Display the fully qualified domain name (FQDN) of this host.",
+            "prefix": "user@ubuntu:~$",
+            "expected": "^hostname\\s+-f$",
+            "aliases": ["hostname --fqdn"],
+            "hint": "Use hostname with -f flag: 'hostname -f'",
+            "explanation": "'hostname -f' prints the complete DNS name including domain suffix of the machine."
+        },
+        {
+            "id": "linux_networking__ping_count",
+            "prompt": "Send exactly 3 ICMP echo requests to '1.1.1.1'.",
+            "prefix": "user@ubuntu:~$",
+            "expected": "^ping\\s+-c\\s+3\\s+1\\.1\\.1\\.1$",
+            "aliases": ["ping 1.1.1.1 -c 3"],
+            "hint": "Use ping with count (-c): 'ping -c 3 1.1.1.1'",
+            "explanation": "'ping -c 3' limits the probe to three packets, providing a quick reachability test."
+        }
+    ]
+}

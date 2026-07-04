@@ -1,0 +1,84 @@
+{
+    "id": "git_merging",
+    "title": "Git Merging",
+    "platform": "Git",
+    "description": "Learn to merge branches, inspect merge history, abort merges, and resolve conflicts during integration.",
+    "difficulty": "intermediate",
+    "tags": ["merging", "integration"],
+    "prerequisites": ["git_branching"],
+    "estimated_minutes": 25,
+    "tasks": [
+        {
+            "id": "git_merging__merge_branch",
+            "prompt": "Merge branch 'feature-auth' into the current branch.",
+            "prefix": "user@ubuntu:~/project$",
+            "expected": "^git\\s+merge\\s+feature-auth$",
+            "aliases": [],
+            "hint": "Use git merge followed by the branch name.",
+            "explanation": "git merge integrates commits from another branch into HEAD."
+        },
+        {
+            "id": "git_merging__merge_no_ff",
+            "prompt": "Merge 'release' into the current branch, always creating a merge commit.",
+            "prefix": "user@ubuntu:~/project$",
+            "expected": "^git\\s+merge\\s+--no-ff\\s+release$",
+            "aliases": [],
+            "hint": "Use git merge --no-ff release.",
+            "explanation": "--no-ff preserves branch history with an explicit merge commit."
+        },
+        {
+            "id": "git_merging__merge_abort",
+            "prompt": "Abort an in-progress merge and restore the pre-merge state.",
+            "prefix": "user@ubuntu:~/project$",
+            "expected": "^git\\s+merge\\s+--abort$",
+            "aliases": [],
+            "hint": "Use git merge --abort.",
+            "explanation": "git merge --abort cancels conflict resolution and returns to the prior state."
+        },
+        {
+            "id": "git_merging__log_graph",
+            "prompt": "Show commit history as a decorated graph with all branches.",
+            "prefix": "user@ubuntu:~/project$",
+            "expected": "^git\\s+log\\s+--oneline\\s+--graph\\s+--all$",
+            "aliases": [],
+            "hint": "Use git log --oneline --graph --all.",
+            "explanation": "The graph view visualizes merges and branch divergence."
+        },
+        {
+            "id": "git_merging__show_merge",
+            "prompt": "Show details of the most recent merge commit.",
+            "prefix": "user@ubuntu:~/project$",
+            "expected": "^git\\s+show\\s+--merge$",
+            "aliases": [],
+            "hint": "Use git show --merge.",
+            "explanation": "git show --merge highlights changes introduced by a merge."
+        },
+        {
+            "id": "git_merging__diff_conflicts",
+            "prompt": "List files with unresolved merge conflicts.",
+            "prefix": "user@ubuntu:~/project$",
+            "expected": "^git\\s+diff\\s+--name-only\\s+--diff-filter=U$",
+            "aliases": [],
+            "hint": "Use git diff --name-only --diff-filter=U.",
+            "explanation": "--diff-filter=U shows only unmerged (conflicted) paths."
+        },
+        {
+            "id": "git_merging__add_resolved",
+            "prompt": "Stage 'app.py' after manually resolving its merge conflict.",
+            "prefix": "user@ubuntu:~/project$",
+            "expected": "^git\\s+add\\s+app\\.py$",
+            "aliases": [],
+            "hint": "Use git add on the resolved file.",
+            "explanation": "Staging marks a conflict as resolved so the merge can complete."
+        },
+        {
+            "id": "git_merging__commit_merge",
+            "prompt": "Complete the merge with commit message 'Merge feature-auth into main'.",
+            "prefix": "user@ubuntu:~/project$",
+            "expected": "^git\\s+commit\\s+-m\\s+[\"']Merge feature-auth into main[\"']$",
+            "aliases": [],
+            "hint": "Use git commit -m with a descriptive merge message.",
+            "explanation": "After resolving conflicts, git commit finalizes the merge."
+        }
+    ]
+}

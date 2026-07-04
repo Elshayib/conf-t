@@ -1,0 +1,66 @@
+{
+    "id": "docker_cleanup",
+    "title": "Docker Cleanup & Pruning",
+    "platform": "Docker",
+    "description": "Learn to remove unused containers, images, volumes, networks, and reclaim disk space safely.",
+    "difficulty": "beginner",
+    "tags": ["cleanup", "prune", "maintenance"],
+    "prerequisites": ["docker_basic"],
+    "estimated_minutes": 15,
+    "tasks": [
+        {
+            "id": "docker_cleanup__container_prune",
+            "prompt": "Remove all stopped containers.",
+            "prefix": "user@ubuntu:~$",
+            "expected": "^docker\\s+container\\s+prune\\s+-f$",
+            "aliases": ["docker container prune --force"],
+            "hint": "Use docker container prune -f.",
+            "explanation": "container prune deletes exited containers to free resources."
+        },
+        {
+            "id": "docker_cleanup__image_prune",
+            "prompt": "Remove dangling (untagged) images.",
+            "prefix": "user@ubuntu:~$",
+            "expected": "^docker\\s+image\\s+prune\\s+-f$",
+            "aliases": ["docker image prune --force"],
+            "hint": "Use docker image prune -f.",
+            "explanation": "Dangling images are layers no longer referenced by a tag."
+        },
+        {
+            "id": "docker_cleanup__volume_prune",
+            "prompt": "Remove all unused volumes.",
+            "prefix": "user@ubuntu:~$",
+            "expected": "^docker\\s+volume\\s+prune\\s+-f$",
+            "aliases": ["docker volume prune --force"],
+            "hint": "Use docker volume prune -f.",
+            "explanation": "volume prune deletes volumes not referenced by any container."
+        },
+        {
+            "id": "docker_cleanup__network_prune",
+            "prompt": "Remove all unused networks.",
+            "prefix": "user@ubuntu:~$",
+            "expected": "^docker\\s+network\\s+prune\\s+-f$",
+            "aliases": ["docker network prune --force"],
+            "hint": "Use docker network prune -f.",
+            "explanation": "network prune removes custom networks with no connected containers."
+        },
+        {
+            "id": "docker_cleanup__system_prune",
+            "prompt": "Remove unused containers, networks, and dangling images in one command.",
+            "prefix": "user@ubuntu:~$",
+            "expected": "^docker\\s+system\\s+prune\\s+-f$",
+            "aliases": ["docker system prune --force"],
+            "hint": "Use docker system prune -f.",
+            "explanation": "system prune is a broad cleanup for common unused resources."
+        },
+        {
+            "id": "docker_cleanup__system_prune_all",
+            "prompt": "Remove all unused images (not just dangling) along with stopped containers.",
+            "prefix": "user@ubuntu:~$",
+            "expected": "^docker\\s+system\\s+prune\\s+-a\\s+-f$",
+            "aliases": ["docker system prune --all --force"],
+            "hint": "Use docker system prune -a -f.",
+            "explanation": "-a extends pruning to every image not used by a running container."
+        }
+    ]
+}

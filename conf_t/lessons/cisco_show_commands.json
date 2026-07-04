@@ -1,0 +1,84 @@
+{
+    "id": "cisco_show_commands",
+    "title": "Cisco IOS Show Commands",
+    "platform": "Cisco",
+    "description": "Master essential show commands for verifying device software, interface status, VLANs, routing tables, saved configurations, and neighbor discovery during troubleshooting.",
+    "difficulty": "beginner",
+    "tags": ["ios", "troubleshooting", "ccna"],
+    "prerequisites": ["cisco_basic"],
+    "estimated_minutes": 12,
+    "tasks": [
+        {
+            "id": "cisco_show_commands__show_version",
+            "prompt": "Display IOS version, hardware model, uptime, and serial number information.",
+            "prefix": "Switch#",
+            "expected": "^show\\s+version$",
+            "aliases": ["sh ver", "sh version", "show ver"],
+            "hint": "Use the command: 'show version' or the shortcut 'sh ver'",
+            "explanation": "The 'show version' command reveals the IOS image version, device model, uptime, memory, and serial number—often the first command run during troubleshooting."
+        },
+        {
+            "id": "cisco_show_commands__show_ip_interface_brief",
+            "prompt": "Display a summary table of all interface IP addresses and their line/protocol status.",
+            "prefix": "Switch#",
+            "expected": "^show\\s+ip\\s+interface\\s+brief$",
+            "aliases": ["sh ip int br", "sh ip interface brief", "show ip int br"],
+            "hint": "Use the command: 'show ip interface brief' or 'sh ip int br'",
+            "explanation": "This command provides a quick overview of every interface's IP address, admin status, and protocol state without scrolling through lengthy output."
+        },
+        {
+            "id": "cisco_show_commands__show_running_config",
+            "prompt": "Display the currently active configuration stored in RAM.",
+            "prefix": "Switch#",
+            "expected": "^show\\s+running-config$",
+            "aliases": ["sh run", "show run", "sh running-config"],
+            "hint": "Use the command: 'show running-config' or 'sh run'",
+            "explanation": "The running-config reflects all changes made since the last reload. It is volatile and lost on reboot unless saved to startup-config."
+        },
+        {
+            "id": "cisco_show_commands__show_startup_config",
+            "prompt": "Display the configuration stored in NVRAM that loads at boot.",
+            "prefix": "Switch#",
+            "expected": "^show\\s+startup-config$",
+            "aliases": ["sh start", "show start", "sh startup-config"],
+            "hint": "Use the command: 'show startup-config' or 'sh start'",
+            "explanation": "The startup-config is the saved configuration in NVRAM. Comparing it to the running-config helps identify unsaved changes."
+        },
+        {
+            "id": "cisco_show_commands__show_vlan_brief",
+            "prompt": "Display a summary table of all VLANs and their assigned ports.",
+            "prefix": "Switch#",
+            "expected": "^show\\s+vlan\\s+brief$",
+            "aliases": ["sh vlan br", "sh vlan brief", "show vlan br"],
+            "hint": "Use the command: 'show vlan brief' or 'sh vlan br'",
+            "explanation": "This command lists each VLAN ID, name, status, and member ports in a compact table—essential for verifying VLAN assignments on switches."
+        },
+        {
+            "id": "cisco_show_commands__show_interfaces_status",
+            "prompt": "Display the connection status, VLAN, duplex, speed, and type for all switch ports.",
+            "prefix": "Switch#",
+            "expected": "^show\\s+interfaces\\s+status$",
+            "aliases": ["sh int status", "sh interfaces status", "show int status"],
+            "hint": "Use the command: 'show interfaces status' or 'sh int status'",
+            "explanation": "Unlike the verbose 'show interfaces' output, this command presents a concise port table showing link state, speed, duplex, and VLAN membership."
+        },
+        {
+            "id": "cisco_show_commands__show_ip_route",
+            "prompt": "Display the IP routing table with known networks and next-hop information.",
+            "prefix": "Router#",
+            "expected": "^show\\s+ip\\s+route$",
+            "aliases": ["sh ip ro", "sh ip route", "show ip ro"],
+            "hint": "Use the command: 'show ip route' or 'sh ip ro'",
+            "explanation": "The routing table shows how the device forwards packets—listing connected, static, and dynamically learned routes with their administrative distance and metric."
+        },
+        {
+            "id": "cisco_show_commands__show_cdp_neighbors",
+            "prompt": "Display directly connected Cisco devices discovered via CDP.",
+            "prefix": "Router#",
+            "expected": "^show\\s+cdp\\s+neighbors$",
+            "aliases": ["sh cdp nei", "sh cdp neighbors", "show cdp nei"],
+            "hint": "Use the command: 'show cdp neighbors' or 'sh cdp nei'",
+            "explanation": "Cisco Discovery Protocol (CDP) advertises neighbor device IDs, IP addresses, and connected interfaces—useful for mapping physical topology."
+        }
+    ]
+}

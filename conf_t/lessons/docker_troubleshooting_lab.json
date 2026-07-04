@@ -1,0 +1,120 @@
+{
+    "id": "docker_troubleshooting_lab",
+    "title": "Docker Troubleshooting Lab",
+    "platform": "Docker",
+    "description": "Capstone lab for diagnosing container crashes, port conflicts, volume issues, network failures, and resource cleanup.",
+    "difficulty": "advanced",
+    "tags": ["troubleshooting", "capstone", "lab"],
+    "prerequisites": ["docker_compose", "docker_networking", "docker_volumes"],
+    "estimated_minutes": 40,
+    "tasks": [
+        {
+            "id": "docker_troubleshooting_lab__ps_all",
+            "prompt": "List all containers including exited ones to find crash loops.",
+            "prefix": "user@ubuntu:~$",
+            "expected": "^docker\\s+ps\\s+-a$",
+            "aliases": ["docker ps --all"],
+            "hint": "Use docker ps -a.",
+            "explanation": "Exited containers often reveal restart loops and error exit codes."
+        },
+        {
+            "id": "docker_troubleshooting_lab__logs_tail",
+            "prompt": "Show the last 100 log lines from container 'api'.",
+            "prefix": "user@ubuntu:~$",
+            "expected": "^docker\\s+logs\\s+--tail\\s+100\\s+api$",
+            "aliases": ["docker logs --tail 100 api"],
+            "hint": "Use docker logs --tail 100 api.",
+            "explanation": "Recent logs usually contain the stack trace or error message."
+        },
+        {
+            "id": "docker_troubleshooting_lab__inspect_state",
+            "prompt": "Inspect container 'api' to check its State and ExitCode.",
+            "prefix": "user@ubuntu:~$",
+            "expected": "^docker\\s+inspect\\s+api$",
+            "aliases": [],
+            "hint": "Use docker inspect api.",
+            "explanation": "Inspect JSON includes ExitCode, OOMKilled, and restart counters."
+        },
+        {
+            "id": "docker_troubleshooting_lab__stats",
+            "prompt": "Stream live CPU and memory usage for all running containers.",
+            "prefix": "user@ubuntu:~$",
+            "expected": "^docker\\s+stats$",
+            "aliases": [],
+            "hint": "Use docker stats.",
+            "explanation": "docker stats helps identify memory leaks and CPU saturation."
+        },
+        {
+            "id": "docker_troubleshooting_lab__port_check",
+            "prompt": "Run 'nginx' on host port 8080 mapping to container port 80 (detached).",
+            "prefix": "user@ubuntu:~$",
+            "expected": "^docker\\s+run\\s+-d\\s+-p\\s+8080:80\\s+nginx$",
+            "aliases": [],
+            "hint": "Use -p 8080:80 to avoid conflicting with host port 80.",
+            "explanation": "Port remapping resolves conflicts when host ports are already bound."
+        },
+        {
+            "id": "docker_troubleshooting_lab__exec_shell",
+            "prompt": "Open an interactive shell inside running container 'api' for live debugging.",
+            "prefix": "user@ubuntu:~$",
+            "expected": "^docker\\s+exec\\s+-it\\s+api\\s+bash$",
+            "aliases": [],
+            "hint": "Use docker exec -it api bash.",
+            "explanation": "exec lets you inspect filesystem and processes inside a live container."
+        },
+        {
+            "id": "docker_troubleshooting_lab__network_inspect",
+            "prompt": "Inspect network 'app-net' to verify container endpoints are attached.",
+            "prefix": "user@ubuntu:~$",
+            "expected": "^docker\\s+network\\s+inspect\\s+app-net$",
+            "aliases": [],
+            "hint": "Use docker network inspect app-net.",
+            "explanation": "Missing endpoints explain service-to-service connectivity failures."
+        },
+        {
+            "id": "docker_troubleshooting_lab__volume_inspect",
+            "prompt": "Inspect volume 'db-data' to confirm mountpoint and driver.",
+            "prefix": "user@ubuntu:~$",
+            "expected": "^docker\\s+volume\\s+inspect\\s+db-data$",
+            "aliases": [],
+            "hint": "Use docker volume inspect db-data.",
+            "explanation": "Volume inspection validates persistent data paths."
+        },
+        {
+            "id": "docker_troubleshooting_lab__compose_logs",
+            "prompt": "View compose logs for only the 'api' service.",
+            "prefix": "user@ubuntu:~/stack$",
+            "expected": "^docker\\s+compose\\s+logs\\s+api$",
+            "aliases": ["docker-compose logs api"],
+            "hint": "Use docker compose logs api.",
+            "explanation": "Service-scoped logs isolate failures in multi-container stacks."
+        },
+        {
+            "id": "docker_troubleshooting_lab__compose_restart",
+            "prompt": "Restart the failing 'api' service in the compose stack.",
+            "prefix": "user@ubuntu:~/stack$",
+            "expected": "^docker\\s+compose\\s+restart\\s+api$",
+            "aliases": ["docker-compose restart api"],
+            "hint": "Use docker compose restart api.",
+            "explanation": "Restarting a single service avoids disrupting healthy components."
+        },
+        {
+            "id": "docker_troubleshooting_lab__events",
+            "prompt": "Stream real-time Docker daemon events for troubleshooting.",
+            "prefix": "user@ubuntu:~$",
+            "expected": "^docker\\s+events$",
+            "aliases": [],
+            "hint": "Use docker events.",
+            "explanation": "docker events shows create, die, oom, and network attach activity."
+        },
+        {
+            "id": "docker_troubleshooting_lab__system_df",
+            "prompt": "Show Docker disk usage summary for images, containers, and volumes.",
+            "prefix": "user@ubuntu:~$",
+            "expected": "^docker\\s+system\\s+df$",
+            "aliases": [],
+            "hint": "Use docker system df.",
+            "explanation": "Disk pressure can cause pull and start failures on full hosts."
+        }
+    ]
+}

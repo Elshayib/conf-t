@@ -1,0 +1,102 @@
+{
+    "id": "docker_dockerfile",
+    "title": "Dockerfile & Image Builds",
+    "platform": "Docker",
+    "description": "Learn Dockerfile instructions and docker build options for creating reproducible container images.",
+    "difficulty": "intermediate",
+    "tags": ["dockerfile", "build"],
+    "prerequisites": ["docker_images"],
+    "estimated_minutes": 30,
+    "tasks": [
+        {
+            "id": "docker_dockerfile__build_tag",
+            "prompt": "Build an image tagged 'api:1.0' from the Dockerfile in the current directory.",
+            "prefix": "user@ubuntu:~/app$",
+            "expected": "^docker\\s+build\\s+-t\\s+api:1\\.0\\s+\\.$",
+            "aliases": [],
+            "hint": "Use docker build -t api:1.0 .",
+            "explanation": "docker build reads the Dockerfile and context path to create an image."
+        },
+        {
+            "id": "docker_dockerfile__build_no_cache",
+            "prompt": "Rebuild image 'api:1.0' without using the build cache.",
+            "prefix": "user@ubuntu:~/app$",
+            "expected": "^docker\\s+build\\s+--no-cache\\s+-t\\s+api:1\\.0\\s+\\.$",
+            "aliases": [],
+            "hint": "Use docker build --no-cache -t api:1.0 .",
+            "explanation": "--no-cache forces every Dockerfile step to run fresh."
+        },
+        {
+            "id": "docker_dockerfile__build_file",
+            "prompt": "Build using Dockerfile 'Dockerfile.prod' and tag the result as 'api:prod'.",
+            "prefix": "user@ubuntu:~/app$",
+            "expected": "^docker\\s+build\\s+-f\\s+Dockerfile\\.prod\\s+-t\\s+api:prod\\s+\\.$",
+            "aliases": [],
+            "hint": "Use docker build -f Dockerfile.prod -t api:prod .",
+            "explanation": "-f selects an alternate Dockerfile filename."
+        },
+        {
+            "id": "docker_dockerfile__build_arg",
+            "prompt": "Build 'api:1.0' passing build argument VERSION=2.1.",
+            "prefix": "user@ubuntu:~/app$",
+            "expected": "^docker\\s+build\\s+--build-arg\\s+VERSION=2\\.1\\s+-t\\s+api:1\\.0\\s+\\.$",
+            "aliases": [],
+            "hint": "Use docker build --build-arg VERSION=2.1 -t api:1.0 .",
+            "explanation": "--build-arg supplies values referenced by ARG instructions."
+        },
+        {
+            "id": "docker_dockerfile__from_instruction",
+            "prompt": "Write the Dockerfile instruction to use 'node:20-alpine' as the base image.",
+            "prefix": "user@ubuntu:~/app$",
+            "expected": "^FROM\\s+node:20-alpine$",
+            "aliases": [],
+            "hint": "Start with FROM node:20-alpine.",
+            "explanation": "FROM sets the parent image for subsequent Dockerfile layers."
+        },
+        {
+            "id": "docker_dockerfile__workdir_instruction",
+            "prompt": "Write the Dockerfile instruction to set working directory to '/app'.",
+            "prefix": "user@ubuntu:~/app$",
+            "expected": "^WORKDIR\\s+/app$",
+            "aliases": [],
+            "hint": "Use WORKDIR /app.",
+            "explanation": "WORKDIR creates and sets the default directory for later commands."
+        },
+        {
+            "id": "docker_dockerfile__copy_instruction",
+            "prompt": "Write the Dockerfile instruction to copy all files from build context into '/app'.",
+            "prefix": "user@ubuntu:~/app$",
+            "expected": "^COPY\\s+\\.\\s+/app/$",
+            "aliases": [],
+            "hint": "Use COPY . /app/.",
+            "explanation": "COPY transfers files from the build context into the image filesystem."
+        },
+        {
+            "id": "docker_dockerfile__run_instruction",
+            "prompt": "Write the Dockerfile instruction to run 'npm ci' during the image build.",
+            "prefix": "user@ubuntu:~/app$",
+            "expected": "^RUN\\s+npm\\s+ci$",
+            "aliases": [],
+            "hint": "Use RUN npm ci.",
+            "explanation": "RUN executes commands in a temporary container layer during build."
+        },
+        {
+            "id": "docker_dockerfile__expose_instruction",
+            "prompt": "Write the Dockerfile instruction to document that the container listens on port 3000.",
+            "prefix": "user@ubuntu:~/app$",
+            "expected": "^EXPOSE\\s+3000$",
+            "aliases": [],
+            "hint": "Use EXPOSE 3000.",
+            "explanation": "EXPOSE documents intended container ports for operators and tooling."
+        },
+        {
+            "id": "docker_dockerfile__cmd_instruction",
+            "prompt": "Write the Dockerfile instruction to run 'npm start' as the default container command.",
+            "prefix": "user@ubuntu:~/app$",
+            "expected": "^CMD\\s+\\[\"npm\",\\s+\"start\"\\]$",
+            "aliases": ["CMD [\"npm\", \"start\"]"],
+            "hint": "Use JSON-array CMD form: CMD [\"npm\", \"start\"].",
+            "explanation": "CMD defines the default process when a container starts without overrides."
+        }
+    ]
+}

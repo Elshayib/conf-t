@@ -8,8 +8,24 @@ from rich.prompt import Prompt
 from rich.align import Align
 from rich import box
 
+from conf_t import __version__
 from conf_t.models import Lesson, Task, SessionStats
-from conf_t.engine import LessonLoader, ProgressManager, validate_input
+from conf_t.engine import (
+    DIFFICULTY_ORDER,
+    LESSON_STATUS_COMPLETED,
+    LESSON_STATUS_IN_PROGRESS,
+    LESSON_STATUS_NOT_STARTED,
+    LessonLoader,
+    ProgressManager,
+    are_prerequisites_met,
+    format_display_answer,
+    get_failed_lesson_ids,
+    get_lesson_status,
+    get_missing_prerequisites,
+    get_recommended_lesson,
+    sort_lessons_by_curriculum,
+    validate_input,
+)
 
 console = Console()
 
@@ -78,47 +94,167 @@ class ConfTCLI:
             Align.center(banner),
             box=box.DOUBLE,
             border_style="cyan",
-            title="[bold yellow]Welcome to Conf T v0.1.0[/]",
+            title=f"[bold yellow]Welcome to Conf T v{__version__}[/]",
             title_align="center"
         ))
 
+    def _lesson_status_icon(self, status: str) -> str:
+        return {
+            LESSON_STATUS_COMPLETED: "✓",
+            LESSON_STATUS_IN_PROGRESS: "◐",
+            LESSON_STATUS_NOT_STARTED: "○",
+        }.get(status, "○")
+
+    def _format_lesson_choice_label(
+        self,
+        lesson: Lesson,
+        status: str,
+        failed_count: int,
+        prereqs_met: bool,
+    ) -> str:
+        icon = self._lesson_status_icon(status)
+        label = f"{icon} {lesson.title} ({len(lesson.tasks)} tasks)"
+        if lesson.estimated_minutes:
+            label += f" · ~{lesson.estimated_minutes}m"
+        if failed_count:
+            label += f" · {failed_count} failed"
+        if not prereqs_met:
+            label += " · prereqs"
+        return label
+
+    def _confirm_lesson_start(self, lesson: Lesson, all_lessons: list[Lesson]) -> bool:
+        completed = self.progress.data.get("completed_lessons", [])
+        missing_ids = get_missing_prerequisites(lesson, completed)
+        lesson_map = {item.id: item for item in all_lessons}
+
+        console.print("\n")
+        detail_lines = [
+            f"[bold white]{lesson.description}[/]",
+            "",
+            f"[cyan]Difficulty:[/] {lesson.difficulty.title()}",
+            f"[cyan]Tasks:[/] {len(lesson.tasks)}",
+        ]
+        if lesson.estimated_minutes:
+            detail_lines.append(f"[cyan]Estimated time:[/] ~{lesson.estimated_minutes} minutes")
+        if lesson.prerequisites:
+            prereq_titles = [
+                lesson_map[prereq_id].title
+                for prereq_id in lesson.prerequisites
+                if prereq_id in lesson_map
+            ]
+            if prereq_titles:
+                detail_lines.append(f"[cyan]Prerequisites:[/] {', '.join(prereq_titles)}")
+
+        console.print(Panel(
+            "\n".join(detail_lines),
+            title=f"[bold yellow]{lesson.title}[/]",
+            border_style="cyan",
+            box=box.ROUNDED,
+        ))
+
+        if missing_ids:
+            missing_titles = [
+                lesson_map[prereq_id].title
+                for prereq_id in missing_ids
+                if prereq_id in lesson_map
+            ]
+            missing_text = ", ".join(missing_titles) if missing_titles else ", ".join(missing_ids)
+            return questionary.confirm(
+                f"Prerequisites not completed: {missing_text}. Start anyway?",
+                default=True,
+            ).ask()
+
+        return True
+
     def practice_lessons_menu(self):
-        """Displays lessons selection grouped by platform and triggers practice sessions."""
+        """Displays curriculum-aware lesson selection grouped by platform."""
         lessons = self.loader.load_all_lessons()
         if not lessons:
             console.print("[bold red]No lessons found in the database. Please add lessons to conf_t/lessons/.[/]")
             return
 
-        # Dynamically extract all unique platforms from the loaded lessons
-        platforms = sorted(list(set(lesson.platform for lesson in lessons)))
+        platforms = sorted({lesson.platform for lesson in lessons})
         platform_choices = platforms + ["< Go Back"]
 
         selected_platform = questionary.select(
             "Choose a platform:",
-            choices=platform_choices
+            choices=platform_choices,
         ).ask()
 
         if not selected_platform or selected_platform == "< Go Back":
             return
 
-        # Filter lessons by the selected platform
-        filtered_lessons = [l for l in lessons if l.platform == selected_platform]
-        
-        lesson_choices = [l.title for l in filtered_lessons] + ["< Go Back"]
+        filtered_lessons = [lesson for lesson in lessons if lesson.platform == selected_platform]
+        sorted_lessons = sort_lessons_by_curriculum(filtered_lessons)
+        completed = self.progress.data.get("completed_lessons", [])
+        attempted = self.progress.data.get("attempted_lessons", [])
+        failed_entries = self.progress.get_failed_task_entries()
+        failed_lesson_ids = get_failed_lesson_ids(failed_entries)
+        failed_counts: dict[str, int] = {}
+        for entry in failed_entries:
+            lesson_id = entry["lesson_id"]
+            failed_counts[lesson_id] = failed_counts.get(lesson_id, 0) + 1
 
-        selected_lesson_title = questionary.select(
-            f"Choose a {selected_platform} lesson to practice:",
-            choices=lesson_choices
+        recommended = get_recommended_lesson(sorted_lessons, completed)
+        if recommended:
+            console.print(
+                f"\n[bold green]★ Recommended next:[/] [white]{recommended.title}[/] "
+                f"[dim]({recommended.difficulty})[/]\n"
+            )
+
+        lesson_choices = []
+        if recommended:
+            lesson_choices.append(
+                questionary.Choice(
+                    title=f"★ Recommended: {recommended.title}",
+                    value=recommended.id,
+                )
+            )
+            lesson_choices.append(questionary.Choice(title="─────────────", value="__sep__", disabled=True))
+
+        for difficulty in sorted(DIFFICULTY_ORDER, key=lambda key: DIFFICULTY_ORDER[key]):
+            group = [lesson for lesson in sorted_lessons if lesson.difficulty == difficulty]
+            if not group:
+                continue
+            lesson_choices.append(
+                questionary.Choice(
+                    title=f"── {difficulty.title()} ──",
+                    value=f"__header_{difficulty}__",
+                    disabled=True,
+                )
+            )
+            for lesson in group:
+                status = get_lesson_status(
+                    lesson.id, completed, attempted, failed_lesson_ids
+                )
+                label = self._format_lesson_choice_label(
+                    lesson,
+                    status,
+                    failed_counts.get(lesson.id, 0),
+                    are_prerequisites_met(lesson, completed),
+                )
+                lesson_choices.append(questionary.Choice(title=label, value=lesson.id))
+
+        lesson_choices.append(questionary.Choice(title="< Go Back", value="__back__"))
+
+        selected_lesson_id = questionary.select(
+            f"Choose a {selected_platform} lesson:",
+            choices=lesson_choices,
         ).ask()
 
-        if not selected_lesson_title or selected_lesson_title == "< Go Back":
-            self.practice_lessons_menu()
+        if not selected_lesson_id or selected_lesson_id in {"__back__", "__sep__"} or selected_lesson_id.startswith("__header_"):
+            if selected_lesson_id and selected_lesson_id not in {"__back__", "__sep__"}:
+                self.practice_lessons_menu()
             return
 
-        # Find the selected lesson
-        selected_lesson = next((l for l in filtered_lessons if l.title == selected_lesson_title), None)
-        
-        if selected_lesson:
+        selected_lesson = next(
+            (lesson for lesson in filtered_lessons if lesson.id == selected_lesson_id),
+            None,
+        )
+        if not selected_lesson:
+            return
+
+        if self._confirm_lesson_start(selected_lesson, lessons):
             self.run_practice_session(selected_lesson)
 
     def run_practice_session(self, lesson: Lesson, review_mode: bool = False, review_tasks: list = None):
@@ -129,6 +265,9 @@ class ConfTCLI:
         if not tasks_to_run:
             console.print("[yellow]No tasks to practice in this session.[/]")
             return
+
+        if not review_mode:
+            self.progress.mark_lesson_attempted(lesson.id)
 
         title_text = f"Reviewing {len(tasks_to_run)} Failed Commands" if review_mode else f"Lesson: {lesson.title}"
         desc_text = "Retrying commands you previously missed." if review_mode else lesson.description
@@ -205,7 +344,7 @@ class ConfTCLI:
                     )
 
                     console.print(Panel(
-                        f"[bold red]Skipped.[/]\n\n[bold white]Correct Command:[/] [bold cyan]{task.expected.replace('^', '').replace('$', '').replace('\\\\', '\\')}[/]\n\n"
+                        f"[bold red]Skipped.[/]\n\n[bold white]Correct Command:[/] [bold cyan]{format_display_answer(task, lesson.platform)}[/]\n\n"
                         f"[bold white]Explanation:[/] {task.explanation}",
                         border_style="red",
                         title="[bold red]Task Explanation[/]"
@@ -253,10 +392,9 @@ class ConfTCLI:
                     
                     console.print("[bold red]✗ Incorrect command. Try again, or type 'hint' / 'skip' / 'exit'.[/]")
 
-        # Mark lesson completed if they completed all tasks without quitting early
         if not review_mode:
             self.progress.mark_lesson_completed(lesson.id)
-            
+
         # Display session stats
         accuracy = (stats.correct_first_try / stats.total_questions) * 100 if stats.total_questions > 0 else 0
         summary_table = Table(title="[bold yellow]Session Summary[/]", box=box.ROUNDED, border_style="cyan")
@@ -368,7 +506,7 @@ class ConfTCLI:
                         is_skipped=True
                     )
                     console.print(Panel(
-                        f"[bold red]Skipped.[/]\n\n[bold white]Correct Command:[/] [bold cyan]{task.expected.replace('^', '').replace('$', '').replace('\\\\', '\\')}[/]\n\n"
+                        f"[bold red]Skipped.[/]\n\n[bold white]Correct Command:[/] [bold cyan]{format_display_answer(task, lesson.platform)}[/]\n\n"
                         f"[bold white]Explanation:[/] {task.explanation}",
                         border_style="red",
                         title="[bold red]Task Explanation[/]"
@@ -548,7 +686,7 @@ class ConfTCLI:
             task_hint = questionary.text("Short Hint (optional):").ask()
             task_explanation = questionary.text("Task Explanation / Command details:").ask()
 
-            t_id = f"task_{task_index}"
+            t_id = f"{lesson_id}__task_{task_index}"
 
             from conf_t.models import Task
             task_obj = Task(

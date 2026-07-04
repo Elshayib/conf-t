@@ -1,0 +1,84 @@
+{
+    "id": "docker_images",
+    "title": "Docker Images",
+    "platform": "Docker",
+    "description": "Learn to list, pull, tag, inspect, save, load, and remove Docker images.",
+    "difficulty": "beginner",
+    "tags": ["images", "registry"],
+    "prerequisites": ["docker_basic"],
+    "estimated_minutes": 20,
+    "tasks": [
+        {
+            "id": "docker_images__images_list",
+            "prompt": "List all images stored locally on the Docker host.",
+            "prefix": "user@ubuntu:~$",
+            "expected": "^docker\\s+images$",
+            "aliases": ["docker image ls"],
+            "hint": "Use docker images.",
+            "explanation": "docker images shows repository tags, IDs, and sizes for local images."
+        },
+        {
+            "id": "docker_images__pull",
+            "prompt": "Pull the 'nginx:alpine' image from Docker Hub.",
+            "prefix": "user@ubuntu:~$",
+            "expected": "^docker\\s+pull\\s+nginx:alpine$",
+            "aliases": [],
+            "hint": "Use docker pull nginx:alpine.",
+            "explanation": "docker pull downloads image layers from a registry to the local host."
+        },
+        {
+            "id": "docker_images__tag",
+            "prompt": "Tag local image 'myapp:latest' as 'myapp:v1.0'.",
+            "prefix": "user@ubuntu:~$",
+            "expected": "^docker\\s+tag\\s+myapp:latest\\s+myapp:v1\\.0$",
+            "aliases": [],
+            "hint": "Use docker tag source target.",
+            "explanation": "docker tag creates an additional name for the same image ID."
+        },
+        {
+            "id": "docker_images__inspect",
+            "prompt": "Inspect detailed metadata for the 'nginx:alpine' image.",
+            "prefix": "user@ubuntu:~$",
+            "expected": "^docker\\s+inspect\\s+nginx:alpine$",
+            "aliases": [],
+            "hint": "Use docker inspect nginx:alpine.",
+            "explanation": "docker inspect returns JSON configuration and layer information."
+        },
+        {
+            "id": "docker_images__history",
+            "prompt": "Show the layer build history of image 'myapp:latest'.",
+            "prefix": "user@ubuntu:~$",
+            "expected": "^docker\\s+history\\s+myapp:latest$",
+            "aliases": [],
+            "hint": "Use docker history myapp:latest.",
+            "explanation": "docker history reveals Dockerfile-equivalent steps that built each layer."
+        },
+        {
+            "id": "docker_images__rmi",
+            "prompt": "Remove the local image 'myapp:v1.0'.",
+            "prefix": "user@ubuntu:~$",
+            "expected": "^docker\\s+rmi\\s+myapp:v1\\.0$",
+            "aliases": ["docker image rm myapp:v1.0"],
+            "hint": "Use docker rmi myapp:v1.0.",
+            "explanation": "docker rmi deletes an image tag when no containers depend on it."
+        },
+        {
+            "id": "docker_images__save",
+            "prompt": "Save image 'myapp:latest' to tarball file 'myapp.tar'.",
+            "prefix": "user@ubuntu:~$",
+            "expected": "^docker\\s+save\\s+-o\\s+myapp\\.tar\\s+myapp:latest$",
+            "aliases": ["docker save myapp:latest -o myapp.tar"],
+            "hint": "Use docker save -o myapp.tar myapp:latest.",
+            "explanation": "docker save exports an image archive for offline transfer."
+        },
+        {
+            "id": "docker_images__load",
+            "prompt": "Load an image from tarball file 'myapp.tar'.",
+            "prefix": "user@ubuntu:~$",
+            "expected": "^docker\\s+load\\s+-i\\s+myapp\\.tar$",
+            "aliases": ["docker load < myapp.tar"],
+            "hint": "Use docker load -i myapp.tar.",
+            "explanation": "docker load imports images from a tar archive into the local store."
+        }
+    ]
+}

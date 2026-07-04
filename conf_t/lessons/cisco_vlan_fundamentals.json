@@ -1,0 +1,120 @@
+{
+    "id": "cisco_vlan_fundamentals",
+    "title": "Cisco VLAN Fundamentals",
+    "platform": "Cisco",
+    "description": "Learn how to create VLANs, assign descriptive names, configure access ports, and verify VLAN assignments on a Cisco switch.",
+    "difficulty": "intermediate",
+    "tags": ["vlan", "switching", "ccna"],
+    "prerequisites": ["cisco_basic", "cisco_interface_basics"],
+    "estimated_minutes": 20,
+    "tasks": [
+        {
+            "id": "cisco_vlan_fundamentals__enable",
+            "prompt": "Enter Privileged EXEC mode.",
+            "prefix": "Switch>",
+            "expected": "^enable$",
+            "aliases": ["en"],
+            "hint": "Use the command: 'enable' or 'en'",
+            "explanation": "Privileged EXEC mode (Switch#) is required before viewing or changing VLAN configuration."
+        },
+        {
+            "id": "cisco_vlan_fundamentals__configure_terminal",
+            "prompt": "Enter Global Configuration mode.",
+            "prefix": "Switch#",
+            "expected": "^configure\\s+terminal$",
+            "aliases": ["conf t", "config terminal", "config t"],
+            "hint": "Use the command: 'configure terminal' or 'conf t'",
+            "explanation": "Global configuration mode is where VLANs are created and named on the switch."
+        },
+        {
+            "id": "cisco_vlan_fundamentals__create_vlan_10",
+            "prompt": "Create VLAN 10 (or enter VLAN configuration mode for VLAN 10).",
+            "prefix": "Switch(config)#",
+            "expected": "^vlan\\s+10$",
+            "aliases": ["vlan10"],
+            "hint": "Use the command: 'vlan 10'",
+            "explanation": "The 'vlan [id]' command creates a new VLAN and enters VLAN configuration mode. Valid VLAN IDs are 1-4094."
+        },
+        {
+            "id": "cisco_vlan_fundamentals__name_vlan_sales",
+            "prompt": "Assign the name 'Sales' to the current VLAN.",
+            "prefix": "Switch(config-vlan)#",
+            "expected": "^name\\s+Sales$",
+            "aliases": [],
+            "hint": "Use the command: 'name Sales'",
+            "explanation": "Naming VLANs helps administrators identify their purpose in show commands and network documentation."
+        },
+        {
+            "id": "cisco_vlan_fundamentals__create_vlan_20",
+            "prompt": "Return to global configuration and create VLAN 20.",
+            "prefix": "Switch(config-vlan)#",
+            "expected": "^vlan\\s+20$",
+            "aliases": ["vlan20"],
+            "hint": "Use 'exit' to leave VLAN config mode, then enter 'vlan 20'",
+            "explanation": "You can enter VLAN configuration mode directly with 'vlan 20' from global config without explicitly exiting first."
+        },
+        {
+            "id": "cisco_vlan_fundamentals__name_vlan_engineering",
+            "prompt": "Assign the name 'Engineering' to VLAN 20.",
+            "prefix": "Switch(config-vlan)#",
+            "expected": "^name\\s+Engineering$",
+            "aliases": [],
+            "hint": "Use the command: 'name Engineering'",
+            "explanation": "Each VLAN can have a unique descriptive name up to 32 characters."
+        },
+        {
+            "id": "cisco_vlan_fundamentals__interface_fa05",
+            "prompt": "Enter Interface Configuration mode for FastEthernet0/5.",
+            "prefix": "Switch(config)#",
+            "expected": "^interface\\s+FastEthernet0/5$",
+            "aliases": ["int fa0/5", "int f0/5", "interface fa0/5", "interface f0/5"],
+            "hint": "Use the command: 'interface FastEthernet0/5' or 'int fa0/5'",
+            "explanation": "Access ports are configured at the interface level. The prompt changes to Switch(config-if)#."
+        },
+        {
+            "id": "cisco_vlan_fundamentals__switchport_mode_access",
+            "prompt": "Explicitly set the interface as an access port.",
+            "prefix": "Switch(config-if)#",
+            "expected": "^switchport\\s+mode\\s+access$",
+            "aliases": ["sw mod acc", "switchport mode acc"],
+            "hint": "Use the command: 'switchport mode access'",
+            "explanation": "Access ports carry traffic for a single VLAN. Explicitly setting mode access prevents the port from becoming a trunk."
+        },
+        {
+            "id": "cisco_vlan_fundamentals__assign_vlan_10",
+            "prompt": "Assign FastEthernet0/5 to VLAN 10 as an access port.",
+            "prefix": "Switch(config-if)#",
+            "expected": "^switchport\\s+access\\s+vlan\\s+10$",
+            "aliases": ["sw acc vlan 10", "switchport acc vlan 10"],
+            "hint": "Use the command: 'switchport access vlan 10'",
+            "explanation": "The 'switchport access vlan' command places the port into the specified VLAN for untagged traffic."
+        },
+        {
+            "id": "cisco_vlan_fundamentals__interface_fa06",
+            "prompt": "Enter Interface Configuration mode for FastEthernet0/6.",
+            "prefix": "Switch(config-if)#",
+            "expected": "^interface\\s+FastEthernet0/6$",
+            "aliases": ["int fa0/6", "int f0/6", "interface fa0/6", "interface f0/6"],
+            "hint": "Use the command: 'interface FastEthernet0/6' or 'int fa0/6'",
+            "explanation": "You can navigate directly to another interface from interface configuration mode."
+        },
+        {
+            "id": "cisco_vlan_fundamentals__assign_vlan_20",
+            "prompt": "Assign FastEthernet0/6 to VLAN 20 as an access port.",
+            "prefix": "Switch(config-if)#",
+            "expected": "^switchport\\s+access\\s+vlan\\s+20$",
+            "aliases": ["sw acc vlan 20", "switchport acc vlan 20"],
+            "hint": "Use the command: 'switchport access vlan 20'",
+            "explanation": "Each access port belongs to exactly one VLAN. Devices on Fa0/5 and Fa0/6 will be in separate broadcast domains."
+        },
+        {
+            "id": "cisco_vlan_fundamentals__show_vlan_brief",
+            "prompt": "Display a summary of all VLANs and their port assignments.",
+            "prefix": "Switch(config-if)#",
+            "expected": "^show\\s+vlan\\s+brief$",
+            "aliases": ["sh vlan br", "sh vlan brief"],
+            "hint": "Use the command: 'show vlan brief'",
+            "explanation": "'show vlan brief' lists every VLAN, its name, status, and assigned ports—essential for verifying access port configuration."
+        }
+    ]
+}

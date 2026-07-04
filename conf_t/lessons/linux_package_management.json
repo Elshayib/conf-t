@@ -1,0 +1,84 @@
+{
+    "id": "linux_package_management",
+    "title": "Linux Package Management (APT)",
+    "platform": "Linux",
+    "description": "Install, update, search, and remove software packages on Debian/Ubuntu systems using apt and dpkg.",
+    "difficulty": "beginner",
+    "tags": ["packages", "apt", "dpkg"],
+    "prerequisites": ["linux_basic"],
+    "estimated_minutes": 20,
+    "tasks": [
+        {
+            "id": "linux_package_management__apt_update",
+            "prompt": "Refresh the local package index from configured repositories.",
+            "prefix": "user@ubuntu:~$",
+            "expected": "^sudo\\s+apt\\s+update$",
+            "aliases": ["apt update"],
+            "hint": "Use apt update: 'sudo apt update'",
+            "explanation": "'apt update' downloads the latest package lists from repositories without upgrading installed packages."
+        },
+        {
+            "id": "linux_package_management__apt_upgrade",
+            "prompt": "Upgrade all installed packages to their latest available versions.",
+            "prefix": "user@ubuntu:~$",
+            "expected": "^sudo\\s+apt\\s+upgrade$",
+            "aliases": ["apt upgrade"],
+            "hint": "Use apt upgrade: 'sudo apt upgrade'",
+            "explanation": "'apt upgrade' installs newer versions of currently installed packages, prompting before changes."
+        },
+        {
+            "id": "linux_package_management__apt_install",
+            "prompt": "Install the package 'htop' from the repositories.",
+            "prefix": "user@ubuntu:~$",
+            "expected": "^sudo\\s+apt\\s+install\\s+htop$",
+            "aliases": ["apt install htop"],
+            "hint": "Use apt install: 'sudo apt install htop'",
+            "explanation": "'apt install' resolves dependencies and installs the specified package and any required libraries."
+        },
+        {
+            "id": "linux_package_management__apt_remove",
+            "prompt": "Remove the package 'apache2' but keep its configuration files.",
+            "prefix": "user@ubuntu:~$",
+            "expected": "^sudo\\s+apt\\s+remove\\s+apache2$",
+            "aliases": ["apt remove apache2"],
+            "hint": "Use apt remove: 'sudo apt remove apache2'",
+            "explanation": "'apt remove' uninstalls the package binaries but leaves configuration files in /etc for potential reinstall."
+        },
+        {
+            "id": "linux_package_management__apt_purge",
+            "prompt": "Completely remove 'apache2' including all configuration files.",
+            "prefix": "user@ubuntu:~$",
+            "expected": "^sudo\\s+apt\\s+purge\\s+apache2$",
+            "aliases": ["apt purge apache2"],
+            "hint": "Use apt purge: 'sudo apt purge apache2'",
+            "explanation": "'apt purge' removes the package and deletes its configuration files from the system."
+        },
+        {
+            "id": "linux_package_management__apt_search",
+            "prompt": "Search the package repository for packages matching 'nginx'.",
+            "prefix": "user@ubuntu:~$",
+            "expected": "^apt\\s+search\\s+nginx$",
+            "aliases": [],
+            "hint": "Use apt search: 'apt search nginx'",
+            "explanation": "'apt search' queries the local package index for packages whose names or descriptions match the keyword."
+        },
+        {
+            "id": "linux_package_management__apt_show",
+            "prompt": "Display detailed information about the 'curl' package.",
+            "prefix": "user@ubuntu:~$",
+            "expected": "^apt\\s+show\\s+curl$",
+            "aliases": [],
+            "hint": "Use apt show: 'apt show curl'",
+            "explanation": "'apt show' prints metadata including version, dependencies, description, and installed status."
+        },
+        {
+            "id": "linux_package_management__apt_autoremove",
+            "prompt": "Remove packages that were automatically installed as dependencies but are no longer needed.",
+            "prefix": "user@ubuntu:~$",
+            "expected": "^sudo\\s+apt\\s+autoremove$",
+            "aliases": ["apt autoremove"],
+            "hint": "Use apt autoremove: 'sudo apt autoremove'",
+            "explanation": "'apt autoremove' cleans up orphaned dependency packages, freeing disk space safely."
+        }
+    ]
+}

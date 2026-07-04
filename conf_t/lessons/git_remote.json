@@ -1,0 +1,84 @@
+{
+    "id": "git_remote",
+    "title": "Git Remotes & Sync",
+    "platform": "Git",
+    "description": "Learn to manage remotes, fetch updates, pull changes, push branches, and inspect remote-tracking branches.",
+    "difficulty": "intermediate",
+    "tags": ["remote", "fetch", "push"],
+    "prerequisites": ["git_basic"],
+    "estimated_minutes": 25,
+    "tasks": [
+        {
+            "id": "git_remote__remote_list",
+            "prompt": "List configured remote repositories.",
+            "prefix": "user@ubuntu:~/project$",
+            "expected": "^git\\s+remote\\s+-v$",
+            "aliases": ["git remote --verbose"],
+            "hint": "Use git remote -v.",
+            "explanation": "git remote -v shows remote names and their fetch/push URLs."
+        },
+        {
+            "id": "git_remote__remote_add",
+            "prompt": "Add a remote named 'origin' pointing to 'https://github.com/user/repo.git'.",
+            "prefix": "user@ubuntu:~/project$",
+            "expected": "^git\\s+remote\\s+add\\s+origin\\s+https://github\\.com/user/repo\\.git$",
+            "aliases": [],
+            "hint": "Use git remote add origin <url>.",
+            "explanation": "git remote add registers a named connection to a remote repository."
+        },
+        {
+            "id": "git_remote__fetch",
+            "prompt": "Fetch all updates from the 'origin' remote without merging.",
+            "prefix": "user@ubuntu:~/project$",
+            "expected": "^git\\s+fetch\\s+origin$",
+            "aliases": [],
+            "hint": "Use git fetch origin.",
+            "explanation": "git fetch downloads remote commits and updates remote-tracking branches."
+        },
+        {
+            "id": "git_remote__pull",
+            "prompt": "Pull changes from 'origin/main' into the current branch.",
+            "prefix": "user@ubuntu:~/project$",
+            "expected": "^git\\s+pull\\s+origin\\s+main$",
+            "aliases": [],
+            "hint": "Use git pull origin main.",
+            "explanation": "git pull fetches and merges remote changes into the current branch."
+        },
+        {
+            "id": "git_remote__push",
+            "prompt": "Push the current branch to 'origin'.",
+            "prefix": "user@ubuntu:~/project$",
+            "expected": "^git\\s+push\\s+origin\\s+HEAD$",
+            "aliases": ["git push origin $(git branch --show-current)"],
+            "hint": "Use git push origin HEAD.",
+            "explanation": "git push publishes local commits to the remote repository."
+        },
+        {
+            "id": "git_remote__push_upstream",
+            "prompt": "Push branch 'feature' and set upstream tracking to 'origin/feature'.",
+            "prefix": "user@ubuntu:~/project$",
+            "expected": "^git\\s+push\\s+-u\\s+origin\\s+feature$",
+            "aliases": ["git push --set-upstream origin feature"],
+            "hint": "Use git push -u origin feature.",
+            "explanation": "-u sets the upstream so future git pull/push use the remote branch."
+        },
+        {
+            "id": "git_remote__branch_remote",
+            "prompt": "List remote-tracking branches.",
+            "prefix": "user@ubuntu:~/project$",
+            "expected": "^git\\s+branch\\s+-r$",
+            "aliases": ["git branch --remotes"],
+            "hint": "Use git branch -r.",
+            "explanation": "git branch -r shows branches available on configured remotes."
+        },
+        {
+            "id": "git_remote__remote_show",
+            "prompt": "Show detailed information about the 'origin' remote.",
+            "prefix": "user@ubuntu:~/project$",
+            "expected": "^git\\s+remote\\s+show\\s+origin$",
+            "aliases": [],
+            "hint": "Use git remote show origin.",
+            "explanation": "git remote show displays URLs and tracked branch configuration."
+        }
+    ]
+}

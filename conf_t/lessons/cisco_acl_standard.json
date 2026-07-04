@@ -1,0 +1,102 @@
+{
+    "id": "cisco_acl_standard",
+    "title": "Cisco Standard ACLs",
+    "platform": "Cisco",
+    "description": "Learn to create and apply standard IP access control lists on Cisco IOS devices, including permit/deny rules, wildcard masks, remarks, and interface binding.",
+    "difficulty": "intermediate",
+    "tags": ["acl", "security", "ccna"],
+    "prerequisites": ["cisco_basic"],
+    "estimated_minutes": 18,
+    "tasks": [
+        {
+            "id": "cisco_acl_standard__permit_host",
+            "prompt": "Create standard ACL 10 to permit host 192.168.1.50.",
+            "prefix": "Router(config)#",
+            "expected": "^access-list\\s+10\\s+permit\\s+host\\s+192\\.168\\.1\\.50$",
+            "aliases": ["access-list 10 permit host 192.168.1.50"],
+            "hint": "Use: 'access-list 10 permit host 192.168.1.50'",
+            "explanation": "Standard ACLs filter traffic based solely on source IP address. The 'host' keyword matches a single specific address."
+        },
+        {
+            "id": "cisco_acl_standard__deny_host",
+            "prompt": "Add a deny rule to ACL 10 blocking host 192.168.1.99.",
+            "prefix": "Router(config)#",
+            "expected": "^access-list\\s+10\\s+deny\\s+host\\s+192\\.168\\.1\\.99$",
+            "aliases": ["access-list 10 deny host 192.168.1.99"],
+            "hint": "Use: 'access-list 10 deny host 192.168.1.99'",
+            "explanation": "Deny statements in a standard ACL block traffic from the specified source address. Order matters — place specific denies before broad permits."
+        },
+        {
+            "id": "cisco_acl_standard__permit_network",
+            "prompt": "Permit all hosts on network 192.168.1.0/24 in standard ACL 10.",
+            "prefix": "Router(config)#",
+            "expected": "^access-list\\s+10\\s+permit\\s+192\\.168\\.1\\.0\\s+0\\.0\\.0\\.255$",
+            "aliases": ["access-list 10 permit 192.168.1.0 0.0.0.255"],
+            "hint": "Use: 'access-list 10 permit 192.168.1.0 0.0.0.255'",
+            "explanation": "Standard ACLs use a wildcard mask to match a range of source addresses. 0.0.0.255 matches all hosts in the 192.168.1.0/24 subnet."
+        },
+        {
+            "id": "cisco_acl_standard__permit_any",
+            "prompt": "Add a permit any rule to standard ACL 10 to allow all remaining traffic.",
+            "prefix": "Router(config)#",
+            "expected": "^access-list\\s+10\\s+permit\\s+any$",
+            "aliases": ["access-list 10 permit any"],
+            "hint": "Use: 'access-list 10 permit any'",
+            "explanation": "The 'permit any' keyword matches all source addresses. An implicit deny-all exists at the end of every ACL if no explicit permit is present."
+        },
+        {
+            "id": "cisco_acl_standard__remark",
+            "prompt": "Add a remark to ACL 10 describing it as 'Block unauthorized hosts'.",
+            "prefix": "Router(config)#",
+            "expected": "^access-list\\s+10\\s+remark\\s+Block\\s+unauthorized\\s+hosts$",
+            "aliases": ["access-list 10 remark Block unauthorized hosts"],
+            "hint": "Use: 'access-list 10 remark Block unauthorized hosts'",
+            "explanation": "ACL remarks are documentation comments embedded in the access list to help administrators understand each rule's purpose."
+        },
+        {
+            "id": "cisco_acl_standard__apply_inbound",
+            "prompt": "Apply standard ACL 10 inbound on interface GigabitEthernet0/0.",
+            "prefix": "Router(config-if)#",
+            "expected": "^ip\\s+access-group\\s+10\\s+in$",
+            "aliases": ["ip access-group 10 in"],
+            "hint": "Use: 'ip access-group 10 in'",
+            "explanation": "Binding an ACL inbound filters traffic as it enters the interface. Standard ACLs should be placed as close to the destination as possible."
+        },
+        {
+            "id": "cisco_acl_standard__apply_outbound",
+            "prompt": "Apply standard ACL 10 outbound on interface GigabitEthernet0/1.",
+            "prefix": "Router(config-if)#",
+            "expected": "^ip\\s+access-group\\s+10\\s+out$",
+            "aliases": ["ip access-group 10 out"],
+            "hint": "Use: 'ip access-group 10 out'",
+            "explanation": "An outbound ACL filters traffic leaving the interface. Only one ACL per direction can be applied to an interface at a time."
+        },
+        {
+            "id": "cisco_acl_standard__remove_acl",
+            "prompt": "Remove standard ACL 10 entirely from the router configuration.",
+            "prefix": "Router(config)#",
+            "expected": "^no\\s+access-list\\s+10$",
+            "aliases": ["no access-list 10"],
+            "hint": "Use: 'no access-list 10'",
+            "explanation": "The 'no access-list' command deletes the entire numbered ACL. Remember to remove it from any interfaces first to avoid orphaned references."
+        },
+        {
+            "id": "cisco_acl_standard__show_access_lists",
+            "prompt": "Display all configured access lists and their hit counters.",
+            "prefix": "Router#",
+            "expected": "^show\\s+access-lists$",
+            "aliases": ["sh access-lists", "sh access-list"],
+            "hint": "Use: 'show access-lists'",
+            "explanation": "This command shows each ACL entry along with match counters, helping verify which rules are being hit by live traffic."
+        },
+        {
+            "id": "cisco_acl_standard__show_ip_interface",
+            "prompt": "Verify which ACL is applied on interface GigabitEthernet0/0.",
+            "prefix": "Router#",
+            "expected": "^show\\s+ip\\s+interface\\s+GigabitEthernet0/0$",
+            "aliases": ["sh ip int g0/0", "sh ip interface g0/0"],
+            "hint": "Use: 'show ip interface GigabitEthernet0/0'",
+            "explanation": "The show ip interface command confirms ACL bindings and displays inbound/outbound access list assignments on a specific interface."
+        }
+    ]
+}

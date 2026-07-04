@@ -1,61 +1,64 @@
 {
-  "id": "powershell_basic",
-  "title": "PowerShell Command Basics",
-  "platform": "PowerShell",
-  "description": "Learn essential Windows PowerShell cmdlets for process, service, file management, and getting help.",
-  "tasks": [
-    {
-      "id": "get_service",
-      "prompt": "List all registered system services.",
-      "prefix": "PS C:\\>",
-      "expected": "^Get-Service$",
-      "aliases": ["gsv"],
-      "hint": "Use the cmdlet: 'Get-Service' or alias 'gsv'",
-      "explanation": "'Get-Service' retrieves the service status (running, stopped) for all services registered on the computer."
-    },
-    {
-      "id": "get_process",
-      "prompt": "Retrieve all running system processes.",
-      "prefix": "PS C:\\>",
-      "expected": "^Get-Process$",
-      "aliases": ["gps", "ps"],
-      "hint": "Use the cmdlet: 'Get-Process' or alias 'gps'",
-      "explanation": "'Get-Process' lists all active processes running on the local Windows machine."
-    },
-    {
-      "id": "new_item_file",
-      "prompt": "Create a new file named 'log.txt' in the current working directory.",
-      "prefix": "PS C:\\>",
-      "expected": "^New-Item\\s+-Path\\s+\\.\\s+-Name\\s+\"log\\.txt\"\\s+-ItemType\\s+\"File\"$",
-      "aliases": [
-        "New-Item -Name log.txt -ItemType File",
-        "New-Item log.txt -ItemType File",
-        "ni log.txt"
-      ],
-      "hint": "Use New-Item with -ItemType 'File'",
-      "explanation": "'New-Item' is the PowerShell cmdlet to create files or folders. Specifying -ItemType 'File' creates a blank text document."
-    },
-    {
-      "id": "copy_item_recurse",
-      "prompt": "Copy folder 'src' to destination 'backup' recursively (including subdirectories).",
-      "prefix": "PS C:\\>",
-      "expected": "^Copy-Item\\s+-Path\\s+\\.\\\\src\\s+-Destination\\s+\\.\\\\backup\\s+-Recurse$",
-      "aliases": [
-        "Copy-Item src backup -Recurse",
-        "Copy-Item -Path src -Destination backup -Recurse",
-        "cp src backup -Recurse"
-      ],
-      "hint": "Use Copy-Item with the -Recurse parameter",
-      "explanation": "Copy-Item copies items. The -Recurse switch ensures all child items and folders are duplicated."
-    },
-    {
-      "id": "get_help",
-      "prompt": "Retrieve help documentation for the 'Get-Process' cmdlet.",
-      "prefix": "PS C:\\>",
-      "expected": "^Get-Help\\s+Get-Process$",
-      "aliases": ["help Get-Process", "man Get-Process"],
-      "hint": "Use Get-Help command",
-      "explanation": "'Get-Help' prints syntax, parameter info, and description for any registered PowerShell command."
-    }
-  ]
+    "id": "powershell_basic",
+    "title": "PowerShell Command Basics",
+    "platform": "PowerShell",
+    "description": "Learn essential Windows PowerShell cmdlets for process, service, file management, and getting help.",
+    "difficulty": "beginner",
+    "tags": ["cmdlets", "windows"],
+    "estimated_minutes": 15,
+    "tasks": [
+        {
+            "id": "powershell_basic__get_service",
+            "prompt": "List all registered system services.",
+            "prefix": "PS C:\\>",
+            "expected": "^Get-Service$",
+            "aliases": ["gsv"],
+            "hint": "Use the cmdlet: 'Get-Service' or alias 'gsv'",
+            "explanation": "'Get-Service' retrieves the service status (running, stopped) for all services registered on the computer."
+        },
+        {
+            "id": "powershell_basic__get_process",
+            "prompt": "Retrieve all running system processes.",
+            "prefix": "PS C:\\>",
+            "expected": "^Get-Process$",
+            "aliases": ["gps", "ps"],
+            "hint": "Use the cmdlet: 'Get-Process' or alias 'gps'",
+            "explanation": "'Get-Process' lists all active processes running on the local Windows machine."
+        },
+        {
+            "id": "powershell_basic__new_item_file",
+            "prompt": "Create a new file named 'log.txt' in the current working directory.",
+            "prefix": "PS C:\\>",
+            "expected": "^New-Item\\s+-Path\\s+\\.\\s+-Name\\s+\"log\\.txt\"\\s+-ItemType\\s+\"File\"$",
+            "aliases": [
+                "New-Item -Name log.txt -ItemType File",
+                "New-Item log.txt -ItemType File",
+                "ni log.txt"
+            ],
+            "hint": "Use New-Item with -ItemType 'File'",
+            "explanation": "'New-Item' is the PowerShell cmdlet to create files or folders. Specifying -ItemType 'File' creates a blank text document."
+        },
+        {
+            "id": "powershell_basic__copy_item_recurse",
+            "prompt": "Copy folder 'src' to destination 'backup' recursively (including subdirectories).",
+            "prefix": "PS C:\\>",
+            "expected": "^Copy-Item\\s+-Path\\s+\\.\\\\src\\s+-Destination\\s+\\.\\\\backup\\s+-Recurse$",
+            "aliases": [
+                "Copy-Item src backup -Recurse",
+                "Copy-Item -Path src -Destination backup -Recurse",
+                "cp src backup -Recurse"
+            ],
+            "hint": "Use Copy-Item with the -Recurse parameter",
+            "explanation": "Copy-Item copies items. The -Recurse switch ensures all child items and folders are duplicated."
+        },
+        {
+            "id": "powershell_basic__get_help",
+            "prompt": "Retrieve help documentation for the 'Get-Process' cmdlet.",
+            "prefix": "PS C:\\>",
+            "expected": "^Get-Help\\s+Get-Process$",
+            "aliases": ["help Get-Process", "man Get-Process"],
+            "hint": "Use Get-Help command",
+            "explanation": "'Get-Help' prints syntax, parameter info, and description for any registered PowerShell command."
+        }
+    ]
 }

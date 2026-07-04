@@ -1,0 +1,102 @@
+{
+    "id": "linux_permissions_deep",
+    "title": "Linux Permissions Deep Dive",
+    "platform": "Linux",
+    "description": "Go beyond basic chmod with symbolic permissions, ownership, umask, ACLs, and special permission bits like SUID, SGID, and sticky bit.",
+    "difficulty": "intermediate",
+    "tags": ["permissions", "security", "acl"],
+    "prerequisites": ["linux_basic"],
+    "estimated_minutes": 30,
+    "tasks": [
+        {
+            "id": "linux_permissions_deep__chmod_symbolic_add",
+            "prompt": "Add execute permission for the group on 'deploy.sh' using symbolic (letter) notation.",
+            "prefix": "user@ubuntu:~$",
+            "expected": "^chmod\\s+g\\+x\\s+deploy\\.sh$",
+            "aliases": [],
+            "hint": "Use chmod with group add execute: 'chmod g+x deploy.sh'",
+            "explanation": "Symbolic chmod uses who (u/g/o/a), operator (+/-/=), and permissions (r/w/x). 'g+x' adds execute for the group."
+        },
+        {
+            "id": "linux_permissions_deep__chmod_symbolic_remove",
+            "prompt": "Remove write permission for others on 'secret.conf' using symbolic notation.",
+            "prefix": "user@ubuntu:~$",
+            "expected": "^chmod\\s+o-w\\s+secret\\.conf$",
+            "aliases": [],
+            "hint": "Use chmod with others remove write: 'chmod o-w secret.conf'",
+            "explanation": "'o-w' removes write permission from the 'others' category, preventing non-owner/non-group users from modifying the file."
+        },
+        {
+            "id": "linux_permissions_deep__chmod_octal_640",
+            "prompt": "Set permissions on 'database.conf' to owner read/write, group read, others none (octal 640).",
+            "prefix": "user@ubuntu:~$",
+            "expected": "^chmod\\s+640\\s+database\\.conf$",
+            "aliases": [],
+            "hint": "Use chmod with octal 640: 'chmod 640 database.conf'",
+            "explanation": "Octal 640 means owner gets rw- (6), group gets r-- (4), and others get --- (0)."
+        },
+        {
+            "id": "linux_permissions_deep__chown_user",
+            "prompt": "Change only the owner of 'app.log' to user 'www-data' (leave group unchanged).",
+            "prefix": "user@ubuntu:~$",
+            "expected": "^chown\\s+www-data\\s+app\\.log$",
+            "aliases": [],
+            "hint": "Use chown with just the username: 'chown www-data app.log'",
+            "explanation": "When only a username is specified (no colon), 'chown' changes the owner while preserving the existing group."
+        },
+        {
+            "id": "linux_permissions_deep__chgrp_change",
+            "prompt": "Change the group of 'shared_dir' to 'developers' recursively.",
+            "prefix": "user@ubuntu:~$",
+            "expected": "^chgrp\\s+-R\\s+developers\\s+shared_dir$",
+            "aliases": [],
+            "hint": "Use chgrp with recursive flag (-R): 'chgrp -R developers shared_dir'",
+            "explanation": "'chgrp' changes group ownership. '-R' applies the change to all files and subdirectories within the target."
+        },
+        {
+            "id": "linux_permissions_deep__umask_value",
+            "prompt": "Display the current umask value in octal format.",
+            "prefix": "user@ubuntu:~$",
+            "expected": "^umask$",
+            "aliases": [],
+            "hint": "Run the umask command with no arguments: 'umask'",
+            "explanation": "'umask' shows the default permission mask subtracted from new files and directories at creation time."
+        },
+        {
+            "id": "linux_permissions_deep__setfacl_user",
+            "prompt": "Grant user 'alice' read and write permissions on 'project.txt' using an ACL.",
+            "prefix": "user@ubuntu:~$",
+            "expected": "^setfacl\\s+-m\\s+u:alice:rw\\s+project\\.txt$",
+            "aliases": [],
+            "hint": "Use setfacl modify: 'setfacl -m u:alice:rw project.txt'",
+            "explanation": "'setfacl -m' modifies ACL entries. 'u:alice:rw' grants read and write to the specific user alice."
+        },
+        {
+            "id": "linux_permissions_deep__getfacl_view",
+            "prompt": "Display the ACL entries and standard permissions for 'project.txt'.",
+            "prefix": "user@ubuntu:~$",
+            "expected": "^getfacl\\s+project\\.txt$",
+            "aliases": [],
+            "hint": "Use getfacl: 'getfacl project.txt'",
+            "explanation": "'getfacl' shows both traditional Unix permissions and any extended ACL entries on a file."
+        },
+        {
+            "id": "linux_permissions_deep__chmod_suid",
+            "prompt": "Set the SUID bit on '/usr/local/bin/backup_tool' using octal mode 4755.",
+            "prefix": "user@ubuntu:~$",
+            "expected": "^chmod\\s+4755\\s+/usr/local/bin/backup_tool$",
+            "aliases": [],
+            "hint": "Use chmod 4755: 'chmod 4755 /usr/local/bin/backup_tool'",
+            "explanation": "The leading 4 in octal 4755 sets the SUID bit, causing the program to run with the file owner's privileges."
+        },
+        {
+            "id": "linux_permissions_deep__chmod_sticky",
+            "prompt": "Set the sticky bit on the directory '/tmp/shared' using octal mode 1777.",
+            "prefix": "user@ubuntu:~$",
+            "expected": "^chmod\\s+1777\\s+/tmp/shared$",
+            "aliases": [],
+            "hint": "Use chmod 1777: 'chmod 1777 /tmp/shared'",
+            "explanation": "The sticky bit (1xxx) on a directory ensures users can only delete files they own, even in world-writable directories."
+        }
+    ]
+}

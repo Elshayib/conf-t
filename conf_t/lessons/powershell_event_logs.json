@@ -1,0 +1,84 @@
+{
+    "id": "powershell_event_logs",
+    "title": "PowerShell Event Logs",
+    "platform": "PowerShell",
+    "description": "Learn to list, query, clear, write, and manage Windows event logs using Get-EventLog and Get-WinEvent.",
+    "difficulty": "intermediate",
+    "tags": ["event-logs", "logging", "windows"],
+    "prerequisites": ["powershell_basic"],
+    "estimated_minutes": 25,
+    "tasks": [
+        {
+            "id": "powershell_event_logs__list_event_logs",
+            "prompt": "List all classic event logs available on the system.",
+            "prefix": "PS C:\\>",
+            "expected": "^Get-EventLog\\s+-List$",
+            "aliases": ["Get-EventLog -List"],
+            "hint": "Use Get-EventLog with -List.",
+            "explanation": "Get-EventLog -List shows Application, System, Security, and other classic logs."
+        },
+        {
+            "id": "powershell_event_logs__get_eventlog_newest",
+            "prompt": "Retrieve the 10 newest entries from the Application event log.",
+            "prefix": "PS C:\\>",
+            "expected": "^Get-EventLog\\s+-LogName\\s+Application\\s+-Newest\\s+10$",
+            "aliases": ["Get-EventLog -LogName Application -Newest 10"],
+            "hint": "Use Get-EventLog with -LogName and -Newest.",
+            "explanation": "-Newest returns the most recent events from the specified log."
+        },
+        {
+            "id": "powershell_event_logs__get_winevent_listlog",
+            "prompt": "List all Windows event log names using Get-WinEvent.",
+            "prefix": "PS C:\\>",
+            "expected": "^Get-WinEvent\\s+-ListLog\\s+\\*$",
+            "aliases": ["Get-WinEvent -ListLog *"],
+            "hint": "Use Get-WinEvent -ListLog *.",
+            "explanation": "Get-WinEvent accesses both classic and modern Windows event channels."
+        },
+        {
+            "id": "powershell_event_logs__get_winevent_system",
+            "prompt": "Retrieve the 5 most recent events from the System log using Get-WinEvent.",
+            "prefix": "PS C:\\>",
+            "expected": "^Get-WinEvent\\s+-LogName\\s+System\\s+-MaxEvents\\s+5$",
+            "aliases": ["Get-WinEvent -LogName System -MaxEvents 5"],
+            "hint": "Use Get-WinEvent with -LogName System and -MaxEvents 5.",
+            "explanation": "-MaxEvents limits how many records Get-WinEvent returns."
+        },
+        {
+            "id": "powershell_event_logs__get_eventlog_errors",
+            "prompt": "Retrieve the 20 newest Error entries from the Application log.",
+            "prefix": "PS C:\\>",
+            "expected": "^Get-EventLog\\s+-LogName\\s+Application\\s+-EntryType\\s+Error\\s+-Newest\\s+20$",
+            "aliases": ["Get-EventLog -LogName Application -EntryType Error -Newest 20"],
+            "hint": "Filter by -EntryType Error with -Newest 20.",
+            "explanation": "-EntryType filters events by severity level."
+        },
+        {
+            "id": "powershell_event_logs__clear_eventlog",
+            "prompt": "Clear all entries from the Application event log.",
+            "prefix": "PS C:\\>",
+            "expected": "^Clear-EventLog\\s+-LogName\\s+Application$",
+            "aliases": ["Clear-EventLog -LogName Application"],
+            "hint": "Use Clear-EventLog with -LogName Application.",
+            "explanation": "Clear-EventLog removes all records from a classic event log."
+        },
+        {
+            "id": "powershell_event_logs__write_eventlog",
+            "prompt": "Write an Information event (ID 1000) to Application log from source 'MyApp' with message 'Started'.",
+            "prefix": "PS C:\\>",
+            "expected": "^Write-EventLog\\s+-LogName\\s+Application\\s+-Source\\s+MyApp\\s+-EventId\\s+1000\\s+-EntryType\\s+Information\\s+-Message\\s+\"Started\"$",
+            "aliases": ["Write-EventLog -LogName Application -Source MyApp -EventId 1000 -EntryType Information -Message 'Started'"],
+            "hint": "Use Write-EventLog with LogName, Source, EventId, EntryType, and Message.",
+            "explanation": "Write-EventLog creates custom entries in classic Windows event logs."
+        },
+        {
+            "id": "powershell_event_logs__limit_eventlog",
+            "prompt": "Set the maximum size of the Application log to 64 MB.",
+            "prefix": "PS C:\\>",
+            "expected": "^Limit-EventLog\\s+-LogName\\s+Application\\s+-MaximumSize\\s+64MB$",
+            "aliases": ["Limit-EventLog -LogName Application -MaximumSize 64MB"],
+            "hint": "Use Limit-EventLog with -MaximumSize 64MB.",
+            "explanation": "Limit-EventLog configures retention and maximum size for event logs."
+        }
+    ]
+}

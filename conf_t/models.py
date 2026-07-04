@@ -42,6 +42,10 @@ class Lesson:
     platform: str
     description: str
     tasks: List[Task]
+    difficulty: str = "beginner"
+    tags: List[str] = field(default_factory=list)
+    prerequisites: List[str] = field(default_factory=list)
+    estimated_minutes: int = 0
 
     @classmethod
     def from_dict(cls, data: Dict[str, Any]) -> "Lesson":
@@ -50,17 +54,30 @@ class Lesson:
             title=data["title"],
             platform=data["platform"],
             description=data["description"],
-            tasks=[Task.from_dict(t) for t in data.get("tasks", [])]
+            tasks=[Task.from_dict(t) for t in data.get("tasks", [])],
+            difficulty=data.get("difficulty", "beginner"),
+            tags=data.get("tags", []),
+            prerequisites=data.get("prerequisites", []),
+            estimated_minutes=data.get("estimated_minutes", 0),
         )
 
     def to_dict(self) -> Dict[str, Any]:
-        return {
+        result: Dict[str, Any] = {
             "id": self.id,
             "title": self.title,
             "platform": self.platform,
             "description": self.description,
-            "tasks": [t.to_dict() for t in self.tasks]
+            "tasks": [t.to_dict() for t in self.tasks],
         }
+        if self.difficulty != "beginner":
+            result["difficulty"] = self.difficulty
+        if self.tags:
+            result["tags"] = self.tags
+        if self.prerequisites:
+            result["prerequisites"] = self.prerequisites
+        if self.estimated_minutes:
+            result["estimated_minutes"] = self.estimated_minutes
+        return result
 
 
 @dataclass

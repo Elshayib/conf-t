@@ -1,0 +1,84 @@
+{
+    "id": "powershell_file_management",
+    "title": "PowerShell File Management",
+    "platform": "PowerShell",
+    "description": "Learn to create, read, write, move, rename, remove, and verify files and folders in PowerShell.",
+    "difficulty": "beginner",
+    "tags": ["files", "filesystem", "io"],
+    "prerequisites": ["powershell_navigation"],
+    "estimated_minutes": 25,
+    "tasks": [
+        {
+            "id": "powershell_file_management__new_directory",
+            "prompt": "Create a new folder named 'backup' in the current directory.",
+            "prefix": "PS C:\\>",
+            "expected": "^New-Item\\s+-ItemType\\s+Directory\\s+-Name\\s+backup$",
+            "aliases": ["New-Item -ItemType Directory -Name backup", "mkdir backup", "ni backup -ItemType Directory"],
+            "hint": "Use New-Item with -ItemType Directory.",
+            "explanation": "New-Item creates files, directories, and other provider items."
+        },
+        {
+            "id": "powershell_file_management__remove_item",
+            "prompt": "Delete the file 'temp.txt' from the current directory.",
+            "prefix": "PS C:\\>",
+            "expected": "^Remove-Item\\s+temp\\.txt$",
+            "aliases": ["Remove-Item temp.txt", "del temp.txt", "rm temp.txt"],
+            "hint": "Use Remove-Item with the file name.",
+            "explanation": "Remove-Item deletes files, folders, and registry keys."
+        },
+        {
+            "id": "powershell_file_management__rename_item",
+            "prompt": "Rename the file 'old.txt' to 'new.txt'.",
+            "prefix": "PS C:\\>",
+            "expected": "^Rename-Item\\s+old\\.txt\\s+new\\.txt$",
+            "aliases": ["Rename-Item old.txt new.txt", "ren old.txt new.txt"],
+            "hint": "Use Rename-Item with the old and new names.",
+            "explanation": "Rename-Item changes the name of an existing file or folder."
+        },
+        {
+            "id": "powershell_file_management__move_item",
+            "prompt": "Move 'report.txt' to the 'C:\\Archive' folder.",
+            "prefix": "PS C:\\>",
+            "expected": "^Move-Item\\s+report\\.txt\\s+C:\\\\Archive$",
+            "aliases": ["Move-Item report.txt C:\\Archive", "mv report.txt C:\\Archive"],
+            "hint": "Use Move-Item with source and destination paths.",
+            "explanation": "Move-Item relocates items to a new directory or renames them across paths."
+        },
+        {
+            "id": "powershell_file_management__test_path",
+            "prompt": "Check whether the path 'C:\\Windows' exists.",
+            "prefix": "PS C:\\>",
+            "expected": "^Test-Path\\s+C:\\\\Windows$",
+            "aliases": ["Test-Path C:\\Windows"],
+            "hint": "Use Test-Path with the target path.",
+            "explanation": "Test-Path returns True or False depending on whether a path exists."
+        },
+        {
+            "id": "powershell_file_management__get_content",
+            "prompt": "Read and display the contents of 'readme.txt'.",
+            "prefix": "PS C:\\>",
+            "expected": "^Get-Content\\s+readme\\.txt$",
+            "aliases": ["Get-Content readme.txt", "gc readme.txt", "type readme.txt"],
+            "hint": "Use Get-Content with the file name.",
+            "explanation": "Get-Content reads text from a file line by line or as a single string."
+        },
+        {
+            "id": "powershell_file_management__set_content",
+            "prompt": "Write the text 'Initial entry' to 'log.txt', overwriting any existing content.",
+            "prefix": "PS C:\\>",
+            "expected": "^Set-Content\\s+log\\.txt\\s+-Value\\s+\"Initial entry\"$",
+            "aliases": ["Set-Content log.txt -Value 'Initial entry'", "Set-Content log.txt 'Initial entry'"],
+            "hint": "Use Set-Content with -Value.",
+            "explanation": "Set-Content replaces the entire contents of a file."
+        },
+        {
+            "id": "powershell_file_management__add_content",
+            "prompt": "Append the line 'Second entry' to the end of 'log.txt'.",
+            "prefix": "PS C:\\>",
+            "expected": "^Add-Content\\s+log\\.txt\\s+-Value\\s+\"Second entry\"$",
+            "aliases": ["Add-Content log.txt -Value 'Second entry'", "Add-Content log.txt 'Second entry'"],
+            "hint": "Use Add-Content with -Value to append.",
+            "explanation": "Add-Content appends new text without removing existing file content."
+        }
+    ]
+}

@@ -1,0 +1,147 @@
+{
+    "id": "cisco_ospf_multiarea",
+    "title": "Cisco OSPF Multi-Area",
+    "platform": "Cisco",
+    "description": "Configure a multi-area OSPF design on an ABR with stub and totally stubby areas, inter-area summarization, virtual links, and external route summarization.",
+    "difficulty": "advanced",
+    "tags": ["ospf", "routing", "ccna"],
+    "prerequisites": ["cisco_ospf_single_area"],
+    "estimated_minutes": 25,
+    "tasks": [
+        {
+            "id": "cisco_ospf_multiarea__configure_terminal",
+            "prompt": "Enter Global Configuration mode on ABR-R2 to configure multi-area OSPF.",
+            "prefix": "ABR-R2#",
+            "expected": "^configure\\s+terminal$",
+            "aliases": ["conf t", "config terminal", "config t"],
+            "hint": "Use: 'configure terminal' or 'conf t'",
+            "explanation": "Area border routers (ABRs) connect the backbone area 0 to one or more non-backbone areas."
+        },
+        {
+            "id": "cisco_ospf_multiarea__router_ospf",
+            "prompt": "Enable OSPF routing process 1 on the ABR.",
+            "prefix": "ABR-R2(config)#",
+            "expected": "^router\\s+ospf\\s+1$",
+            "aliases": ["router ospf 1"],
+            "hint": "Use: 'router ospf 1'",
+            "explanation": "The ABR runs a single OSPF process and maintains separate link-state databases for each connected area."
+        },
+        {
+            "id": "cisco_ospf_multiarea__router_id",
+            "prompt": "Set the OSPF router ID to 2.2.2.2 on the ABR.",
+            "prefix": "ABR-R2(config-router)#",
+            "expected": "^router-id\\s+2\\.2\\.2\\.2$",
+            "aliases": ["router-id 2.2.2.2"],
+            "hint": "Use: 'router-id 2.2.2.2'",
+            "explanation": "A stable router ID is required for virtual-link negotiation and consistent LSA origination across areas."
+        },
+        {
+            "id": "cisco_ospf_multiarea__network_area_0",
+            "prompt": "Advertise all 10.0.x.x backbone links into OSPF area 0.",
+            "prefix": "ABR-R2(config-router)#",
+            "expected": "^network\\s+10\\.0\\.0\\.0\\s+0\\.255\\.255\\.255\\s+area\\s+0$",
+            "aliases": ["net 10.0.0.0 0.255.255.255 area 0", "network 10.0.0.0 0.255.255.255 a 0"],
+            "hint": "Use: 'network 10.0.0.0 0.255.255.255 area 0'",
+            "explanation": "Area 0 is the OSPF backbone. All other areas must connect to area 0 directly or through a virtual link."
+        },
+        {
+            "id": "cisco_ospf_multiarea__network_area_1",
+            "prompt": "Advertise all 10.1.x.x interfaces into OSPF area 1.",
+            "prefix": "ABR-R2(config-router)#",
+            "expected": "^network\\s+10\\.1\\.0\\.0\\s+0\\.0\\.255\\.255\\s+area\\s+1$",
+            "aliases": ["net 10.1.0.0 0.0.255.255 area 1", "network 10.1.0.0 0.0.255.255 a 1"],
+            "hint": "Use: 'network 10.1.0.0 0.0.255.255 area 1'",
+            "explanation": "Non-backbone areas reduce LSA flooding scope. The ABR translates Type 1 and Type 2 LSAs into Type 3 summary LSAs."
+        },
+        {
+            "id": "cisco_ospf_multiarea__network_area_2",
+            "prompt": "Advertise all 10.2.x.x interfaces into OSPF area 2.",
+            "prefix": "ABR-R2(config-router)#",
+            "expected": "^network\\s+10\\.2\\.0\\.0\\s+0\\.0\\.255\\.255\\s+area\\s+2$",
+            "aliases": ["net 10.2.0.0 0.0.255.255 area 2", "network 10.2.0.0 0.0.255.255 a 2"],
+            "hint": "Use: 'network 10.2.0.0 0.0.255.255 area 2'",
+            "explanation": "Each area has its own SPF calculation. ABRs sit at the boundary and exchange inter-area routes."
+        },
+        {
+            "id": "cisco_ospf_multiarea__area_stub",
+            "prompt": "Configure area 1 as a stub area to block external Type 5 LSAs.",
+            "prefix": "ABR-R2(config-router)#",
+            "expected": "^area\\s+1\\s+stub$",
+            "aliases": ["area 1 stub"],
+            "hint": "Use: 'area 1 stub'",
+            "explanation": "Stub areas do not accept external routes. The ABR injects a default inter-area route instead."
+        },
+        {
+            "id": "cisco_ospf_multiarea__area_totally_stubby",
+            "prompt": "Configure area 2 as a totally stubby area that blocks inter-area and external routes.",
+            "prefix": "ABR-R2(config-router)#",
+            "expected": "^area\\s+2\\s+stub\\s+no-summary$",
+            "aliases": ["area 2 stub no-summary"],
+            "hint": "Use: 'area 2 stub no-summary'",
+            "explanation": "Totally stubby areas (stub no-summary) block Type 3, Type 4, and Type 5 LSAs. Only a default route is advertised into the area."
+        },
+        {
+            "id": "cisco_ospf_multiarea__area_range",
+            "prompt": "Summarize area 1 routes at the ABR using range 10.1.0.0/16.",
+            "prefix": "ABR-R2(config-router)#",
+            "expected": "^area\\s+1\\s+range\\s+10\\.1\\.0\\.0\\s+255\\.255\\.0\\.0$",
+            "aliases": ["area 1 range 10.1.0.0 255.255.0.0"],
+            "hint": "Use: 'area 1 range 10.1.0.0 255.255.0.0'",
+            "explanation": "Inter-area route summarization at the ABR replaces multiple Type 3 LSAs with a single summary prefix."
+        },
+        {
+            "id": "cisco_ospf_multiarea__virtual_link",
+            "prompt": "Create a virtual link through area 0 to reach the remote ABR with router ID 1.1.1.1.",
+            "prefix": "ABR-R2(config-router)#",
+            "expected": "^area\\s+0\\s+virtual-link\\s+1\\.1\\.1\\.1$",
+            "aliases": ["area 0 virtual-link 1.1.1.1"],
+            "hint": "Use: 'area 0 virtual-link 1.1.1.1'",
+            "explanation": "A virtual link extends area 0 through a transit area to connect a partitioned backbone to the main area 0."
+        },
+        {
+            "id": "cisco_ospf_multiarea__summary_address",
+            "prompt": "Summarize external routes at the ASBR using summary-address 10.0.0.0 255.0.0.0.",
+            "prefix": "ABR-R2(config-router)#",
+            "expected": "^summary-address\\s+10\\.0\\.0\\.0\\s+255\\.0\\.0\\.0$",
+            "aliases": ["summary-address 10.0.0.0 255.0.0.0"],
+            "hint": "Use: 'summary-address 10.0.0.0 255.0.0.0'",
+            "explanation": "External route summarization aggregates redistributed routes into fewer Type 5 LSAs at the ASBR."
+        },
+        {
+            "id": "cisco_ospf_multiarea__area_default_cost",
+            "prompt": "Set the default route cost injected into stub area 1 to 25.",
+            "prefix": "ABR-R2(config-router)#",
+            "expected": "^area\\s+1\\s+default-cost\\s+25$",
+            "aliases": ["area 1 default-cost 25"],
+            "hint": "Use: 'area 1 default-cost 25'",
+            "explanation": "The default-cost command controls the metric of the default inter-area route the ABR advertises into a stub area."
+        },
+        {
+            "id": "cisco_ospf_multiarea__exit_router_config",
+            "prompt": "Exit OSPF router configuration mode back to privileged EXEC mode.",
+            "prefix": "ABR-R2(config-router)#",
+            "expected": "^(exit|end)$",
+            "aliases": [],
+            "hint": "Use: 'exit' or 'end'",
+            "explanation": "Use 'end' to return directly to privileged EXEC mode for verification commands."
+        },
+        {
+            "id": "cisco_ospf_multiarea__show_border_routers",
+            "prompt": "Display all area border routers known to this router.",
+            "prefix": "ABR-R2#",
+            "expected": "^show\\s+ip\\s+ospf\\s+border-routers$",
+            "aliases": ["sh ip ospf border-routers", "sh ip ospf border-routers"],
+            "hint": "Use: 'show ip ospf border-routers'",
+            "explanation": "This command lists ABRs and ASBRs in the OSPF domain, confirming the router's role at area boundaries."
+        },
+        {
+            "id": "cisco_ospf_multiarea__show_virtual_links",
+            "prompt": "Verify the status of OSPF virtual links.",
+            "prefix": "ABR-R2#",
+            "expected": "^show\\s+ip\\s+ospf\\s+virtual-links$",
+            "aliases": ["sh ip ospf virtual-links", "sh ip ospf virtual-link"],
+            "hint": "Use: 'show ip ospf virtual-links'",
+            "explanation": "Virtual-link output shows the transit area, remote router ID, and adjacency state across the logical backbone extension."
+        }
+    ]
+}

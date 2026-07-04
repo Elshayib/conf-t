@@ -27,7 +27,9 @@ You get a simulated shell prompt, type the command, and receive instant feedback
 | 💡 **Hints & Explanations** | Type `hint` for a nudge; get a full explanation after each answer |
 | 📊 **Progress Tracking** | Accuracy stats, completed lessons, and history saved locally |
 | 🧩 **Extensible** | Add new lessons by dropping a JSON file into `conf_t/lessons/` |
-| 🎫 **Multiple Platforms** | Ships with Cisco IOS, Linux, PowerShell, Git, and Docker lessons |
+| 🎫 **Multiple Platforms** | 640+ tasks across Cisco IOS, Linux, PowerShell, Git, and Docker |
+| 📚 **Structured Curriculum** | Beginner → advanced learning paths with prerequisites and capstone labs |
+| 🗺️ **Curriculum Browser** | Difficulty grouping, progress icons, recommended next lesson, soft prerequisite warnings |
 
 ---
 
@@ -69,16 +71,19 @@ You will be greeted with an interactive menu:
 
 ```
 ╔══════════════════════════════╗
-║         Conf T  v0.1.0       ║
+║         Conf T  v0.2.0       ║
 ╚══════════════════════════════╝
 
-? What would you like to do?
-  › 📚 Practice a Lesson
-    📝 Review Failed Commands
-    ➕ Create a Lesson
-    📊 View Progress
-    🚪 Exit
+? Select an option:
+  › 1. Practice a Lesson
+    2. Review Failed Commands
+    3. View Progress & Stats
+    4. Reset All Progress
+    5. Create a Custom Lesson
+    6. Exit
 ```
+
+When practicing a lesson, the curriculum browser groups lessons by difficulty, shows your progress (✓ ◐ ○), highlights a **recommended next** lesson, and warns softly if prerequisites are not yet completed.
 
 During a practice session:
 
@@ -90,17 +95,39 @@ During a practice session:
 
 ---
 
-## 📦 Available Lessons
+## 📦 Lesson Library
 
-| Platform | Lesson | Topics |
-|---|---|---|
-| Cisco IOS | Basic Commands | Navigation, enable, configure terminal |
-| Cisco IOS | Routing & VLANs | IP routing, VLAN configuration |
-| Linux | Basic Commands | ls, cd, grep, permissions |
-| Linux | Advanced Commands | Processes, networking, scripting |
-| PowerShell | Basic Commands | Cmdlets, piping, file management |
-| Git | Basic Commands | init, clone, commit, push, pull |
-| Docker | Basic Commands | images, containers, run, build |
+Conf T ships with **68 lessons** and **640 practice tasks** across five platforms.
+
+| Platform | Lessons | Tasks | Focus |
+|---|---|---|---|
+| Cisco IOS | 21 | 231 | CCNA-aligned switching, routing, security, services |
+| Linux | 15 | 144 | Shell, systemd, networking, scripting, troubleshooting |
+| PowerShell | 12 | 102 | Cmdlets, pipeline, scripting, remoting, automation |
+| Git | 10 | 80 | Workflow, branching, merging, recovery |
+| Docker | 10 | 83 | Images, containers, compose, networking, volumes |
+
+### Cisco IOS Curriculum (CCNA-aligned)
+
+| Difficulty | Lessons |
+|---|---|
+| Beginner | `cisco_basic`, `cisco_show_commands`, `cisco_interface_basics` |
+| Intermediate | `cisco_vlan_fundamentals`, `cisco_trunking_dtp`, `cisco_inter_vlan_routing`, `cisco_etherchannels`, `cisco_stp`, `cisco_static_routing`, `cisco_ospf_single_area`, `cisco_nat_pat`, `cisco_dhcp`, `cisco_acl_standard`, `cisco_port_security`, `cisco_ssh_hardening` |
+| Advanced | `cisco_ospf_multiarea`, `cisco_acl_extended`, `cisco_wlan`, `cisco_qos`, `cisco_hsrp`, `cisco_troubleshooting_lab` |
+
+### Linux Curriculum
+
+| Difficulty | Lessons |
+|---|---|
+| Beginner | `linux_basic`, `linux_file_operations`, `linux_text_processing`, `linux_package_management` |
+| Intermediate | `linux_advanced`, `linux_permissions_deep`, `linux_process_management`, `linux_systemd`, `linux_networking`, `linux_users_groups`, `linux_cron_scheduling` |
+| Advanced | `linux_lvm_storage`, `linux_firewall`, `linux_shell_scripting`, `linux_troubleshooting_lab` |
+
+### PowerShell, Git & Docker
+
+Each platform follows a **beginner → intermediate → advanced → capstone** path. Capstone labs (`*_troubleshooting_lab`) mix scenarios from prior lessons. Use the in-app lesson browser to explore the full list.
+
+> **Progress migration:** Task IDs were renamed to a globally-unique format (`lesson_id__action`). If you have an older `~/.conf_t_progress.json`, reset progress from the main menu after upgrading.
 
 ---
 
@@ -114,9 +141,13 @@ Create a `.json` file in `conf_t/lessons/` using this schema:
   "title": "My Custom Lesson",
   "platform": "Cisco",
   "description": "Short description of what this lesson covers.",
+  "difficulty": "beginner",
+  "tags": ["custom"],
+  "prerequisites": ["cisco_basic"],
+  "estimated_minutes": 15,
   "tasks": [
     {
-      "id": "task_01",
+      "id": "my_custom_lesson__configure_terminal",
       "prompt": "Enter global configuration mode.",
       "prefix": "Router#",
       "expected": "^configure\\s+terminal$",
@@ -127,6 +158,8 @@ Create a `.json` file in `conf_t/lessons/` using this schema:
   ]
 }
 ```
+
+**Task ID convention:** `{lesson_id}__{action_slug}` — globally unique across all lessons (required at scale).
 
 > **Platform case rules:**
 > - `Cisco`, `PowerShell` → **case-insensitive** matching
@@ -152,6 +185,8 @@ conf_t/
 ## 🤝 Contributing
 
 Contributions, lesson packs, and bug reports are very welcome! Please read [CONTRIBUTING.md](CONTRIBUTING.md) before opening a PR.
+
+See [CHANGELOG.md](CHANGELOG.md) for release history.
 
 ---
 

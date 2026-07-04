@@ -1,17 +1,102 @@
 {
-  "id": "cisco_etherchannels",
-  "title": "Cisco EtherChannels",
-  "platform": "Cisco",
-  "description": "Learn how to configure EtherChannels to bundle multiple physical interfaces into one logical link for redundancy and increased bandwidth.",
-  "tasks": [
-    {
-      "id": "task_1",
-      "prompt": "Enter config mode for interfaces f0/1 and f0/2 simultaneously.",
-      "prefix": "Router(config)#",
-      "expected": "^interface\\s+range\\s+f0/1-2$",
-      "aliases": ["int ra f0/1-2"],
-      "hint": "Use the range command to enter more than one interface config mode at once.",
-      "explanation": "'interface range' lets you configure multiple interfaces simultaneously. Use '-' to define the range (e.g., f0/1-2)."
-    }
-  ]
+    "id": "cisco_etherchannels",
+    "title": "Cisco EtherChannels",
+    "platform": "Cisco",
+    "description": "Learn how to bundle physical links into EtherChannels using LACP, configure Port-channels, and verify channel status for redundancy and increased bandwidth.",
+    "difficulty": "intermediate",
+    "tags": ["etherchannel", "lacp", "ccna"],
+    "prerequisites": ["cisco_interface_basics"],
+    "estimated_minutes": 18,
+    "tasks": [
+        {
+            "id": "cisco_etherchannels__enable",
+            "prompt": "Enter Privileged EXEC mode.",
+            "prefix": "Switch>",
+            "expected": "^enable$",
+            "aliases": ["en"],
+            "hint": "Use the command: 'enable' or 'en'",
+            "explanation": "EtherChannel configuration requires Privileged EXEC mode on the switch."
+        },
+        {
+            "id": "cisco_etherchannels__configure_terminal",
+            "prompt": "Enter Global Configuration mode.",
+            "prefix": "Switch#",
+            "expected": "^configure\\s+terminal$",
+            "aliases": ["conf t", "config terminal", "config t"],
+            "hint": "Use the command: 'configure terminal' or 'conf t'",
+            "explanation": "EtherChannel settings are applied from global configuration mode."
+        },
+        {
+            "id": "cisco_etherchannels__interface_range_gi0102",
+            "prompt": "Enter Interface Configuration mode for GigabitEthernet0/1 and GigabitEthernet0/2 using a range.",
+            "prefix": "Switch(config)#",
+            "expected": "^interface\\s+range\\s+GigabitEthernet0/1-2$",
+            "aliases": ["int range gi0/1-2", "int ra gi0/1-2", "interface range g0/1-2"],
+            "hint": "Use the command: 'interface range GigabitEthernet0/1-2'",
+            "explanation": "'interface range' applies identical configuration to multiple physical ports that will form one logical bundle."
+        },
+        {
+            "id": "cisco_etherchannels__channel_group_active",
+            "prompt": "Assign these interfaces to EtherChannel group 1 using LACP active mode.",
+            "prefix": "Switch(config-if-range)#",
+            "expected": "^channel-group\\s+1\\s+mode\\s+active$",
+            "aliases": ["channel group 1 mode active", "chan gr 1 mode active"],
+            "hint": "Use the command: 'channel-group 1 mode active'",
+            "explanation": "LACP active mode initiates negotiation with the neighbor. The group number must match on both switches."
+        },
+        {
+            "id": "cisco_etherchannels__interface_range_gi0304",
+            "prompt": "Enter Interface Configuration mode for GigabitEthernet0/3 and GigabitEthernet0/4 using a range.",
+            "prefix": "Switch(config-if-range)#",
+            "expected": "^interface\\s+range\\s+GigabitEthernet0/3-4$",
+            "aliases": ["int range gi0/3-4", "int ra gi0/3-4", "interface range g0/3-4"],
+            "hint": "Use the command: 'interface range GigabitEthernet0/3-4'",
+            "explanation": "Additional physical links can join the same EtherChannel group to increase aggregate bandwidth."
+        },
+        {
+            "id": "cisco_etherchannels__channel_group_passive",
+            "prompt": "Assign GigabitEthernet0/3 and 0/4 to EtherChannel group 1 using LACP passive mode.",
+            "prefix": "Switch(config-if-range)#",
+            "expected": "^channel-group\\s+1\\s+mode\\s+passive$",
+            "aliases": ["channel group 1 mode passive", "chan gr 1 mode passive"],
+            "hint": "Use the command: 'channel-group 1 mode passive'",
+            "explanation": "LACP passive mode responds to negotiation requests but does not initiate them. Active and passive modes are compatible."
+        },
+        {
+            "id": "cisco_etherchannels__interface_port_channel_1",
+            "prompt": "Enter Interface Configuration mode for Port-channel 1.",
+            "prefix": "Switch(config-if-range)#",
+            "expected": "^interface\\s+Port-channel\\s+1$",
+            "aliases": ["int po 1", "int port-channel 1", "interface po1"],
+            "hint": "Use the command: 'interface Port-channel 1'",
+            "explanation": "Port-channel 1 is the logical interface representing the bundled physical links. Layer 3 or trunk settings go here."
+        },
+        {
+            "id": "cisco_etherchannels__switchport_mode_trunk",
+            "prompt": "Configure Port-channel 1 as a trunk port.",
+            "prefix": "Switch(config-if)#",
+            "expected": "^switchport\\s+mode\\s+trunk$",
+            "aliases": ["sw mod tr", "switchport mode tr"],
+            "hint": "Use the command: 'switchport mode trunk'",
+            "explanation": "Trunk configuration on the Port-channel applies to all member links, ensuring consistent VLAN transport across the bundle."
+        },
+        {
+            "id": "cisco_etherchannels__show_etherchannel_summary",
+            "prompt": "Display a summary of all EtherChannel groups and their member ports.",
+            "prefix": "Switch(config-if)#",
+            "expected": "^show\\s+etherchannel\\s+summary$",
+            "aliases": ["sh etherchannel summary", "sh eth summary"],
+            "hint": "Use the command: 'show etherchannel summary'",
+            "explanation": "'show etherchannel summary' shows group number, protocol (LACP/PAgP), port-channel status, and member interface states."
+        },
+        {
+            "id": "cisco_etherchannels__show_port_channel",
+            "prompt": "Display detailed information for Port-channel 1.",
+            "prefix": "Switch(config-if)#",
+            "expected": "^show\\s+interfaces\\s+Port-channel\\s+1$",
+            "aliases": ["sh int po 1", "sh interfaces port-channel 1"],
+            "hint": "Use the command: 'show interfaces Port-channel 1'",
+            "explanation": "This command verifies the logical interface is up and shows statistics aggregated across all bundled physical links."
+        }
+    ]
 }

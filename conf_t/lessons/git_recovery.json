@@ -1,0 +1,102 @@
+{
+    "id": "git_recovery",
+    "title": "Git Recovery & History Rewriting",
+    "platform": "Git",
+    "description": "Learn to use reflog, reset, revert, restore, and fsck to recover lost commits and undo changes safely.",
+    "difficulty": "advanced",
+    "tags": ["recovery", "reflog", "reset"],
+    "prerequisites": ["git_basic"],
+    "estimated_minutes": 35,
+    "tasks": [
+        {
+            "id": "git_recovery__reflog",
+            "prompt": "View the reference log for HEAD movements.",
+            "prefix": "user@ubuntu:~/project$",
+            "expected": "^git\\s+reflog$",
+            "aliases": ["git reflog show"],
+            "hint": "Use git reflog.",
+            "explanation": "reflog records where HEAD and branches have been recently."
+        },
+        {
+            "id": "git_recovery__reset_soft",
+            "prompt": "Soft reset to the previous commit, keeping changes staged.",
+            "prefix": "user@ubuntu:~/project$",
+            "expected": "^git\\s+reset\\s+--soft\\s+HEAD~1$",
+            "aliases": [],
+            "hint": "Use git reset --soft HEAD~1.",
+            "explanation": "--soft moves HEAD but leaves the index and working tree unchanged."
+        },
+        {
+            "id": "git_recovery__reset_mixed",
+            "prompt": "Mixed reset to HEAD~1, unstaging changes but keeping files modified.",
+            "prefix": "user@ubuntu:~/project$",
+            "expected": "^git\\s+reset\\s+HEAD~1$",
+            "aliases": ["git reset --mixed HEAD~1"],
+            "hint": "Use git reset HEAD~1 (default mixed mode).",
+            "explanation": "Mixed reset moves HEAD and unstages changes without deleting file edits."
+        },
+        {
+            "id": "git_recovery__reset_hard",
+            "prompt": "Hard reset the current branch to commit 'a1b2c3d', discarding local changes.",
+            "prefix": "user@ubuntu:~/project$",
+            "expected": "^git\\s+reset\\s+--hard\\s+a1b2c3d$",
+            "aliases": [],
+            "hint": "Use git reset --hard a1b2c3d.",
+            "explanation": "--hard resets HEAD, index, and working tree to the target commit."
+        },
+        {
+            "id": "git_recovery__revert",
+            "prompt": "Create a new commit that reverts the changes introduced by commit 'a1b2c3d'.",
+            "prefix": "user@ubuntu:~/project$",
+            "expected": "^git\\s+revert\\s+a1b2c3d$",
+            "aliases": [],
+            "hint": "Use git revert with the commit hash.",
+            "explanation": "git revert safely undoes a commit by adding an inverse commit."
+        },
+        {
+            "id": "git_recovery__restore_file",
+            "prompt": "Discard uncommitted changes in 'app.py' and restore the last committed version.",
+            "prefix": "user@ubuntu:~/project$",
+            "expected": "^git\\s+restore\\s+app\\.py$",
+            "aliases": ["git checkout -- app.py"],
+            "hint": "Use git restore app.py.",
+            "explanation": "git restore resets a working tree file to the index or HEAD version."
+        },
+        {
+            "id": "git_recovery__restore_staged",
+            "prompt": "Unstage 'app.py' using git restore.",
+            "prefix": "user@ubuntu:~/project$",
+            "expected": "^git\\s+restore\\s+--staged\\s+app\\.py$",
+            "aliases": [],
+            "hint": "Use git restore --staged app.py.",
+            "explanation": "git restore --staged removes a file from the index without touching the working tree."
+        },
+        {
+            "id": "git_recovery__checkout_reflog",
+            "prompt": "Recover the branch state from reflog entry HEAD@{2}.",
+            "prefix": "user@ubuntu:~/project$",
+            "expected": "^git\\s+checkout\\s+HEAD@\\{2\\}$",
+            "aliases": ["git switch --detach HEAD@{2}"],
+            "hint": "Use git checkout HEAD@{2}.",
+            "explanation": "Checking out a reflog entry lets you inspect or recover prior states."
+        },
+        {
+            "id": "git_recovery__fsck_lost",
+            "prompt": "Find dangling commits and blobs using git fsck.",
+            "prefix": "user@ubuntu:~/project$",
+            "expected": "^git\\s+fsck\\s+--lost-found$",
+            "aliases": [],
+            "hint": "Use git fsck --lost-found.",
+            "explanation": "git fsck --lost-found identifies unreachable objects that may be recoverable."
+        },
+        {
+            "id": "git_recovery__cherry_pick_revert",
+            "prompt": "Revert the merge commit 'm3rge01' with parent 1 specified (mainline).",
+            "prefix": "user@ubuntu:~/project$",
+            "expected": "^git\\s+revert\\s+-m\\s+1\\s+m3rge01$",
+            "aliases": [],
+            "hint": "Use git revert -m 1 m3rge01.",
+            "explanation": "-m 1 tells git which parent to treat as mainline when reverting a merge."
+        }
+    ]
+}

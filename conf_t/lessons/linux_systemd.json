@@ -1,0 +1,84 @@
+{
+    "id": "linux_systemd",
+    "title": "Linux systemd Service Management",
+    "platform": "Linux",
+    "description": "Learn to manage system services with systemctl and inspect logs with journalctl on modern Linux distributions.",
+    "difficulty": "intermediate",
+    "tags": ["systemd", "services", "journalctl"],
+    "prerequisites": ["linux_basic"],
+    "estimated_minutes": 25,
+    "tasks": [
+        {
+            "id": "linux_systemd__start_service",
+            "prompt": "Start the 'nginx' service immediately.",
+            "prefix": "user@ubuntu:~$",
+            "expected": "^sudo\\s+systemctl\\s+start\\s+nginx$",
+            "aliases": ["systemctl start nginx"],
+            "hint": "Use systemctl start: 'sudo systemctl start nginx'",
+            "explanation": "'systemctl start' activates a unit (service) right away without changing its enabled/disabled state at boot."
+        },
+        {
+            "id": "linux_systemd__stop_service",
+            "prompt": "Stop the 'apache2' service.",
+            "prefix": "user@ubuntu:~$",
+            "expected": "^sudo\\s+systemctl\\s+stop\\s+apache2$",
+            "aliases": ["systemctl stop apache2"],
+            "hint": "Use systemctl stop: 'sudo systemctl stop apache2'",
+            "explanation": "'systemctl stop' gracefully shuts down a running service unit."
+        },
+        {
+            "id": "linux_systemd__restart_service",
+            "prompt": "Restart the 'mysql' service (stop then start).",
+            "prefix": "user@ubuntu:~$",
+            "expected": "^sudo\\s+systemctl\\s+restart\\s+mysql$",
+            "aliases": ["systemctl restart mysql"],
+            "hint": "Use systemctl restart: 'sudo systemctl restart mysql'",
+            "explanation": "'systemctl restart' is commonly used after configuration changes to apply them by reloading the service."
+        },
+        {
+            "id": "linux_systemd__enable_service",
+            "prompt": "Enable the 'docker' service to start automatically at boot.",
+            "prefix": "user@ubuntu:~$",
+            "expected": "^sudo\\s+systemctl\\s+enable\\s+docker$",
+            "aliases": ["systemctl enable docker"],
+            "hint": "Use systemctl enable: 'sudo systemctl enable docker'",
+            "explanation": "'systemctl enable' creates the necessary symlinks so the service starts on system boot."
+        },
+        {
+            "id": "linux_systemd__status_service",
+            "prompt": "Check the detailed status of the 'ssh' service.",
+            "prefix": "user@ubuntu:~$",
+            "expected": "^systemctl\\s+status\\s+ssh$",
+            "aliases": ["sudo systemctl status ssh"],
+            "hint": "Use systemctl status: 'systemctl status ssh'",
+            "explanation": "'systemctl status' shows whether the unit is active, recent log lines, and its load state."
+        },
+        {
+            "id": "linux_systemd__daemon_reload",
+            "prompt": "Reload systemd manager configuration after editing unit files.",
+            "prefix": "user@ubuntu:~$",
+            "expected": "^sudo\\s+systemctl\\s+daemon-reload$",
+            "aliases": ["systemctl daemon-reload"],
+            "hint": "Use daemon-reload: 'sudo systemctl daemon-reload'",
+            "explanation": "'daemon-reload' must be run after creating or modifying unit files so systemd picks up the changes."
+        },
+        {
+            "id": "linux_systemd__journalctl_follow",
+            "prompt": "Follow systemd journal logs in real time (like tail -f).",
+            "prefix": "user@ubuntu:~$",
+            "expected": "^journalctl\\s+-f$",
+            "aliases": ["sudo journalctl -f"],
+            "hint": "Use journalctl with follow flag: 'journalctl -f'",
+            "explanation": "'journalctl -f' streams new journal entries as they are written, useful for live troubleshooting."
+        },
+        {
+            "id": "linux_systemd__journalctl_unit",
+            "prompt": "View all journal logs for the 'nginx' service unit since today.",
+            "prefix": "user@ubuntu:~$",
+            "expected": "^journalctl\\s+-u\\s+nginx\\s+--since\\s+today$",
+            "aliases": ["sudo journalctl -u nginx --since today"],
+            "hint": "Use journalctl with unit and since: 'journalctl -u nginx --since today'",
+            "explanation": "'journalctl -u' filters by unit name. '--since today' limits output to entries from the current day."
+        }
+    ]
+}

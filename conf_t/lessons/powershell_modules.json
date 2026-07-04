@@ -1,0 +1,84 @@
+{
+    "id": "powershell_modules",
+    "title": "PowerShell Modules",
+    "platform": "PowerShell",
+    "description": "Learn to discover, import, remove, install, and update PowerShell modules from the gallery and local system.",
+    "difficulty": "intermediate",
+    "tags": ["modules", "gallery", "import"],
+    "prerequisites": ["powershell_basic"],
+    "estimated_minutes": 25,
+    "tasks": [
+        {
+            "id": "powershell_modules__get_module",
+            "prompt": "List all modules currently loaded in the session.",
+            "prefix": "PS C:\\>",
+            "expected": "^Get-Module$",
+            "aliases": ["Get-Module", "gm"],
+            "hint": "Use Get-Module with no parameters.",
+            "explanation": "Get-Module without -ListAvailable shows imported modules only."
+        },
+        {
+            "id": "powershell_modules__get_module_listavailable",
+            "prompt": "List all modules installed on the system (including not yet imported).",
+            "prefix": "PS C:\\>",
+            "expected": "^Get-Module\\s+-ListAvailable$",
+            "aliases": ["Get-Module -ListAvailable"],
+            "hint": "Use Get-Module with -ListAvailable.",
+            "explanation": "-ListAvailable scans module paths for installable modules."
+        },
+        {
+            "id": "powershell_modules__import_module",
+            "prompt": "Import the 'ActiveDirectory' module into the current session.",
+            "prefix": "PS C:\\>",
+            "expected": "^Import-Module\\s+ActiveDirectory$",
+            "aliases": ["Import-Module ActiveDirectory", "ipmo ActiveDirectory"],
+            "hint": "Use Import-Module with the module name.",
+            "explanation": "Import-Module loads cmdlets and functions from a module into the session."
+        },
+        {
+            "id": "powershell_modules__remove_module",
+            "prompt": "Remove the 'ActiveDirectory' module from the current session.",
+            "prefix": "PS C:\\>",
+            "expected": "^Remove-Module\\s+ActiveDirectory$",
+            "aliases": ["Remove-Module ActiveDirectory", "rmo ActiveDirectory"],
+            "hint": "Use Remove-Module with the module name.",
+            "explanation": "Remove-Module unloads a module without deleting it from disk."
+        },
+        {
+            "id": "powershell_modules__find_module",
+            "prompt": "Search the PowerShell Gallery for modules matching the name 'Az'.",
+            "prefix": "PS C:\\>",
+            "expected": "^Find-Module\\s+-Name\\s+Az$",
+            "aliases": ["Find-Module -Name Az", "Find-Module Az"],
+            "hint": "Use Find-Module with -Name Az.",
+            "explanation": "Find-Module queries the online gallery for available packages."
+        },
+        {
+            "id": "powershell_modules__install_module",
+            "prompt": "Install the 'Az' module for the current user only.",
+            "prefix": "PS C:\\>",
+            "expected": "^Install-Module\\s+-Name\\s+Az\\s+-Scope\\s+CurrentUser$",
+            "aliases": ["Install-Module -Name Az -Scope CurrentUser"],
+            "hint": "Use Install-Module with -Scope CurrentUser.",
+            "explanation": "-Scope CurrentUser installs modules without requiring administrator rights."
+        },
+        {
+            "id": "powershell_modules__get_command_module",
+            "prompt": "List all commands exported by the 'ActiveDirectory' module.",
+            "prefix": "PS C:\\>",
+            "expected": "^Get-Command\\s+-Module\\s+ActiveDirectory$",
+            "aliases": ["Get-Command -Module ActiveDirectory", "gcm -Module ActiveDirectory"],
+            "hint": "Use Get-Command with -Module.",
+            "explanation": "Get-Command -Module shows cmdlets, functions, and aliases from a module."
+        },
+        {
+            "id": "powershell_modules__update_module",
+            "prompt": "Update the installed 'Az' module to the latest version.",
+            "prefix": "PS C:\\>",
+            "expected": "^Update-Module\\s+-Name\\s+Az$",
+            "aliases": ["Update-Module -Name Az", "Update-Module Az"],
+            "hint": "Use Update-Module with -Name Az.",
+            "explanation": "Update-Module downloads and installs newer versions from the gallery."
+        }
+    ]
+}

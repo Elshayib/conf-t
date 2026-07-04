@@ -1,0 +1,84 @@
+{
+    "id": "powershell_error_handling",
+    "title": "PowerShell Error Handling",
+    "platform": "PowerShell",
+    "description": "Learn try/catch/finally blocks, error preferences, ErrorAction, and trapping errors in PowerShell.",
+    "difficulty": "intermediate",
+    "tags": ["errors", "try-catch", "debugging"],
+    "prerequisites": ["powershell_scripting_basics"],
+    "estimated_minutes": 25,
+    "tasks": [
+        {
+            "id": "powershell_error_handling__try_catch",
+            "prompt": "Wrap 'Get-Item missing.txt' in try/catch; in catch output 'File not found'.",
+            "prefix": "PS C:\\>",
+            "expected": "^try\\s+\\{\\s*Get-Item\\s+missing\\.txt\\s*\\}\\s+catch\\s+\\{\\s*\"File not found\"\\s*\\}$",
+            "aliases": ["try { Get-Item missing.txt } catch { 'File not found' }"],
+            "hint": "Use try { } catch { } around the failing command.",
+            "explanation": "try/catch intercepts terminating errors and runs recovery code."
+        },
+        {
+            "id": "powershell_error_handling__try_finally",
+            "prompt": "Run 'Remove-Item temp.log' in try, and always output 'Cleanup done' in finally.",
+            "prefix": "PS C:\\>",
+            "expected": "^try\\s+\\{\\s*Remove-Item\\s+temp\\.log\\s*\\}\\s+finally\\s+\\{\\s*\"Cleanup done\"\\s*\\}$",
+            "aliases": ["try { Remove-Item temp.log } finally { 'Cleanup done' }"],
+            "hint": "Use try { } finally { } without catch.",
+            "explanation": "The finally block runs whether the try block succeeds or fails."
+        },
+        {
+            "id": "powershell_error_handling__throw",
+            "prompt": "Throw a terminating error with the message 'Invalid configuration'.",
+            "prefix": "PS C:\\>",
+            "expected": "^Throw\\s+\"Invalid configuration\"$",
+            "aliases": ["Throw 'Invalid configuration'"],
+            "hint": "Use Throw with a message string.",
+            "explanation": "Throw raises a terminating error that can be caught by try/catch."
+        },
+        {
+            "id": "powershell_error_handling__write_error",
+            "prompt": "Write a non-terminating error with message 'Disk space low'.",
+            "prefix": "PS C:\\>",
+            "expected": "^Write-Error\\s+-Message\\s+\"Disk space low\"$",
+            "aliases": ["Write-Error -Message 'Disk space low'", "Write-Error 'Disk space low'"],
+            "hint": "Use Write-Error with -Message.",
+            "explanation": "Write-Error records an error without necessarily stopping execution."
+        },
+        {
+            "id": "powershell_error_handling__error_action_preference",
+            "prompt": "Set $ErrorActionPreference to 'Stop' so errors become terminating.",
+            "prefix": "PS C:\\>",
+            "expected": "^\\$ErrorActionPreference\\s*=\\s+'Stop'$",
+            "aliases": ["$ErrorActionPreference = \"Stop\""],
+            "hint": "Assign 'Stop' to $ErrorActionPreference.",
+            "explanation": "$ErrorActionPreference controls default error behavior for the session."
+        },
+        {
+            "id": "powershell_error_handling__error_action_silentlycontinue",
+            "prompt": "Run 'Get-Item missing.txt' and suppress errors with -ErrorAction SilentlyContinue.",
+            "prefix": "PS C:\\>",
+            "expected": "^Get-Item\\s+missing\\.txt\\s+-ErrorAction\\s+SilentlyContinue$",
+            "aliases": ["Get-Item missing.txt -ErrorAction SilentlyContinue"],
+            "hint": "Add -ErrorAction SilentlyContinue to the cmdlet.",
+            "explanation": "SilentlyContinue hides errors and continues without output."
+        },
+        {
+            "id": "powershell_error_handling__error_variable",
+            "prompt": "Run 'Get-Service BadName' and capture errors in variable $svcErr using -ErrorVariable.",
+            "prefix": "PS C:\\>",
+            "expected": "^Get-Service\\s+BadName\\s+-ErrorVariable\\s+svcErr$",
+            "aliases": ["Get-Service BadName -ErrorVariable svcErr", "Get-Service BadName -EV svcErr"],
+            "hint": "Use -ErrorVariable svcErr on the cmdlet.",
+            "explanation": "-ErrorVariable stores error records in a named variable for inspection."
+        },
+        {
+            "id": "powershell_error_handling__trap",
+            "prompt": "Define a trap that outputs 'Handled' when any error occurs.",
+            "prefix": "PS C:\\>",
+            "expected": "^trap\\s+\\{\\s*\"Handled\"\\s*\\}$",
+            "aliases": ["trap { 'Handled' }"],
+            "hint": "Use trap { \"Handled\" } at script scope.",
+            "explanation": "trap is a legacy error handler that runs when a terminating error occurs."
+        }
+    ]
+}

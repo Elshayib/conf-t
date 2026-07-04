@@ -1,0 +1,84 @@
+{
+    "id": "powershell_remoting",
+    "title": "PowerShell Remoting",
+    "platform": "PowerShell",
+    "description": "Learn to enable, test, and use PowerShell remoting with PSSessions, Invoke-Command, and Enter-PSSession.",
+    "difficulty": "advanced",
+    "tags": ["remoting", "pssession", "winrm"],
+    "prerequisites": ["powershell_basic"],
+    "estimated_minutes": 30,
+    "tasks": [
+        {
+            "id": "powershell_remoting__enable_psremoting",
+            "prompt": "Enable PowerShell remoting on the local machine.",
+            "prefix": "PS C:\\>",
+            "expected": "^Enable-PSRemoting\\s+-Force$",
+            "aliases": ["Enable-PSRemoting -Force"],
+            "hint": "Use Enable-PSRemoting with -Force to skip prompts.",
+            "explanation": "Enable-PSRemoting configures WinRM and firewall rules for remote sessions."
+        },
+        {
+            "id": "powershell_remoting__test_wsman",
+            "prompt": "Test WinRM connectivity to the remote computer 'Server01'.",
+            "prefix": "PS C:\\>",
+            "expected": "^Test-WSMan\\s+-ComputerName\\s+Server01$",
+            "aliases": ["Test-WSMan -ComputerName Server01"],
+            "hint": "Use Test-WSMan with -ComputerName.",
+            "explanation": "Test-WSMan verifies that the WinRM endpoint is reachable."
+        },
+        {
+            "id": "powershell_remoting__enter_pssession",
+            "prompt": "Start an interactive remote session on 'Server01'.",
+            "prefix": "PS C:\\>",
+            "expected": "^Enter-PSSession\\s+-ComputerName\\s+Server01$",
+            "aliases": ["Enter-PSSession -ComputerName Server01"],
+            "hint": "Use Enter-PSSession with -ComputerName.",
+            "explanation": "Enter-PSSession opens an interactive shell on a remote computer."
+        },
+        {
+            "id": "powershell_remoting__exit_pssession",
+            "prompt": "Exit the current remote PowerShell session.",
+            "prefix": "PS Server01>",
+            "expected": "^Exit-PSSession$",
+            "aliases": ["Exit-PSSession", "exit"],
+            "hint": "Use Exit-PSSession to leave the remote session.",
+            "explanation": "Exit-PSSession closes the interactive remoting connection."
+        },
+        {
+            "id": "powershell_remoting__invoke_command",
+            "prompt": "Run 'Get-Service' remotely on 'Server01' in a single command.",
+            "prefix": "PS C:\\>",
+            "expected": "^Invoke-Command\\s+-ComputerName\\s+Server01\\s+-ScriptBlock\\s+\\{\\s*Get-Service\\s*\\}$",
+            "aliases": ["Invoke-Command -ComputerName Server01 -ScriptBlock { Get-Service }", "icm Server01 { Get-Service }"],
+            "hint": "Use Invoke-Command with -ComputerName and -ScriptBlock.",
+            "explanation": "Invoke-Command runs script blocks on remote machines without an interactive session."
+        },
+        {
+            "id": "powershell_remoting__new_pssession",
+            "prompt": "Create a persistent PSSession to 'Server01'.",
+            "prefix": "PS C:\\>",
+            "expected": "^New-PSSession\\s+-ComputerName\\s+Server01$",
+            "aliases": ["New-PSSession -ComputerName Server01"],
+            "hint": "Use New-PSSession with -ComputerName.",
+            "explanation": "New-PSSession creates a reusable remote connection for multiple commands."
+        },
+        {
+            "id": "powershell_remoting__get_pssession",
+            "prompt": "List all active PSSessions in the current session.",
+            "prefix": "PS C:\\>",
+            "expected": "^Get-PSSession$",
+            "aliases": ["Get-PSSession"],
+            "hint": "Use Get-PSSession with no parameters.",
+            "explanation": "Get-PSSession shows open remote sessions and their connection state."
+        },
+        {
+            "id": "powershell_remoting__remove_pssession",
+            "prompt": "Close and remove PSSession with ID 1.",
+            "prefix": "PS C:\\>",
+            "expected": "^Remove-PSSession\\s+-Id\\s+1$",
+            "aliases": ["Remove-PSSession -Id 1"],
+            "hint": "Use Remove-PSSession with -Id.",
+            "explanation": "Remove-PSSession disconnects and cleans up persistent remote sessions."
+        }
+    ]
+}

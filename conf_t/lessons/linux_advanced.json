@@ -1,62 +1,66 @@
 {
-  "id": "linux_advanced",
-  "title": "Linux Advanced Administration",
-  "platform": "Linux",
-  "description": "Learn advanced Linux commands for process management, file permissions, ownership modification, network testing, and logs inspection.",
-  "tasks": [
-    {
-      "id": "ps_aux",
-      "prompt": "View all running system processes in detail.",
-      "prefix": "user@ubuntu:~$",
-      "expected": "^(ps\\s+aux|top|htop)$",
-      "aliases": ["ps aux", "top", "htop"],
-      "hint": "Use 'ps' with 'aux' flags or 'top'",
-      "explanation": "'ps aux' lists all running processes. 'top' or 'htop' displays them in an interactive real-time screen."
-    },
-    {
-      "id": "kill_process",
-      "prompt": "Forcefully terminate a process with Process ID (PID) '1234'.",
-      "prefix": "user@ubuntu:~$",
-      "expected": "^kill\\s+-9\\s+1234$",
-      "aliases": [],
-      "hint": "Use kill command with signal 9: 'kill -9 1234'",
-      "explanation": "The '-9' (SIGKILL) signal forces the operating system to immediately terminate the process."
-    },
-    {
-      "id": "chmod_permissions",
-      "prompt": "Change permissions of 'script.sh' to owner: read/write/execute, others: read/execute (octal format).",
-      "prefix": "user@ubuntu:~$",
-      "expected": "^chmod\\s+755\\s+script\\.sh$",
-      "aliases": [],
-      "hint": "Use chmod command with octal 755: 'chmod 755 script.sh'",
-      "explanation": "'chmod 755' assigns full permissions (7) to the owner, and read/execute (5) to the group and others."
-    },
-    {
-      "id": "chown_owner",
-      "prompt": "Change the owner and group of 'file.txt' to 'root' (both owner and group).",
-      "prefix": "user@ubuntu:~$",
-      "expected": "^chown\\s+root:root\\s+file\\.txt$",
-      "aliases": [],
-      "hint": "Use chown command: 'chown root:root file.txt'",
-      "explanation": "'chown' (Change Owner) changes file user and group assignments. The syntax is owner:group."
-    },
-    {
-      "id": "ping_test",
-      "prompt": "Send exactly 4 ping requests to test connectivity to host '8.8.8.8'.",
-      "prefix": "user@ubuntu:~$",
-      "expected": "^ping\\s+-c\\s+4\\s+8\\.8\\.8\\.8$",
-      "aliases": ["ping 8.8.8.8 -c 4"],
-      "hint": "Use count flag (-c): 'ping -c 4 8.8.8.8'",
-      "explanation": "'ping' checks system network accessibility. '-c 4' limits the ping count so it doesn't run infinitely."
-    },
-    {
-      "id": "journalctl_logs",
-      "prompt": "View systemd journal logs in real-time (follow log output).",
-      "prefix": "user@ubuntu:~$",
-      "expected": "^(journalctl\\s+-f|tail\\s+-f\\s+/var/log/syslog)$",
-      "aliases": [],
-      "hint": "Use journalctl with follow flag: 'journalctl -f'",
-      "explanation": "'journalctl -f' displays the system logs as they generate in real time."
-    }
-  ]
+    "id": "linux_advanced",
+    "title": "Linux Advanced Administration",
+    "platform": "Linux",
+    "description": "Learn advanced Linux commands for process management, file permissions, ownership modification, network testing, and logs inspection.",
+    "difficulty": "intermediate",
+    "tags": ["processes", "permissions", "networking"],
+    "prerequisites": ["linux_basic"],
+    "estimated_minutes": 20,
+    "tasks": [
+        {
+            "id": "linux_advanced__ps_aux",
+            "prompt": "View all running system processes in detail.",
+            "prefix": "user@ubuntu:~$",
+            "expected": "^(ps\\s+aux|top|htop)$",
+            "aliases": ["ps aux", "top", "htop"],
+            "hint": "Use 'ps' with 'aux' flags or 'top'",
+            "explanation": "'ps aux' lists all running processes. 'top' or 'htop' displays them in an interactive real-time screen."
+        },
+        {
+            "id": "linux_advanced__kill_process",
+            "prompt": "Forcefully terminate a process with Process ID (PID) '1234'.",
+            "prefix": "user@ubuntu:~$",
+            "expected": "^kill\\s+-9\\s+1234$",
+            "aliases": [],
+            "hint": "Use kill command with signal 9: 'kill -9 1234'",
+            "explanation": "The '-9' (SIGKILL) signal forces the operating system to immediately terminate the process."
+        },
+        {
+            "id": "linux_advanced__chmod_permissions",
+            "prompt": "Change permissions of 'script.sh' to owner: read/write/execute, others: read/execute (octal format).",
+            "prefix": "user@ubuntu:~$",
+            "expected": "^chmod\\s+755\\s+script\\.sh$",
+            "aliases": [],
+            "hint": "Use chmod command with octal 755: 'chmod 755 script.sh'",
+            "explanation": "'chmod 755' assigns full permissions (7) to the owner, and read/execute (5) to the group and others."
+        },
+        {
+            "id": "linux_advanced__chown_owner",
+            "prompt": "Change the owner and group of 'file.txt' to 'root' (both owner and group).",
+            "prefix": "user@ubuntu:~$",
+            "expected": "^chown\\s+root:root\\s+file\\.txt$",
+            "aliases": [],
+            "hint": "Use chown command: 'chown root:root file.txt'",
+            "explanation": "'chown' (Change Owner) changes file user and group assignments. The syntax is owner:group."
+        },
+        {
+            "id": "linux_advanced__ping_test",
+            "prompt": "Send exactly 4 ping requests to test connectivity to host '8.8.8.8'.",
+            "prefix": "user@ubuntu:~$",
+            "expected": "^ping\\s+-c\\s+4\\s+8\\.8\\.8\\.8$",
+            "aliases": ["ping 8.8.8.8 -c 4"],
+            "hint": "Use count flag (-c): 'ping -c 4 8.8.8.8'",
+            "explanation": "'ping' checks system network accessibility. '-c 4' limits the ping count so it doesn't run infinitely."
+        },
+        {
+            "id": "linux_advanced__journalctl_logs",
+            "prompt": "View systemd journal logs in real-time (follow log output).",
+            "prefix": "user@ubuntu:~$",
+            "expected": "^(journalctl\\s+-f|tail\\s+-f\\s+/var/log/syslog)$",
+            "aliases": [],
+            "hint": "Use journalctl with follow flag: 'journalctl -f'",
+            "explanation": "'journalctl -f' displays the system logs as they generate in real time."
+        }
+    ]
 }

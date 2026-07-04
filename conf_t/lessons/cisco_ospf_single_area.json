@@ -1,0 +1,120 @@
+{
+    "id": "cisco_ospf_single_area",
+    "title": "Cisco OSPF Single-Area",
+    "platform": "Cisco",
+    "description": "Enable OSPF in a single area, assign a router ID, advertise networks, configure passive interfaces, and originate a default route into OSPF.",
+    "difficulty": "intermediate",
+    "tags": ["ospf", "routing", "ccna"],
+    "prerequisites": ["cisco_static_routing"],
+    "estimated_minutes": 20,
+    "tasks": [
+        {
+            "id": "cisco_ospf_single_area__configure_terminal",
+            "prompt": "Enter Global Configuration mode to configure OSPF.",
+            "prefix": "R1#",
+            "expected": "^configure\\s+terminal$",
+            "aliases": ["conf t", "config terminal", "config t"],
+            "hint": "Use: 'configure terminal' or 'conf t'",
+            "explanation": "OSPF process configuration begins in global configuration mode."
+        },
+        {
+            "id": "cisco_ospf_single_area__router_ospf",
+            "prompt": "Enable OSPF routing process 1.",
+            "prefix": "R1(config)#",
+            "expected": "^router\\s+ospf\\s+1$",
+            "aliases": ["router ospf 1"],
+            "hint": "Use: 'router ospf 1'",
+            "explanation": "The 'router ospf [process-id]' command enters router configuration mode. The process ID is locally significant."
+        },
+        {
+            "id": "cisco_ospf_single_area__router_id",
+            "prompt": "Manually set the OSPF router ID to 1.1.1.1.",
+            "prefix": "R1(config-router)#",
+            "expected": "^router-id\\s+1\\.1\\.1\\.1$",
+            "aliases": ["router-id 1.1.1.1"],
+            "hint": "Use: 'router-id 1.1.1.1'",
+            "explanation": "The router ID uniquely identifies the OSPF router. A loopback address is commonly used for stability."
+        },
+        {
+            "id": "cisco_ospf_single_area__network_backbone",
+            "prompt": "Advertise all 10.x.x.x interfaces into OSPF area 0 using wildcard mask 0.255.255.255.",
+            "prefix": "R1(config-router)#",
+            "expected": "^network\\s+10\\.0\\.0\\.0\\s+0\\.255\\.255\\.255\\s+area\\s+0$",
+            "aliases": ["net 10.0.0.0 0.255.255.255 area 0", "network 10.0.0.0 0.255.255.255 a 0"],
+            "hint": "Use: 'network 10.0.0.0 0.255.255.255 area 0'",
+            "explanation": "The network command enables OSPF on interfaces whose addresses fall within the specified range and assigns them to an area."
+        },
+        {
+            "id": "cisco_ospf_single_area__network_lan",
+            "prompt": "Advertise the 192.168.1.0/24 LAN segment into OSPF area 0.",
+            "prefix": "R1(config-router)#",
+            "expected": "^network\\s+192\\.168\\.1\\.0\\s+0\\.0\\.0\\.255\\s+area\\s+0$",
+            "aliases": ["net 192.168.1.0 0.0.0.255 area 0", "network 192.168.1.0 0.0.0.255 a 0"],
+            "hint": "Use: 'network 192.168.1.0 0.0.0.255 area 0'",
+            "explanation": "Each network statement uses a wildcard mask (inverse of the subnet mask) to match interfaces for OSPF participation."
+        },
+        {
+            "id": "cisco_ospf_single_area__passive_interface_default",
+            "prompt": "Set all interfaces to passive by default so they do not send OSPF hellos.",
+            "prefix": "R1(config-router)#",
+            "expected": "^passive-interface\\s+default$",
+            "aliases": ["passive-interface default"],
+            "hint": "Use: 'passive-interface default'",
+            "explanation": "Passive interfaces still advertise their subnets in LSAs but suppress OSPF neighbor adjacencies on those interfaces."
+        },
+        {
+            "id": "cisco_ospf_single_area__no_passive_interface",
+            "prompt": "Allow OSPF adjacencies on GigabitEthernet0/0 by removing it from the passive list.",
+            "prefix": "R1(config-router)#",
+            "expected": "^no\\s+passive-interface\\s+GigabitEthernet0/0$",
+            "aliases": ["no passive-interface g0/0", "no passive-interface gigabitethernet0/0"],
+            "hint": "Use: 'no passive-interface GigabitEthernet0/0'",
+            "explanation": "After enabling passive-interface default, explicitly exempt interfaces that must form OSPF neighbor relationships."
+        },
+        {
+            "id": "cisco_ospf_single_area__passive_interface_loopback",
+            "prompt": "Explicitly mark Loopback0 as a passive interface.",
+            "prefix": "R1(config-router)#",
+            "expected": "^passive-interface\\s+Loopback0$",
+            "aliases": ["passive-interface lo0", "passive-interface loopback 0"],
+            "hint": "Use: 'passive-interface Loopback0'",
+            "explanation": "Loopback interfaces never need to form adjacencies; marking them passive is a best practice even without passive-interface default."
+        },
+        {
+            "id": "cisco_ospf_single_area__default_information_originate",
+            "prompt": "Advertise this router's default route into the OSPF domain.",
+            "prefix": "R1(config-router)#",
+            "expected": "^default-information\\s+originate$",
+            "aliases": ["default-information originate"],
+            "hint": "Use: 'default-information originate'",
+            "explanation": "An ASBR uses this command to inject a default route into OSPF, but the router must already have a default route installed."
+        },
+        {
+            "id": "cisco_ospf_single_area__default_information_always",
+            "prompt": "Originate a default route into OSPF even when no default route exists in the routing table.",
+            "prefix": "R1(config-router)#",
+            "expected": "^default-information\\s+originate\\s+always$",
+            "aliases": ["default-information originate always"],
+            "hint": "Add the 'always' keyword: 'default-information originate always'",
+            "explanation": "The 'always' keyword forces default route advertisement regardless of whether a default route is present locally."
+        },
+        {
+            "id": "cisco_ospf_single_area__auto_cost_bandwidth",
+            "prompt": "Set the OSPF reference bandwidth to 10000 Mbps for accurate cost calculation on Gigabit links.",
+            "prefix": "R1(config-router)#",
+            "expected": "^auto-cost\\s+reference-bandwidth\\s+10000$",
+            "aliases": ["auto-cost reference-bandwidth 10000"],
+            "hint": "Use: 'auto-cost reference-bandwidth 10000'",
+            "explanation": "OSPF cost is reference-bandwidth divided by interface bandwidth. Raising the reference value lowers costs on fast interfaces."
+        },
+        {
+            "id": "cisco_ospf_single_area__show_ip_ospf_neighbor",
+            "prompt": "Verify OSPF neighbor adjacencies.",
+            "prefix": "R1#",
+            "expected": "^show\\s+ip\\s+ospf\\s+neighbor$",
+            "aliases": ["sh ip ospf neighbor", "sh ip ospf nei"],
+            "hint": "Use: 'show ip ospf neighbor'",
+            "explanation": "This command lists adjacent OSPF routers and their states. FULL/DR or FULL/BDR indicates a healthy adjacency."
+        }
+    ]
+}

@@ -1,0 +1,192 @@
+{
+    "id": "linux_troubleshooting_lab",
+    "title": "Linux Troubleshooting Lab",
+    "platform": "Linux",
+    "description": "Capstone lab combining process, network, storage, and log analysis skills to diagnose real-world Linux server problems.",
+    "difficulty": "advanced",
+    "tags": ["troubleshooting", "capstone", "diagnostics"],
+    "prerequisites": ["linux_networking", "linux_process_management"],
+    "estimated_minutes": 60,
+    "tasks": [
+        {
+            "id": "linux_troubleshooting_lab__uptime_load",
+            "prompt": "A server feels sluggish. Check system uptime and load averages.",
+            "prefix": "user@ubuntu:~$",
+            "expected": "^uptime$",
+            "aliases": [],
+            "hint": "Use uptime: 'uptime'",
+            "explanation": "'uptime' shows how long the system has been running and the 1, 5, and 15-minute load averages."
+        },
+        {
+            "id": "linux_troubleshooting_lab__free_memory",
+            "prompt": "Investigate a possible memory issue. Display memory usage in human-readable format.",
+            "prefix": "user@ubuntu:~$",
+            "expected": "^free\\s+-h$",
+            "aliases": [],
+            "hint": "Use free with -h: 'free -h'",
+            "explanation": "'free -h' reports total, used, free, and available RAM and swap space."
+        },
+        {
+            "id": "linux_troubleshooting_lab__df_disk_full",
+            "prompt": "Users report 'disk full' errors. Check filesystem space usage in human-readable format.",
+            "prefix": "user@ubuntu:~$",
+            "expected": "^df\\s+-h$",
+            "aliases": [],
+            "hint": "Use df -h: 'df -h'",
+            "explanation": "'df -h' quickly identifies which mounted filesystems are at or near capacity."
+        },
+        {
+            "id": "linux_troubleshooting_lab__du_find_large",
+            "prompt": "Find what is consuming space in '/var'. Show total usage of that directory in human-readable format.",
+            "prefix": "user@ubuntu:~$",
+            "expected": "^du\\s+-sh\\s+/var$",
+            "aliases": [],
+            "hint": "Use du -sh: 'du -sh /var'",
+            "explanation": "'du -sh /var' gives a single summary of total disk usage under /var to narrow investigation."
+        },
+        {
+            "id": "linux_troubleshooting_lab__find_large_logs",
+            "prompt": "Locate files larger than 100 MB under '/var/log'.",
+            "prefix": "user@ubuntu:~$",
+            "expected": "^find\\s+/var/log\\s+-type\\s+f\\s+-size\\s+\\+100M$",
+            "aliases": ["find /var/log -size +100M"],
+            "hint": "Use find with size filter: 'find /var/log -type f -size +100M'",
+            "explanation": "'find -size +100M' locates oversized log files that may need rotation or deletion."
+        },
+        {
+            "id": "linux_troubleshooting_lab__ps_high_cpu",
+            "prompt": "Identify processes sorted by CPU usage. List all processes with full details.",
+            "prefix": "user@ubuntu:~$",
+            "expected": "^ps\\s+aux$",
+            "aliases": ["top"],
+            "hint": "Use ps aux: 'ps aux'",
+            "explanation": "'ps aux' lists all processes with CPU and memory columns to spot runaway consumers."
+        },
+        {
+            "id": "linux_troubleshooting_lab__pgrep_stuck",
+            "prompt": "Find the PID of a stuck 'backup' process by name.",
+            "prefix": "user@ubuntu:~$",
+            "expected": "^pgrep\\s+backup$",
+            "aliases": [],
+            "hint": "Use pgrep: 'pgrep backup'",
+            "explanation": "'pgrep' quickly returns PIDs matching a process name without parsing full ps output."
+        },
+        {
+            "id": "linux_troubleshooting_lab__kill_stuck",
+            "prompt": "Gracefully terminate the stuck backup process (PID 8842) with SIGTERM.",
+            "prefix": "user@ubuntu:~$",
+            "expected": "^kill\\s+8842$",
+            "aliases": ["kill -15 8842", "kill -TERM 8842"],
+            "hint": "Use kill with PID: 'kill 8842'",
+            "explanation": "Sending SIGTERM (default) allows the process to shut down cleanly before resorting to SIGKILL."
+        },
+        {
+            "id": "linux_troubleshooting_lab__ss_web_port",
+            "prompt": "Verify whether anything is listening on TCP port 80.",
+            "prefix": "user@ubuntu:~$",
+            "expected": "^ss\\s+-tlnp\\s+\\|\\s+grep\\s+:80$",
+            "aliases": ["ss -tlnp | grep :80", "netstat -tlnp | grep :80"],
+            "hint": "Use ss piped to grep: 'ss -tlnp | grep :80'",
+            "explanation": "Checking port 80 confirms whether the web server bound successfully to the expected interface."
+        },
+        {
+            "id": "linux_troubleshooting_lab__lsof_port",
+            "prompt": "Determine which process is using TCP port 8080.",
+            "prefix": "user@ubuntu:~$",
+            "expected": "^sudo\\s+lsof\\s+-i\\s+:8080$",
+            "aliases": ["lsof -i :8080"],
+            "hint": "Use lsof on port: 'sudo lsof -i :8080'",
+            "explanation": "'lsof -i :8080' lists open files and the owning process for the specified network port."
+        },
+        {
+            "id": "linux_troubleshooting_lab__curl_localhost",
+            "prompt": "Test whether the local web server responds on port 80 with an HTTP request.",
+            "prefix": "user@ubuntu:~$",
+            "expected": "^curl\\s+-I\\s+http://localhost$",
+            "aliases": ["curl http://localhost"],
+            "hint": "Use curl against localhost: 'curl -I http://localhost'",
+            "explanation": "'curl -I http://localhost' verifies the service responds locally, isolating network from app issues."
+        },
+        {
+            "id": "linux_troubleshooting_lab__ping_gateway",
+            "prompt": "Test layer-3 connectivity to the default gateway at '192.168.1.1' with 4 pings.",
+            "prefix": "user@ubuntu:~$",
+            "expected": "^ping\\s+-c\\s+4\\s+192\\.168\\.1\\.1$",
+            "aliases": ["ping 192.168.1.1 -c 4"],
+            "hint": "Use ping with count: 'ping -c 4 192.168.1.1'",
+            "explanation": "Pinging the gateway confirms local network connectivity before testing external hosts."
+        },
+        {
+            "id": "linux_troubleshooting_lab__dig_dns_fail",
+            "prompt": "DNS resolution is failing for 'api.example.com'. Query its A record.",
+            "prefix": "user@ubuntu:~$",
+            "expected": "^dig\\s+api\\.example\\.com$",
+            "aliases": ["dig api.example.com A", "nslookup api.example.com"],
+            "hint": "Use dig: 'dig api.example.com'",
+            "explanation": "'dig' reveals whether DNS returns a valid A record or shows resolver/configuration errors."
+        },
+        {
+            "id": "linux_troubleshooting_lab__ip_addr_check",
+            "prompt": "Confirm the server has the expected IP address assigned to its interfaces.",
+            "prefix": "user@ubuntu:~$",
+            "expected": "^ip\\s+addr\\s+show$",
+            "aliases": ["ip a"],
+            "hint": "Use ip addr show: 'ip addr show'",
+            "explanation": "'ip addr show' lists all interface addresses to verify correct network configuration."
+        },
+        {
+            "id": "linux_troubleshooting_lab__traceroute_external",
+            "prompt": "External hosts are unreachable. Trace the route to '8.8.8.8'.",
+            "prefix": "user@ubuntu:~$",
+            "expected": "^traceroute\\s+8\\.8\\.8\\.8$",
+            "aliases": ["tracepath 8.8.8.8"],
+            "hint": "Use traceroute: 'traceroute 8.8.8.8'",
+            "explanation": "'traceroute' pinpoints where packets stop forwarding, revealing routing or firewall blocks."
+        },
+        {
+            "id": "linux_troubleshooting_lab__tail_app_log",
+            "prompt": "Monitor the application log '/var/log/app.log' in real time for new errors.",
+            "prefix": "user@ubuntu:~$",
+            "expected": "^tail\\s+-f\\s+/var/log/app\\.log$",
+            "aliases": [],
+            "hint": "Use tail follow: 'tail -f /var/log/app.log'",
+            "explanation": "'tail -f' streams new log lines as they are written, essential for live incident response."
+        },
+        {
+            "id": "linux_troubleshooting_lab__grep_errors",
+            "prompt": "Search '/var/log/app.log' for lines containing 'FATAL' to find critical failures.",
+            "prefix": "user@ubuntu:~$",
+            "expected": "^grep\\s+FATAL\\s+/var/log/app\\.log$",
+            "aliases": [],
+            "hint": "Use grep: 'grep FATAL /var/log/app.log'",
+            "explanation": "'grep FATAL' filters log noise to show only critical error entries for faster root-cause analysis."
+        },
+        {
+            "id": "linux_troubleshooting_lab__journalctl_service",
+            "prompt": "Review recent logs for the failing 'nginx' systemd service.",
+            "prefix": "user@ubuntu:~$",
+            "expected": "^journalctl\\s+-u\\s+nginx\\s+--since\\s+\"1\\s+hour\\s+ago\"$",
+            "aliases": ["journalctl -u nginx -n 50", "sudo journalctl -u nginx --since \"1 hour ago\""],
+            "hint": "Use journalctl with unit: 'journalctl -u nginx --since \"1 hour ago\"'",
+            "explanation": "'journalctl -u nginx' aggregates service-specific logs, often revealing startup or config errors."
+        },
+        {
+            "id": "linux_troubleshooting_lab__systemctl_status",
+            "prompt": "Check why the 'mysql' service failed to start.",
+            "prefix": "user@ubuntu:~$",
+            "expected": "^systemctl\\s+status\\s+mysql$",
+            "aliases": ["sudo systemctl status mysql"],
+            "hint": "Use systemctl status: 'systemctl status mysql'",
+            "explanation": "'systemctl status' shows active state, exit codes, and the last few log lines for the unit."
+        },
+        {
+            "id": "linux_troubleshooting_lab__dmesg_kernel",
+            "prompt": "Inspect recent kernel messages for hardware or driver errors after a crash.",
+            "prefix": "user@ubuntu:~$",
+            "expected": "^dmesg\\s+\\|\\s+tail\\s+-20$",
+            "aliases": ["sudo dmesg | tail -20", "journalctl -k"],
+            "hint": "Use dmesg piped to tail: 'dmesg | tail -20'",
+            "explanation": "'dmesg' contains kernel ring buffer messages about hardware, drivers, and OOM killer events."
+        }
+    ]
+}

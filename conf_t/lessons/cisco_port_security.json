@@ -1,0 +1,102 @@
+{
+    "id": "cisco_port_security",
+    "title": "Cisco Port Security",
+    "platform": "Cisco",
+    "description": "Learn to secure switch access ports using port security, including MAC address limits, sticky learning, violation actions, aging timers, and verification commands.",
+    "difficulty": "intermediate",
+    "tags": ["security", "switching", "ccna"],
+    "prerequisites": ["cisco_vlan_fundamentals"],
+    "estimated_minutes": 18,
+    "tasks": [
+        {
+            "id": "cisco_port_security__access_mode",
+            "prompt": "Configure interface FastEthernet0/5 as an access port (not a trunk).",
+            "prefix": "Switch(config-if)#",
+            "expected": "^switchport\\s+mode\\s+access$",
+            "aliases": ["sw mode access", "sw mod acc"],
+            "hint": "Use: 'switchport mode access'",
+            "explanation": "Port security is only supported on access ports. The interface must be in access mode before enabling port security features."
+        },
+        {
+            "id": "cisco_port_security__enable",
+            "prompt": "Enable port security on the current interface.",
+            "prefix": "Switch(config-if)#",
+            "expected": "^switchport\\s+port-security$",
+            "aliases": ["sw port-security", "sw port-sec"],
+            "hint": "Use: 'switchport port-security'",
+            "explanation": "Port security restricts inbound traffic on a port to a limited set of MAC addresses, preventing unauthorized device connections."
+        },
+        {
+            "id": "cisco_port_security__maximum",
+            "prompt": "Set the maximum number of secure MAC addresses allowed on this port to 2.",
+            "prefix": "Switch(config-if)#",
+            "expected": "^switchport\\s+port-security\\s+maximum\\s+2$",
+            "aliases": ["sw port-security maximum 2", "sw port-sec max 2"],
+            "hint": "Use: 'switchport port-security maximum 2'",
+            "explanation": "The maximum command limits how many MAC addresses can be learned or statically configured on a secured port."
+        },
+        {
+            "id": "cisco_port_security__sticky",
+            "prompt": "Enable sticky MAC address learning on this port.",
+            "prefix": "Switch(config-if)#",
+            "expected": "^switchport\\s+port-security\\s+mac-address\\s+sticky$",
+            "aliases": ["sw port-security mac-address sticky", "sw port-sec mac sticky"],
+            "hint": "Use: 'switchport port-security mac-address sticky'",
+            "explanation": "Sticky learning dynamically learns MAC addresses and writes them to the running configuration as secure entries, surviving reboots when saved."
+        },
+        {
+            "id": "cisco_port_security__static_mac",
+            "prompt": "Manually configure secure MAC address 00:1A:2B:3C:4D:5E on VLAN 10 for this port.",
+            "prefix": "Switch(config-if)#",
+            "expected": "^switchport\\s+port-security\\s+mac-address\\s+001A\\.2B3C\\.4D5E\\s+vlan\\s+10$",
+            "aliases": ["switchport port-security mac-address 001A.2B3C.4D5E vlan 10", "sw port-sec mac 001A.2B3C.4D5E vlan 10"],
+            "hint": "Use: 'switchport port-security mac-address 001A.2B3C.4D5E vlan 10'",
+            "explanation": "Static secure MAC addresses are manually bound to a port and VLAN, ensuring only the specified device can connect."
+        },
+        {
+            "id": "cisco_port_security__violation_shutdown",
+            "prompt": "Set the port security violation mode to shutdown (err-disable the port on violation).",
+            "prefix": "Switch(config-if)#",
+            "expected": "^switchport\\s+port-security\\s+violation\\s+shutdown$",
+            "aliases": ["sw port-security violation shutdown", "sw port-sec violation shutdown"],
+            "hint": "Use: 'switchport port-security violation shutdown'",
+            "explanation": "Shutdown mode places the port in err-disabled state when a violation occurs, requiring manual intervention to restore connectivity."
+        },
+        {
+            "id": "cisco_port_security__violation_restrict",
+            "prompt": "Set the port security violation mode to restrict (drop traffic and log violations).",
+            "prefix": "Switch(config-if)#",
+            "expected": "^switchport\\s+port-security\\s+violation\\s+restrict$",
+            "aliases": ["sw port-security violation restrict", "sw port-sec violation restrict"],
+            "hint": "Use: 'switchport port-security violation restrict'",
+            "explanation": "Restrict mode drops offending traffic and increments a violation counter while keeping the port administratively up."
+        },
+        {
+            "id": "cisco_port_security__aging_time",
+            "prompt": "Enable port security aging with a time-based aging period of 120 minutes.",
+            "prefix": "Switch(config-if)#",
+            "expected": "^switchport\\s+port-security\\s+aging\\s+time\\s+120$",
+            "aliases": ["sw port-security aging time 120"],
+            "hint": "Use: 'switchport port-security aging time 120'",
+            "explanation": "Aging removes inactive secure MAC addresses after the configured time period, freeing slots for new devices on dynamic ports."
+        },
+        {
+            "id": "cisco_port_security__aging_static",
+            "prompt": "Configure port security aging to include statically configured secure MAC addresses.",
+            "prefix": "Switch(config-if)#",
+            "expected": "^switchport\\s+port-security\\s+aging\\s+static$",
+            "aliases": ["sw port-security aging static"],
+            "hint": "Use: 'switchport port-security aging static'",
+            "explanation": "By default, only dynamically learned addresses age out. The 'aging static' option also ages manually configured secure MAC entries."
+        },
+        {
+            "id": "cisco_port_security__show_interface",
+            "prompt": "Display port security status and secure MAC addresses for interface FastEthernet0/5.",
+            "prefix": "Switch#",
+            "expected": "^show\\s+port-security\\s+interface\\s+FastEthernet0/5$",
+            "aliases": ["sh port-security interface f0/5", "sh port-sec int f0/5"],
+            "hint": "Use: 'show port-security interface FastEthernet0/5'",
+            "explanation": "This command shows the maximum MAC count, current secure addresses, violation mode, and any active security violations on the port."
+        }
+    ]
+}

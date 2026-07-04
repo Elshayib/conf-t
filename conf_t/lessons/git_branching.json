@@ -1,0 +1,84 @@
+{
+    "id": "git_branching",
+    "title": "Git Branching",
+    "platform": "Git",
+    "description": "Learn to create, list, switch, rename, and delete branches using modern Git branch commands.",
+    "difficulty": "intermediate",
+    "tags": ["branching", "workflow"],
+    "prerequisites": ["git_basic"],
+    "estimated_minutes": 20,
+    "tasks": [
+        {
+            "id": "git_branching__branch_list",
+            "prompt": "List all local branches.",
+            "prefix": "user@ubuntu:~/project$",
+            "expected": "^git\\s+branch$",
+            "aliases": [],
+            "hint": "Use git branch with no arguments.",
+            "explanation": "git branch lists local branch names with the current branch highlighted."
+        },
+        {
+            "id": "git_branching__branch_create",
+            "prompt": "Create a new branch named 'feature-auth' without switching to it.",
+            "prefix": "user@ubuntu:~/project$",
+            "expected": "^git\\s+branch\\s+feature-auth$",
+            "aliases": [],
+            "hint": "Use git branch followed by the branch name.",
+            "explanation": "git branch <name> creates a branch pointer at the current commit."
+        },
+        {
+            "id": "git_branching__switch_branch",
+            "prompt": "Switch to the existing branch 'develop'.",
+            "prefix": "user@ubuntu:~/project$",
+            "expected": "^(git\\s+switch\\s+develop|git\\s+checkout\\s+develop)$",
+            "aliases": ["git switch develop", "git checkout develop"],
+            "hint": "Use git switch develop or git checkout develop.",
+            "explanation": "git switch updates HEAD to point at the target branch."
+        },
+        {
+            "id": "git_branching__switch_create",
+            "prompt": "Create and switch to a new branch named 'hotfix'.",
+            "prefix": "user@ubuntu:~/project$",
+            "expected": "^(git\\s+switch\\s+-c\\s+hotfix|git\\s+checkout\\s+-b\\s+hotfix)$",
+            "aliases": ["git switch -c hotfix", "git checkout -b hotfix"],
+            "hint": "Use git switch -c hotfix or git checkout -b hotfix.",
+            "explanation": "The -c/-b flag creates a branch and checks it out in one step."
+        },
+        {
+            "id": "git_branching__branch_verbose",
+            "prompt": "List local branches with their latest commit hash and message.",
+            "prefix": "user@ubuntu:~/project$",
+            "expected": "^git\\s+branch\\s+-v$",
+            "aliases": ["git branch --verbose"],
+            "hint": "Use git branch -v.",
+            "explanation": "git branch -v shows the tip commit for each local branch."
+        },
+        {
+            "id": "git_branching__branch_rename",
+            "prompt": "Rename the current branch to 'main'.",
+            "prefix": "user@ubuntu:~/project$",
+            "expected": "^git\\s+branch\\s+-m\\s+main$",
+            "aliases": ["git branch --move main"],
+            "hint": "Use git branch -m main.",
+            "explanation": "git branch -m renames the current branch."
+        },
+        {
+            "id": "git_branching__branch_delete",
+            "prompt": "Delete the merged local branch 'feature-done'.",
+            "prefix": "user@ubuntu:~/project$",
+            "expected": "^git\\s+branch\\s+-d\\s+feature-done$",
+            "aliases": ["git branch --delete feature-done"],
+            "hint": "Use git branch -d feature-done.",
+            "explanation": "git branch -d safely deletes a branch that has been merged."
+        },
+        {
+            "id": "git_branching__branch_all",
+            "prompt": "List all local and remote-tracking branches.",
+            "prefix": "user@ubuntu:~/project$",
+            "expected": "^git\\s+branch\\s+-a$",
+            "aliases": ["git branch --all"],
+            "hint": "Use git branch -a.",
+            "explanation": "git branch -a includes remote branches like origin/main."
+        }
+    ]
+}

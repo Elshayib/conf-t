@@ -1,0 +1,120 @@
+{
+    "id": "cisco_inter_vlan_routing",
+    "title": "Cisco Inter-VLAN Routing",
+    "platform": "Cisco",
+    "description": "Learn how to enable Layer 3 routing on a multilayer switch, configure Switch Virtual Interfaces (SVIs), and provide default gateways for VLANs.",
+    "difficulty": "intermediate",
+    "tags": ["routing", "svi", "ccna"],
+    "prerequisites": ["cisco_vlan_fundamentals"],
+    "estimated_minutes": 20,
+    "tasks": [
+        {
+            "id": "cisco_inter_vlan_routing__enable",
+            "prompt": "Enter Privileged EXEC mode.",
+            "prefix": "Switch>",
+            "expected": "^enable$",
+            "aliases": ["en"],
+            "hint": "Use the command: 'enable' or 'en'",
+            "explanation": "Inter-VLAN routing configuration requires Privileged EXEC access on a Layer 3-capable switch."
+        },
+        {
+            "id": "cisco_inter_vlan_routing__configure_terminal",
+            "prompt": "Enter Global Configuration mode.",
+            "prefix": "Switch#",
+            "expected": "^configure\\s+terminal$",
+            "aliases": ["conf t", "config terminal", "config t"],
+            "hint": "Use the command: 'configure terminal' or 'conf t'",
+            "explanation": "SVIs and IP routing are configured from global configuration mode."
+        },
+        {
+            "id": "cisco_inter_vlan_routing__ip_routing",
+            "prompt": "Enable IP routing on this multilayer switch.",
+            "prefix": "Switch(config)#",
+            "expected": "^ip\\s+routing$",
+            "aliases": [],
+            "hint": "Use the command: 'ip routing'",
+            "explanation": "By default, switches only switch at Layer 2. 'ip routing' activates Layer 3 forwarding so SVIs can route between VLANs."
+        },
+        {
+            "id": "cisco_inter_vlan_routing__create_vlan_10",
+            "prompt": "Create VLAN 10.",
+            "prefix": "Switch(config)#",
+            "expected": "^vlan\\s+10$",
+            "aliases": ["vlan10"],
+            "hint": "Use the command: 'vlan 10'",
+            "explanation": "An SVI requires the corresponding VLAN to exist before the virtual interface can be configured."
+        },
+        {
+            "id": "cisco_inter_vlan_routing__name_vlan_sales",
+            "prompt": "Name VLAN 10 'Sales'.",
+            "prefix": "Switch(config-vlan)#",
+            "expected": "^name\\s+Sales$",
+            "aliases": [],
+            "hint": "Use the command: 'name Sales'",
+            "explanation": "Descriptive VLAN names make it easier to match SVIs to their broadcast domains."
+        },
+        {
+            "id": "cisco_inter_vlan_routing__interface_vlan_10",
+            "prompt": "Enter Interface Configuration mode for the VLAN 10 SVI.",
+            "prefix": "Switch(config)#",
+            "expected": "^interface\\s+vlan\\s+10$",
+            "aliases": ["int vlan 10", "interface vlan10"],
+            "hint": "Use the command: 'interface vlan 10'",
+            "explanation": "A Switch Virtual Interface (SVI) is a logical Layer 3 interface tied to a VLAN, acting as the default gateway for hosts."
+        },
+        {
+            "id": "cisco_inter_vlan_routing__ip_address_vlan_10",
+            "prompt": "Assign IP address 192.168.10.1 with subnet mask 255.255.255.0 to the VLAN 10 SVI.",
+            "prefix": "Switch(config-if)#",
+            "expected": "^ip\\s+address\\s+192\\.168\\.10\\.1\\s+255\\.255\\.255\\.0$",
+            "aliases": ["ip add 192.168.10.1 255.255.255.0"],
+            "hint": "Use the command: 'ip address 192.168.10.1 255.255.255.0'",
+            "explanation": "Hosts in VLAN 10 use this address as their default gateway to reach other subnets and VLANs."
+        },
+        {
+            "id": "cisco_inter_vlan_routing__no_shutdown_vlan_10",
+            "prompt": "Enable the VLAN 10 SVI (bring it administratively up).",
+            "prefix": "Switch(config-if)#",
+            "expected": "^no\\s+shutdown$",
+            "aliases": ["no shut"],
+            "hint": "Use the command: 'no shutdown' or 'no shut'",
+            "explanation": "SVIs are administratively shut down by default. 'no shutdown' activates the interface so it can route traffic."
+        },
+        {
+            "id": "cisco_inter_vlan_routing__create_vlan_20",
+            "prompt": "Create VLAN 20.",
+            "prefix": "Switch(config-if)#",
+            "expected": "^vlan\\s+20$",
+            "aliases": ["vlan20"],
+            "hint": "Use the command: 'vlan 20'",
+            "explanation": "Each VLAN that needs routing requires its own SVI with a unique IP subnet."
+        },
+        {
+            "id": "cisco_inter_vlan_routing__name_vlan_engineering",
+            "prompt": "Name VLAN 20 'Engineering'.",
+            "prefix": "Switch(config-vlan)#",
+            "expected": "^name\\s+Engineering$",
+            "aliases": [],
+            "hint": "Use the command: 'name Engineering'",
+            "explanation": "The Engineering VLAN will have its own subnet and default gateway separate from Sales."
+        },
+        {
+            "id": "cisco_inter_vlan_routing__interface_vlan_20",
+            "prompt": "Enter Interface Configuration mode for the VLAN 20 SVI.",
+            "prefix": "Switch(config)#",
+            "expected": "^interface\\s+vlan\\s+20$",
+            "aliases": ["int vlan 20", "interface vlan20"],
+            "hint": "Use the command: 'interface vlan 20'",
+            "explanation": "The VLAN 20 SVI provides Layer 3 connectivity for all hosts in the Engineering broadcast domain."
+        },
+        {
+            "id": "cisco_inter_vlan_routing__ip_address_vlan_20",
+            "prompt": "Assign IP address 192.168.20.1 with subnet mask 255.255.255.0 to the VLAN 20 SVI.",
+            "prefix": "Switch(config-if)#",
+            "expected": "^ip\\s+address\\s+192\\.168\\.20\\.1\\s+255\\.255\\.255\\.0$",
+            "aliases": ["ip add 192.168.20.1 255.255.255.0"],
+            "hint": "Use the command: 'ip address 192.168.20.1 255.255.255.0'",
+            "explanation": "With both SVIs configured, the switch routes packets between 192.168.10.0/24 and 192.168.20.0/24 without an external router."
+        }
+    ]
+}

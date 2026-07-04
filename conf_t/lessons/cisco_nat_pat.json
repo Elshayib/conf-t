@@ -1,0 +1,120 @@
+{
+    "id": "cisco_nat_pat",
+    "title": "Cisco NAT & PAT",
+    "platform": "Cisco",
+    "description": "Learn to configure Network Address Translation (NAT) and Port Address Translation (PAT) on Cisco IOS routers, including inside/outside interfaces, static NAT, dynamic NAT pools, and overload (PAT).",
+    "difficulty": "intermediate",
+    "tags": ["nat", "pat", "ccna"],
+    "prerequisites": ["cisco_basic"],
+    "estimated_minutes": 20,
+    "tasks": [
+        {
+            "id": "cisco_nat_pat__inside_interface",
+            "prompt": "Mark interface 'GigabitEthernet0/0' as the NAT inside interface.",
+            "prefix": "Router(config-if)#",
+            "expected": "^ip\\s+nat\\s+inside$",
+            "aliases": [],
+            "hint": "Use: 'ip nat inside'",
+            "explanation": "The 'ip nat inside' command designates an interface as the source of traffic that will be translated before leaving the network."
+        },
+        {
+            "id": "cisco_nat_pat__outside_interface",
+            "prompt": "Mark interface 'GigabitEthernet0/1' as the NAT outside interface.",
+            "prefix": "Router(config-if)#",
+            "expected": "^ip\\s+nat\\s+outside$",
+            "aliases": [],
+            "hint": "Use: 'ip nat outside'",
+            "explanation": "The 'ip nat outside' command designates the interface facing the public network where translated addresses are used."
+        },
+        {
+            "id": "cisco_nat_pat__acl_permit",
+            "prompt": "Create standard ACL 1 to permit all hosts on network 192.168.10.0/24 for NAT.",
+            "prefix": "Router(config)#",
+            "expected": "^access-list\\s+1\\s+permit\\s+192\\.168\\.10\\.0\\s+0\\.0\\.0\\.255$",
+            "aliases": ["access-list 1 permit 192.168.10.0 0.0.0.255"],
+            "hint": "Use: 'access-list 1 permit 192.168.10.0 0.0.0.255'",
+            "explanation": "A standard ACL defines which inside local addresses are eligible for NAT translation using a wildcard mask."
+        },
+        {
+            "id": "cisco_nat_pat__nat_pool",
+            "prompt": "Create a NAT pool named 'PUBLIC_POOL' using addresses 203.0.113.10 through 203.0.113.20 with netmask 255.255.255.0.",
+            "prefix": "Router(config)#",
+            "expected": "^ip\\s+nat\\s+pool\\s+PUBLIC_POOL\\s+203\\.0\\.113\\.10\\s+203\\.0\\.113\\.20\\s+netmask\\s+255\\.255\\.255\\.0$",
+            "aliases": ["ip nat pool PUBLIC_POOL 203.0.113.10 203.0.113.20 netmask 255.255.255.0"],
+            "hint": "Use: 'ip nat pool PUBLIC_POOL 203.0.113.10 203.0.113.20 netmask 255.255.255.0'",
+            "explanation": "A NAT pool defines a range of global (public) IP addresses available for dynamic one-to-one NAT translations."
+        },
+        {
+            "id": "cisco_nat_pat__static_nat",
+            "prompt": "Configure static NAT mapping inside local host 192.168.10.10 to inside global address 203.0.113.5.",
+            "prefix": "Router(config)#",
+            "expected": "^ip\\s+nat\\s+inside\\s+source\\s+static\\s+192\\.168\\.10\\.10\\s+203\\.0\\.113\\.5$",
+            "aliases": ["ip nat inside source static 192.168.10.10 203.0.113.5"],
+            "hint": "Use: 'ip nat inside source static 192.168.10.10 203.0.113.5'",
+            "explanation": "Static NAT creates a permanent one-to-one mapping between a private inside local address and a public inside global address."
+        },
+        {
+            "id": "cisco_nat_pat__dynamic_nat",
+            "prompt": "Configure dynamic NAT using ACL 1 and pool 'PUBLIC_POOL'.",
+            "prefix": "Router(config)#",
+            "expected": "^ip\\s+nat\\s+inside\\s+source\\s+list\\s+1\\s+pool\\s+PUBLIC_POOL$",
+            "aliases": ["ip nat inside source list 1 pool PUBLIC_POOL"],
+            "hint": "Use: 'ip nat inside source list 1 pool PUBLIC_POOL'",
+            "explanation": "Dynamic NAT translates addresses matched by an ACL to available addresses in a NAT pool on a first-come, first-served basis."
+        },
+        {
+            "id": "cisco_nat_pat__pat_overload",
+            "prompt": "Enable PAT (overload) on interface GigabitEthernet0/1 for traffic matched by ACL 1.",
+            "prefix": "Router(config)#",
+            "expected": "^ip\\s+nat\\s+inside\\s+source\\s+list\\s+1\\s+interface\\s+GigabitEthernet0/1\\s+overload$",
+            "aliases": ["ip nat inside source list 1 interface GigabitEthernet0/1 overload", "ip nat inside source list 1 int g0/1 overload"],
+            "hint": "Use: 'ip nat inside source list 1 interface GigabitEthernet0/1 overload'",
+            "explanation": "PAT (Port Address Translation) uses the overload keyword to map many inside addresses to a single public IP using unique port numbers."
+        },
+        {
+            "id": "cisco_nat_pat__pat_pool_overload",
+            "prompt": "Enable PAT (overload) using ACL 1 and NAT pool 'PUBLIC_POOL'.",
+            "prefix": "Router(config)#",
+            "expected": "^ip\\s+nat\\s+inside\\s+source\\s+list\\s+1\\s+pool\\s+PUBLIC_POOL\\s+overload$",
+            "aliases": ["ip nat inside source list 1 pool PUBLIC_POOL overload"],
+            "hint": "Use: 'ip nat inside source list 1 pool PUBLIC_POOL overload'",
+            "explanation": "Adding 'overload' to a dynamic NAT pool configuration enables PAT, allowing multiple inside hosts to share each pool address."
+        },
+        {
+            "id": "cisco_nat_pat__default_route",
+            "prompt": "Configure a default route pointing to the next-hop ISP gateway at 203.0.113.1.",
+            "prefix": "Router(config)#",
+            "expected": "^ip\\s+route\\s+0\\.0\\.0\\.0\\s+0\\.0\\.0\\.0\\s+203\\.0\\.113\\.1$",
+            "aliases": ["ip route 0.0.0.0 0.0.0.0 203.0.113.1"],
+            "hint": "Use: 'ip route 0.0.0.0 0.0.0.0 203.0.113.1'",
+            "explanation": "A default route directs traffic destined for unknown networks toward the ISP, which is essential for NAT to reach the internet."
+        },
+        {
+            "id": "cisco_nat_pat__show_translations",
+            "prompt": "Display active NAT translation entries on the router.",
+            "prefix": "Router#",
+            "expected": "^show\\s+ip\\s+nat\\s+translations$",
+            "aliases": ["sh ip nat translations", "sh ip nat trans"],
+            "hint": "Use: 'show ip nat translations'",
+            "explanation": "This command displays the current NAT table, showing inside local/global and outside local/global address mappings."
+        },
+        {
+            "id": "cisco_nat_pat__clear_translations",
+            "prompt": "Clear all dynamic NAT translation entries from the translation table.",
+            "prefix": "Router#",
+            "expected": "^clear\\s+ip\\s+nat\\s+translation\\s+\\*$",
+            "aliases": ["clear ip nat translation *"],
+            "hint": "Use: 'clear ip nat translation *'",
+            "explanation": "Clearing NAT translations forces new sessions to be re-translated, useful during troubleshooting or after configuration changes."
+        },
+        {
+            "id": "cisco_nat_pat__show_statistics",
+            "prompt": "Display NAT statistics including hits, misses, and expired translations.",
+            "prefix": "Router#",
+            "expected": "^show\\s+ip\\s+nat\\s+statistics$",
+            "aliases": ["sh ip nat statistics", "sh ip nat stats"],
+            "hint": "Use: 'show ip nat statistics'",
+            "explanation": "NAT statistics help verify that translations are occurring and identify whether the NAT configuration is processing traffic correctly."
+        }
+    ]
+}

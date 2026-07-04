@@ -1,0 +1,102 @@
+{
+    "id": "cisco_qos",
+    "title": "Cisco Quality of Service (QoS)",
+    "platform": "Cisco",
+    "description": "Enable MLS QoS, build class maps and policy maps, apply hierarchical queuing with priority and bandwidth classes, and verify QoS policies on interfaces.",
+    "difficulty": "advanced",
+    "tags": ["qos", "services", "ccna"],
+    "prerequisites": ["cisco_interface_basics"],
+    "estimated_minutes": 20,
+    "tasks": [
+        {
+            "id": "cisco_qos__enable_mls_qos",
+            "prompt": "Globally enable MLS QoS on switch SW1.",
+            "prefix": "SW1(config)#",
+            "expected": "^mls\\s+qos$",
+            "aliases": ["mls qos"],
+            "hint": "Use: 'mls qos'",
+            "explanation": "MLS QoS must be enabled globally before trust boundaries, classification, and queuing policies take effect on Catalyst switches."
+        },
+        {
+            "id": "cisco_qos__class_map_voice",
+            "prompt": "Create a class map named 'VOICE' that matches traffic if any listed criteria match.",
+            "prefix": "SW1(config)#",
+            "expected": "^class-map\\s+match-any\\s+VOICE$",
+            "aliases": ["class-map match-any VOICE"],
+            "hint": "Use: 'class-map match-any VOICE'",
+            "explanation": "Class maps group traffic for policy treatment. 'match-any' triggers a match when any single match criterion is satisfied."
+        },
+        {
+            "id": "cisco_qos__match_dscp_ef",
+            "prompt": "In class map 'VOICE', match packets marked with DSCP EF (Expedited Forwarding).",
+            "prefix": "SW1(config-cmap)#",
+            "expected": "^match\\s+dscp\\s+ef$",
+            "aliases": ["match dscp ef"],
+            "hint": "Use: 'match dscp ef'",
+            "explanation": "DSCP EF (decimal 46) identifies low-latency voice traffic. Matching on DSCP preserves classification applied by IP phones or upstream devices."
+        },
+        {
+            "id": "cisco_qos__policy_map",
+            "prompt": "Create a policy map named 'WAN-EDGE' to define per-class queuing behavior.",
+            "prefix": "SW1(config)#",
+            "expected": "^policy-map\\s+WAN-EDGE$",
+            "aliases": ["policy-map WAN-EDGE"],
+            "hint": "Use: 'policy-map WAN-EDGE'",
+            "explanation": "Policy maps attach actions (bandwidth, priority, shaping) to traffic classes defined by class maps."
+        },
+        {
+            "id": "cisco_qos__policy_class_voice",
+            "prompt": "In policy map 'WAN-EDGE', enter configuration for traffic class 'VOICE'.",
+            "prefix": "SW1(config-pmap)#",
+            "expected": "^class\\s+VOICE$",
+            "aliases": ["class VOICE"],
+            "hint": "Use: 'class VOICE'",
+            "explanation": "The 'class' command under a policy map links a class map to a set of QoS actions applied to matching traffic."
+        },
+        {
+            "id": "cisco_qos__class_voice_priority",
+            "prompt": "Assign strict priority queuing to class 'VOICE' using 30% of link bandwidth.",
+            "prefix": "SW1(config-pmap-c)#",
+            "expected": "^priority\\s+percent\\s+30$",
+            "aliases": ["priority percent 30"],
+            "hint": "Use: 'priority percent 30'",
+            "explanation": "The priority command places traffic in a low-latency strict-priority queue. Voice should use priority; limit the percentage to avoid starving other classes."
+        },
+        {
+            "id": "cisco_qos__policy_class_default",
+            "prompt": "In policy map 'WAN-EDGE', enter configuration for the default traffic class.",
+            "prefix": "SW1(config-pmap)#",
+            "expected": "^class\\s+class-default$",
+            "aliases": ["class class-default"],
+            "hint": "Use: 'class class-default'",
+            "explanation": "class-default catches all traffic not matched by other classes. It always exists implicitly in every policy map."
+        },
+        {
+            "id": "cisco_qos__fair_queue",
+            "prompt": "Enable weighted fair queuing for unmatched traffic in class-default.",
+            "prefix": "SW1(config-pmap-c)#",
+            "expected": "^fair-queue$",
+            "aliases": [],
+            "hint": "Use: 'fair-queue'",
+            "explanation": "Fair queuing distributes remaining bandwidth among best-effort flows, preventing any single flow from monopolizing the link."
+        },
+        {
+            "id": "cisco_qos__service_policy_output",
+            "prompt": "Apply policy map 'WAN-EDGE' outbound on interface GigabitEthernet0/1.",
+            "prefix": "SW1(config-if)#",
+            "expected": "^service-policy\\s+output\\s+WAN-EDGE$",
+            "aliases": ["service-policy output WAN-EDGE"],
+            "hint": "Use: 'service-policy output WAN-EDGE'",
+            "explanation": "Service policies are bound to interfaces in the traffic direction they police—output policies shape traffic leaving the WAN uplink."
+        },
+        {
+            "id": "cisco_qos__show_policy_map",
+            "prompt": "Verify the applied QoS policy and class-level statistics on GigabitEthernet0/1.",
+            "prefix": "SW1#",
+            "expected": "^show\\s+policy-map\\s+interface\\s+GigabitEthernet0/1$",
+            "aliases": ["sh policy-map interface g0/1", "sh policy-map int gi0/1"],
+            "hint": "Use: 'show policy-map interface GigabitEthernet0/1'",
+            "explanation": "This command displays the active policy, match criteria, queuing actions, and packet/byte counters per class for troubleshooting QoS."
+        }
+    ]
+}

@@ -1,0 +1,84 @@
+{
+    "id": "git_rebasing",
+    "title": "Git Rebasing",
+    "platform": "Git",
+    "description": "Learn to rebase branches, interactively rewrite history, continue or abort rebases, and replay commits cleanly.",
+    "difficulty": "advanced",
+    "tags": ["rebase", "history"],
+    "prerequisites": ["git_merging"],
+    "estimated_minutes": 30,
+    "tasks": [
+        {
+            "id": "git_rebasing__rebase_onto",
+            "prompt": "Rebase the current branch onto 'main'.",
+            "prefix": "user@ubuntu:~/project$",
+            "expected": "^git\\s+rebase\\s+main$",
+            "aliases": [],
+            "hint": "Use git rebase main.",
+            "explanation": "git rebase replays commits on top of another branch tip."
+        },
+        {
+            "id": "git_rebasing__rebase_interactive",
+            "prompt": "Interactively rebase the last 3 commits on the current branch.",
+            "prefix": "user@ubuntu:~/project$",
+            "expected": "^git\\s+rebase\\s+-i\\s+HEAD~3$",
+            "aliases": ["git rebase --interactive HEAD~3"],
+            "hint": "Use git rebase -i HEAD~3.",
+            "explanation": "Interactive rebase lets you squash, edit, or drop recent commits."
+        },
+        {
+            "id": "git_rebasing__rebase_continue",
+            "prompt": "Continue the rebase after resolving conflicts and staging files.",
+            "prefix": "user@ubuntu:~/project$",
+            "expected": "^git\\s+rebase\\s+--continue$",
+            "aliases": [],
+            "hint": "Use git rebase --continue.",
+            "explanation": "git rebase --continue applies the next commit after conflict resolution."
+        },
+        {
+            "id": "git_rebasing__rebase_abort",
+            "prompt": "Abort the current rebase and return to the pre-rebase state.",
+            "prefix": "user@ubuntu:~/project$",
+            "expected": "^git\\s+rebase\\s+--abort$",
+            "aliases": [],
+            "hint": "Use git rebase --abort.",
+            "explanation": "git rebase --abort cancels the operation and restores the original branch."
+        },
+        {
+            "id": "git_rebasing__rebase_skip",
+            "prompt": "Skip the current commit during an interactive rebase.",
+            "prefix": "user@ubuntu:~/project$",
+            "expected": "^git\\s+rebase\\s+--skip$",
+            "aliases": [],
+            "hint": "Use git rebase --skip.",
+            "explanation": "git rebase --skip drops the conflicting commit and moves on."
+        },
+        {
+            "id": "git_rebasing__rebase_onto_branch",
+            "prompt": "Rebase commits from 'feature' onto 'develop' using explicit onto syntax.",
+            "prefix": "user@ubuntu:~/project$",
+            "expected": "^git\\s+rebase\\s+--onto\\s+develop\\s+main\\s+feature$",
+            "aliases": [],
+            "hint": "Use git rebase --onto develop main feature.",
+            "explanation": "--onto transplants a commit range onto a new base branch."
+        },
+        {
+            "id": "git_rebasing__log_reflog",
+            "prompt": "View the reflog to find commits before a rebase.",
+            "prefix": "user@ubuntu:~/project$",
+            "expected": "^git\\s+reflog$",
+            "aliases": ["git reflog show"],
+            "hint": "Use git reflog.",
+            "explanation": "The reflog records where HEAD and branches have pointed."
+        },
+        {
+            "id": "git_rebasing__cherry_pick",
+            "prompt": "Apply commit 'a1b2c3d' onto the current branch without merging.",
+            "prefix": "user@ubuntu:~/project$",
+            "expected": "^git\\s+cherry-pick\\s+a1b2c3d$",
+            "aliases": [],
+            "hint": "Use git cherry-pick with the commit hash.",
+            "explanation": "git cherry-pick replays a single commit on the current branch."
+        }
+    ]
+}

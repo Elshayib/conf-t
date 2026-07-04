@@ -1,0 +1,84 @@
+{
+    "id": "cisco_hsrp",
+    "title": "Cisco HSRP First-Hop Redundancy",
+    "platform": "Cisco",
+    "description": "Configure Hot Standby Router Protocol (HSRP) on multilayer switch SVIs with virtual IP, priority, preemption, interface tracking, and verification.",
+    "difficulty": "advanced",
+    "tags": ["hsrp", "redundancy", "ccna"],
+    "prerequisites": ["cisco_inter_vlan_routing"],
+    "estimated_minutes": 16,
+    "tasks": [
+        {
+            "id": "cisco_hsrp__configure_terminal",
+            "prompt": "Enter Global Configuration mode on distribution switch DSW1 to configure HSRP.",
+            "prefix": "DSW1#",
+            "expected": "^configure\\s+terminal$",
+            "aliases": ["conf t", "config terminal", "config t"],
+            "hint": "Use: 'configure terminal' or 'conf t'",
+            "explanation": "HSRP is configured on Layer 3 interfaces—typically SVIs on multilayer switches acting as default gateways."
+        },
+        {
+            "id": "cisco_hsrp__interface_vlan",
+            "prompt": "Enter Interface Configuration mode for the VLAN 10 SVI.",
+            "prefix": "DSW1(config)#",
+            "expected": "^interface\\s+vlan\\s+10$",
+            "aliases": ["int vlan 10", "interface vlan10"],
+            "hint": "Use: 'interface vlan 10'",
+            "explanation": "HSRP provides a virtual default gateway IP shared between two physical routers or switches serving the same VLAN."
+        },
+        {
+            "id": "cisco_hsrp__ip_address",
+            "prompt": "Assign physical IP address 192.168.10.2/24 to the VLAN 10 SVI on DSW1.",
+            "prefix": "DSW1(config-if)#",
+            "expected": "^ip\\s+address\\s+192\\.168\\.10\\.2\\s+255\\.255\\.255\\.0$",
+            "aliases": ["ip add 192.168.10.2 255.255.255.0"],
+            "hint": "Use: 'ip address 192.168.10.2 255.255.255.0'",
+            "explanation": "Each HSRP router needs a unique physical IP on the interface. Clients use the separate virtual IP as their default gateway."
+        },
+        {
+            "id": "cisco_hsrp__standby_ip",
+            "prompt": "Configure HSRP group 10 with virtual IP address 192.168.10.1 on VLAN 10.",
+            "prefix": "DSW1(config-if)#",
+            "expected": "^standby\\s+10\\s+ip\\s+192\\.168\\.10\\.1$",
+            "aliases": ["standby 10 ip 192.168.10.1"],
+            "hint": "Use: 'standby 10 ip 192.168.10.1'",
+            "explanation": "The standby IP is the virtual gateway address shared by all routers in HSRP group 10. Only the active router responds to ARP for this IP."
+        },
+        {
+            "id": "cisco_hsrp__standby_priority",
+            "prompt": "Set HSRP group 10 priority to 110 on DSW1 to make it the preferred active router.",
+            "prefix": "DSW1(config-if)#",
+            "expected": "^standby\\s+10\\s+priority\\s+110$",
+            "aliases": ["standby 10 priority 110"],
+            "hint": "Use: 'standby 10 priority 110'",
+            "explanation": "The router with the highest priority becomes active. Default priority is 100; raising it above the peer ensures DSW1 is preferred."
+        },
+        {
+            "id": "cisco_hsrp__standby_preempt",
+            "prompt": "Enable preemption on HSRP group 10 so DSW1 reclaims active status when it recovers.",
+            "prefix": "DSW1(config-if)#",
+            "expected": "^standby\\s+10\\s+preempt$",
+            "aliases": ["standby 10 preempt"],
+            "hint": "Use: 'standby 10 preempt'",
+            "explanation": "Without preempt, a recovered higher-priority router stays in standby. Preempt allows it to take over the active role automatically."
+        },
+        {
+            "id": "cisco_hsrp__standby_track",
+            "prompt": "Track interface GigabitEthernet0/1 in HSRP group 10 and decrease priority by 25 if the link goes down.",
+            "prefix": "DSW1(config-if)#",
+            "expected": "^standby\\s+10\\s+track\\s+GigabitEthernet0/1\\s+decrement\\s+25$",
+            "aliases": ["standby 10 track g0/1 decrement 25", "standby 10 track gigabitethernet0/1 decrement 25"],
+            "hint": "Use: 'standby 10 track GigabitEthernet0/1 decrement 25'",
+            "explanation": "Interface tracking lowers HSRP priority when an uplink fails, triggering failover to the standby router before traffic is black-holed."
+        },
+        {
+            "id": "cisco_hsrp__show_standby",
+            "prompt": "Display HSRP group status for VLAN 10 including active/standby roles and timers.",
+            "prefix": "DSW1#",
+            "expected": "^show\\s+standby\\s+vlan\\s+10$",
+            "aliases": ["sh standby vlan 10", "show standby int vlan 10"],
+            "hint": "Use: 'show standby vlan 10'",
+            "explanation": "Show standby confirms which router is active, the virtual IP, priority, preempt state, and tracked interface status."
+        }
+    ]
+}

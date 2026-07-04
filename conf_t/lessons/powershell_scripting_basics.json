@@ -1,0 +1,102 @@
+{
+    "id": "powershell_scripting_basics",
+    "title": "PowerShell Scripting Basics",
+    "platform": "PowerShell",
+    "description": "Learn variables, conditionals, loops, functions, arrays, and hashtables for PowerShell scripting.",
+    "difficulty": "intermediate",
+    "tags": ["scripting", "variables", "functions"],
+    "prerequisites": ["powershell_objects_pipeline"],
+    "estimated_minutes": 30,
+    "tasks": [
+        {
+            "id": "powershell_scripting_basics__assign_variable",
+            "prompt": "Assign the string 'Admin' to a variable named $username.",
+            "prefix": "PS C:\\>",
+            "expected": "^\\$username\\s*=\\s+\"Admin\"$",
+            "aliases": ["$username = 'Admin'"],
+            "hint": "Use $username = \"Admin\".",
+            "explanation": "PowerShell variables are declared with a dollar sign prefix."
+        },
+        {
+            "id": "powershell_scripting_basics__if_statement",
+            "prompt": "If $count is greater than 10, output 'High' (single-line if syntax).",
+            "prefix": "PS C:\\>",
+            "expected": "^if\\s+\\(\\$count\\s+-gt\\s+10\\)\\s+\\{\\s*\"High\"\\s*\\}$",
+            "aliases": ["if ($count -gt 10) { 'High' }"],
+            "hint": "Use if ($count -gt 10) { \"High\" }.",
+            "explanation": "The if statement executes a script block when its condition is true."
+        },
+        {
+            "id": "powershell_scripting_basics__foreach_loop",
+            "prompt": "Loop through each item in $servers and output the item (foreach syntax).",
+            "prefix": "PS C:\\>",
+            "expected": "^foreach\\s+\\(\\$server\\s+in\\s+\\$servers\\)\\s+\\{\\s*\\$server\\s*\\}$",
+            "aliases": ["foreach ($server in $servers) { $server }"],
+            "hint": "Use foreach ($server in $servers) { $server }.",
+            "explanation": "foreach iterates over every element in a collection."
+        },
+        {
+            "id": "powershell_scripting_basics__for_loop",
+            "prompt": "Run a for loop from 0 to 9, outputting $i each iteration.",
+            "prefix": "PS C:\\>",
+            "expected": "^for\\s+\\(\\$i\\s*=\\s+0;\\s*\\$i\\s+-lt\\s+10;\\s*\\$i\\+\\+\\)\\s+\\{\\s*\\$i\\s*\\}$",
+            "aliases": ["for ($i=0; $i -lt 10; $i++) { $i }"],
+            "hint": "Use for ($i=0; $i -lt 10; $i++) { $i }.",
+            "explanation": "The for loop uses an initializer, condition, and increment expression."
+        },
+        {
+            "id": "powershell_scripting_basics__while_loop",
+            "prompt": "While $running is true, output 'working' (single-line while syntax).",
+            "prefix": "PS C:\\>",
+            "expected": "^while\\s+\\(\\$running\\)\\s+\\{\\s*\"working\"\\s*\\}$",
+            "aliases": ["while ($running) { 'working' }"],
+            "hint": "Use while ($running) { \"working\" }.",
+            "explanation": "The while loop repeats as long as its condition evaluates to true."
+        },
+        {
+            "id": "powershell_scripting_basics__function_simple",
+            "prompt": "Define a function named Get-Greeting that outputs 'Hello'.",
+            "prefix": "PS C:\\>",
+            "expected": "^function\\s+Get-Greeting\\s+\\{\\s*\"Hello\"\\s*\\}$",
+            "aliases": ["function Get-Greeting { 'Hello' }"],
+            "hint": "Use function Get-Greeting { \"Hello\" }.",
+            "explanation": "Functions group reusable commands under a callable name."
+        },
+        {
+            "id": "powershell_scripting_basics__function_param",
+            "prompt": "Define function Show-Message with a mandatory string parameter $Text that outputs $Text.",
+            "prefix": "PS C:\\>",
+            "expected": "^function\\s+Show-Message\\s+\\{\\s*param\\(\\[string\\]\\$Text\\)\\s+\\$Text\\s*\\}$",
+            "aliases": ["function Show-Message { param([string]$Text) $Text }"],
+            "hint": "Use param([string]$Text) inside the function body.",
+            "explanation": "The param block declares typed parameters for a function."
+        },
+        {
+            "id": "powershell_scripting_basics__array_literal",
+            "prompt": "Create an array variable $ports containing values 80, 443, and 8080.",
+            "prefix": "PS C:\\>",
+            "expected": "^\\$ports\\s*=\\s+@\\(80,\\s*443,\\s*8080\\)$",
+            "aliases": ["$ports = @(80,443,8080)"],
+            "hint": "Use the @() array subexpression syntax.",
+            "explanation": "@() creates an ordered array of values in PowerShell."
+        },
+        {
+            "id": "powershell_scripting_basics__hashtable",
+            "prompt": "Create a hashtable $config with key Server set to 'WEB01' and key Port set to 443.",
+            "prefix": "PS C:\\>",
+            "expected": "^\\$config\\s*=\\s+@\\{\\s*Server\\s*=\\s+\"WEB01\";\\s*Port\\s*=\\s+443\\s*\\}$",
+            "aliases": ["$config = @{Server='WEB01'; Port=443}"],
+            "hint": "Use @{ Key = Value; Key2 = Value2 } syntax.",
+            "explanation": "Hashtables store key-value pairs for structured configuration data."
+        },
+        {
+            "id": "powershell_scripting_basics__write_output",
+            "prompt": "Output the string 'Deployment complete' to the pipeline.",
+            "prefix": "PS C:\\>",
+            "expected": "^Write-Output\\s+\"Deployment complete\"$",
+            "aliases": ["Write-Output 'Deployment complete'", "echo 'Deployment complete'"],
+            "hint": "Use Write-Output with the message string.",
+            "explanation": "Write-Output sends objects to the success output stream."
+        }
+    ]
+}

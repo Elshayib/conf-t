@@ -1,0 +1,84 @@
+{
+    "id": "linux_cron_scheduling",
+    "title": "Linux Cron and Job Scheduling",
+    "platform": "Linux",
+    "description": "Schedule recurring and one-time tasks using crontab, at, and systemd timers for automated system maintenance.",
+    "difficulty": "intermediate",
+    "tags": ["cron", "scheduling", "automation"],
+    "prerequisites": ["linux_basic"],
+    "estimated_minutes": 25,
+    "tasks": [
+        {
+            "id": "linux_cron_scheduling__crontab_list",
+            "prompt": "List the current user's crontab entries.",
+            "prefix": "user@ubuntu:~$",
+            "expected": "^crontab\\s+-l$",
+            "aliases": [],
+            "hint": "Use crontab list (-l): 'crontab -l'",
+            "explanation": "'crontab -l' displays all scheduled cron jobs for the invoking user."
+        },
+        {
+            "id": "linux_cron_scheduling__crontab_edit",
+            "prompt": "Open the current user's crontab file in the default editor for editing.",
+            "prefix": "user@ubuntu:~$",
+            "expected": "^crontab\\s+-e$",
+            "aliases": [],
+            "hint": "Use crontab edit (-e): 'crontab -e'",
+            "explanation": "'crontab -e' opens the user's crontab in $EDITOR, allowing addition or modification of scheduled jobs."
+        },
+        {
+            "id": "linux_cron_scheduling__crontab_remove",
+            "prompt": "Remove all crontab entries for the current user.",
+            "prefix": "user@ubuntu:~$",
+            "expected": "^crontab\\s+-r$",
+            "aliases": [],
+            "hint": "Use crontab remove (-r): 'crontab -r'",
+            "explanation": "'crontab -r' deletes the entire crontab for the current user. Use with caution in production."
+        },
+        {
+            "id": "linux_cron_scheduling__crontab_user",
+            "prompt": "List the crontab entries for user 'backup' (requires root).",
+            "prefix": "user@ubuntu:~$",
+            "expected": "^sudo\\s+crontab\\s+-l\\s+-u\\s+backup$",
+            "aliases": ["crontab -l -u backup"],
+            "hint": "Use crontab with user flag (-u): 'sudo crontab -l -u backup'",
+            "explanation": "'crontab -u username' manages another user's crontab; root privileges are typically required."
+        },
+        {
+            "id": "linux_cron_scheduling__at_schedule",
+            "prompt": "Schedule a one-time job to run at 14:30 today using 'at' (interactive prompt).",
+            "prefix": "user@ubuntu:~$",
+            "expected": "^at\\s+14:30$",
+            "aliases": ["at 14:30 today"],
+            "hint": "Use at with time: 'at 14:30'",
+            "explanation": "'at' schedules a command to run once at a specified time. You enter commands at the interactive prompt."
+        },
+        {
+            "id": "linux_cron_scheduling__at_list",
+            "prompt": "List all pending 'at' jobs for the current user.",
+            "prefix": "user@ubuntu:~$",
+            "expected": "^atq$",
+            "aliases": ["at -l"],
+            "hint": "Use atq to list pending jobs: 'atq'",
+            "explanation": "'atq' (at queue) shows scheduled one-time jobs waiting to execute."
+        },
+        {
+            "id": "linux_cron_scheduling__systemctl_list_timers",
+            "prompt": "List all active systemd timers and their next scheduled run times.",
+            "prefix": "user@ubuntu:~$",
+            "expected": "^systemctl\\s+list-timers$",
+            "aliases": ["systemctl list-timers --all"],
+            "hint": "Use systemctl list-timers: 'systemctl list-timers'",
+            "explanation": "systemd timers are a modern alternative to cron. 'list-timers' shows when each timer will fire next."
+        },
+        {
+            "id": "linux_cron_scheduling__anacron_status",
+            "prompt": "Display the anacron execution timestamps from '/var/spool/anacron/cron.daily'.",
+            "prefix": "user@ubuntu:~$",
+            "expected": "^cat\\s+/var/spool/anacron/cron\\.daily$",
+            "aliases": [],
+            "hint": "Use cat to view the file: 'cat /var/spool/anacron/cron.daily'",
+            "explanation": "Anacron runs jobs that may have been missed during downtime. Its spool files record last execution dates."
+        }
+    ]
+}

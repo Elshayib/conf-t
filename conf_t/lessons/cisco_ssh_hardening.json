@@ -1,0 +1,84 @@
+{
+    "id": "cisco_ssh_hardening",
+    "title": "Cisco SSH Hardening",
+    "platform": "Cisco",
+    "description": "Learn to secure Cisco device management by configuring SSH version 2, generating RSA keys, creating local user accounts, and restricting VTY lines to SSH-only access.",
+    "difficulty": "intermediate",
+    "tags": ["security", "management", "ccna"],
+    "prerequisites": ["cisco_basic"],
+    "estimated_minutes": 15,
+    "tasks": [
+        {
+            "id": "cisco_ssh_hardening__hostname",
+            "prompt": "Set the device hostname to 'Secure-Router'.",
+            "prefix": "Router(config)#",
+            "expected": "^hostname\\s+Secure-Router$",
+            "aliases": ["host Secure-Router"],
+            "hint": "Use: 'hostname Secure-Router'",
+            "explanation": "A unique hostname is required before generating RSA keys for SSH, as the key label is derived from the hostname and domain name."
+        },
+        {
+            "id": "cisco_ssh_hardening__domain_name",
+            "prompt": "Configure the IP domain name to 'corp.local'.",
+            "prefix": "Router(config)#",
+            "expected": "^ip\\s+domain-name\\s+corp\\.local$",
+            "aliases": ["ip domain-name corp.local", "ip domain name corp.local"],
+            "hint": "Use: 'ip domain-name corp.local'",
+            "explanation": "The domain name combines with the hostname to form the RSA key label. Both are prerequisites for SSH key generation."
+        },
+        {
+            "id": "cisco_ssh_hardening__generate_rsa",
+            "prompt": "Generate RSA encryption keys with a modulus size of 2048 bits.",
+            "prefix": "Router(config)#",
+            "expected": "^crypto\\s+key\\s+generate\\s+rsa\\s+modulus\\s+2048$",
+            "aliases": ["crypto key generate rsa modulus 2048", "crypto key gen rsa mod 2048"],
+            "hint": "Use: 'crypto key generate rsa modulus 2048'",
+            "explanation": "RSA keys are required for SSH encryption. A 2048-bit modulus provides strong security and is the recommended minimum key size."
+        },
+        {
+            "id": "cisco_ssh_hardening__ssh_version",
+            "prompt": "Restrict SSH to version 2 only.",
+            "prefix": "Router(config)#",
+            "expected": "^ip\\s+ssh\\s+version\\s+2$",
+            "aliases": ["ip ssh ver 2", "ip ssh version 2"],
+            "hint": "Use: 'ip ssh version 2'",
+            "explanation": "SSH version 2 fixes known vulnerabilities in SSHv1. Disabling v1 is a fundamental hardening step for device management."
+        },
+        {
+            "id": "cisco_ssh_hardening__create_user",
+            "prompt": "Create a local user 'netadmin' with privilege level 15 and encrypted password 'Cisco123!'.",
+            "prefix": "Router(config)#",
+            "expected": "^username\\s+netadmin\\s+privilege\\s+15\\s+secret\\s+Cisco123!$",
+            "aliases": ["username netadmin privilege 15 secret Cisco123!", "user netadmin privilege 15 secret Cisco123!"],
+            "hint": "Use: 'username netadmin privilege 15 secret Cisco123!'",
+            "explanation": "Local user accounts with the 'secret' keyword store passwords using MD5 hashing. Privilege 15 grants full administrative access."
+        },
+        {
+            "id": "cisco_ssh_hardening__line_vty",
+            "prompt": "Enter configuration mode for all VTY lines (0 through 15).",
+            "prefix": "Router(config)#",
+            "expected": "^line\\s+vty\\s+0\\s+15$",
+            "aliases": ["line vty 0 15"],
+            "hint": "Use: 'line vty 0 15'",
+            "explanation": "VTY lines control remote terminal sessions. Configuring all 16 lines ensures consistent security policy across every login session."
+        },
+        {
+            "id": "cisco_ssh_hardening__transport_ssh",
+            "prompt": "Restrict VTY lines to accept only SSH connections (disable Telnet).",
+            "prefix": "Router(config-line)#",
+            "expected": "^transport\\s+input\\s+ssh$",
+            "aliases": ["transport input ssh"],
+            "hint": "Use: 'transport input ssh'",
+            "explanation": "The transport input ssh command blocks unencrypted Telnet access, ensuring all remote management traffic is encrypted."
+        },
+        {
+            "id": "cisco_ssh_hardening__login_local",
+            "prompt": "Configure VTY lines to authenticate users against the local user database.",
+            "prefix": "Router(config-line)#",
+            "expected": "^login\\s+local$",
+            "aliases": ["login local"],
+            "hint": "Use: 'login local'",
+            "explanation": "Login local tells the device to validate credentials against locally configured usernames rather than a line password or AAA server."
+        }
+    ]
+}

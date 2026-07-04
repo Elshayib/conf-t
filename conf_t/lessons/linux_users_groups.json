@@ -1,0 +1,84 @@
+{
+    "id": "linux_users_groups",
+    "title": "Linux Users and Groups",
+    "platform": "Linux",
+    "description": "Manage local user accounts, group membership, passwords, and identity inspection with standard administration commands.",
+    "difficulty": "intermediate",
+    "tags": ["users", "groups", "identity"],
+    "prerequisites": ["linux_basic"],
+    "estimated_minutes": 25,
+    "tasks": [
+        {
+            "id": "linux_users_groups__useradd_create",
+            "prompt": "Create a new user account 'jsmith' with home directory '/home/jsmith' and default shell /bin/bash.",
+            "prefix": "user@ubuntu:~$",
+            "expected": "^sudo\\s+useradd\\s+-m\\s+-s\\s+/bin/bash\\s+jsmith$",
+            "aliases": ["useradd -m -s /bin/bash jsmith"],
+            "hint": "Use useradd with -m and -s: 'sudo useradd -m -s /bin/bash jsmith'",
+            "explanation": "'useradd -m' creates the home directory. '-s /bin/bash' sets the login shell for the new account."
+        },
+        {
+            "id": "linux_users_groups__usermod_groups",
+            "prompt": "Add user 'jsmith' to the supplementary group 'docker'.",
+            "prefix": "user@ubuntu:~$",
+            "expected": "^sudo\\s+usermod\\s+-aG\\s+docker\\s+jsmith$",
+            "aliases": ["usermod -a -G docker jsmith"],
+            "hint": "Use usermod append groups: 'sudo usermod -aG docker jsmith'",
+            "explanation": "'usermod -aG' appends the user to supplementary groups without removing existing group memberships."
+        },
+        {
+            "id": "linux_users_groups__userdel_remove",
+            "prompt": "Delete user 'tempuser' along with their home directory and mail spool.",
+            "prefix": "user@ubuntu:~$",
+            "expected": "^sudo\\s+userdel\\s+-r\\s+tempuser$",
+            "aliases": ["userdel -r tempuser"],
+            "hint": "Use userdel with remove home (-r): 'sudo userdel -r tempuser'",
+            "explanation": "'userdel -r' removes the user account and recursively deletes their home directory."
+        },
+        {
+            "id": "linux_users_groups__passwd_set",
+            "prompt": "Set or change the password for user 'jsmith'.",
+            "prefix": "user@ubuntu:~$",
+            "expected": "^sudo\\s+passwd\\s+jsmith$",
+            "aliases": ["passwd jsmith"],
+            "hint": "Use passwd with username: 'sudo passwd jsmith'",
+            "explanation": "'passwd' interactively prompts for a new password and updates the encrypted hash in /etc/shadow."
+        },
+        {
+            "id": "linux_users_groups__groupadd_create",
+            "prompt": "Create a new group named 'developers' with GID 1500.",
+            "prefix": "user@ubuntu:~$",
+            "expected": "^sudo\\s+groupadd\\s+-g\\s+1500\\s+developers$",
+            "aliases": ["groupadd -g 1500 developers"],
+            "hint": "Use groupadd with GID (-g): 'sudo groupadd -g 1500 developers'",
+            "explanation": "'groupadd -g' creates a group with a specific numeric Group ID."
+        },
+        {
+            "id": "linux_users_groups__groupmod_name",
+            "prompt": "Rename the group 'oldteam' to 'newteam'.",
+            "prefix": "user@ubuntu:~$",
+            "expected": "^sudo\\s+groupmod\\s+-n\\s+newteam\\s+oldteam$",
+            "aliases": ["groupmod --new-name newteam oldteam"],
+            "hint": "Use groupmod rename (-n): 'sudo groupmod -n newteam oldteam'",
+            "explanation": "'groupmod -n' changes the group name while preserving GID and member assignments."
+        },
+        {
+            "id": "linux_users_groups__id_user",
+            "prompt": "Display the UID, GID, and all group memberships for user 'jsmith'.",
+            "prefix": "user@ubuntu:~$",
+            "expected": "^id\\s+jsmith$",
+            "aliases": [],
+            "hint": "Use id with username: 'id jsmith'",
+            "explanation": "'id' prints the real user ID, primary group, and all supplementary groups for a given user."
+        },
+        {
+            "id": "linux_users_groups__groups_list",
+            "prompt": "List all groups that the current user belongs to.",
+            "prefix": "user@ubuntu:~$",
+            "expected": "^groups$",
+            "aliases": [],
+            "hint": "Use the groups command: 'groups'",
+            "explanation": "'groups' shows the group memberships of the invoking user, useful for permission troubleshooting."
+        }
+    ]
+}

@@ -1,0 +1,84 @@
+{
+    "id": "docker_containers",
+    "title": "Docker Containers",
+    "platform": "Docker",
+    "description": "Learn to run, list, inspect, start, stop, restart, remove, and attach to Docker containers.",
+    "difficulty": "beginner",
+    "tags": ["containers", "runtime"],
+    "prerequisites": ["docker_basic"],
+    "estimated_minutes": 25,
+    "tasks": [
+        {
+            "id": "docker_containers__run_name",
+            "prompt": "Run an 'nginx' container named 'web' in detached mode.",
+            "prefix": "user@ubuntu:~$",
+            "expected": "^docker\\s+run\\s+-d\\s+--name\\s+web\\s+nginx$",
+            "aliases": [],
+            "hint": "Use docker run -d --name web nginx.",
+            "explanation": "--name assigns a friendly name instead of a random container ID."
+        },
+        {
+            "id": "docker_containers__ps_all",
+            "prompt": "List all containers including stopped ones.",
+            "prefix": "user@ubuntu:~$",
+            "expected": "^docker\\s+ps\\s+-a$",
+            "aliases": ["docker ps --all"],
+            "hint": "Use docker ps -a.",
+            "explanation": "docker ps -a shows exited and running containers."
+        },
+        {
+            "id": "docker_containers__inspect",
+            "prompt": "Inspect detailed configuration of container 'web'.",
+            "prefix": "user@ubuntu:~$",
+            "expected": "^docker\\s+inspect\\s+web$",
+            "aliases": [],
+            "hint": "Use docker inspect web.",
+            "explanation": "docker inspect reveals network, mounts, env vars, and state."
+        },
+        {
+            "id": "docker_containers__logs_follow",
+            "prompt": "Follow live logs from container 'web'.",
+            "prefix": "user@ubuntu:~$",
+            "expected": "^docker\\s+logs\\s+-f\\s+web$",
+            "aliases": ["docker logs --follow web"],
+            "hint": "Use docker logs -f web.",
+            "explanation": "docker logs -f streams stdout/stderr like tail -f."
+        },
+        {
+            "id": "docker_containers__start",
+            "prompt": "Start the stopped container named 'web'.",
+            "prefix": "user@ubuntu:~$",
+            "expected": "^docker\\s+start\\s+web$",
+            "aliases": [],
+            "hint": "Use docker start web.",
+            "explanation": "docker start resumes a previously created container."
+        },
+        {
+            "id": "docker_containers__restart",
+            "prompt": "Restart container 'web'.",
+            "prefix": "user@ubuntu:~$",
+            "expected": "^docker\\s+restart\\s+web$",
+            "aliases": [],
+            "hint": "Use docker restart web.",
+            "explanation": "docker restart stops and starts the container in one command."
+        },
+        {
+            "id": "docker_containers__rm_force",
+            "prompt": "Force-remove the container 'web' even if it is running.",
+            "prefix": "user@ubuntu:~$",
+            "expected": "^docker\\s+rm\\s+-f\\s+web$",
+            "aliases": ["docker rm --force web"],
+            "hint": "Use docker rm -f web.",
+            "explanation": "docker rm -f stops and deletes the container immediately."
+        },
+        {
+            "id": "docker_containers__attach",
+            "prompt": "Attach to the running container 'web' to view its primary process output.",
+            "prefix": "user@ubuntu:~$",
+            "expected": "^docker\\s+attach\\s+web$",
+            "aliases": [],
+            "hint": "Use docker attach web.",
+            "explanation": "docker attach connects your terminal to the container's main process I/O."
+        }
+    ]
+}

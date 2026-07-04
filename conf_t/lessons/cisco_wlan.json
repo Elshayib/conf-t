@@ -1,0 +1,120 @@
+{
+    "id": "cisco_wlan",
+    "title": "Cisco Wireless LAN Configuration",
+    "platform": "Cisco",
+    "description": "Configure autonomous access point SSIDs, WPA2 security, radio settings, and verification commands for enterprise wireless LAN deployment.",
+    "difficulty": "advanced",
+    "tags": ["wlan", "wireless", "ccna"],
+    "prerequisites": ["cisco_basic"],
+    "estimated_minutes": 22,
+    "tasks": [
+        {
+            "id": "cisco_wlan__configure_terminal",
+            "prompt": "Enter Global Configuration mode on autonomous AP AP1 to begin wireless configuration.",
+            "prefix": "AP1#",
+            "expected": "^configure\\s+terminal$",
+            "aliases": ["conf t", "config terminal", "config t"],
+            "hint": "Use: 'configure terminal' or 'conf t'",
+            "explanation": "Autonomous access points run Cisco IOS and require global configuration mode to define SSIDs and radio parameters."
+        },
+        {
+            "id": "cisco_wlan__create_ssid",
+            "prompt": "Create a global SSID profile named 'CORP-WIFI'.",
+            "prefix": "AP1(config)#",
+            "expected": "^dot11\\s+ssid\\s+CORP-WIFI$",
+            "aliases": ["dot11 ssid CORP-WIFI"],
+            "hint": "Use: 'dot11 ssid CORP-WIFI'",
+            "explanation": "The 'dot11 ssid' command creates a wireless network identifier (SSID) profile that can be assigned to radio interfaces."
+        },
+        {
+            "id": "cisco_wlan__ssid_vlan",
+            "prompt": "Map SSID 'CORP-WIFI' to VLAN 100 for client traffic segmentation.",
+            "prefix": "AP1(config-ssid)#",
+            "expected": "^vlan\\s+100$",
+            "aliases": ["vlan100"],
+            "hint": "Use: 'vlan 100'",
+            "explanation": "Assigning a VLAN to an SSID tags wireless client traffic so the upstream switch can place it in the correct broadcast domain."
+        },
+        {
+            "id": "cisco_wlan__authentication_open",
+            "prompt": "Enable open authentication on SSID 'CORP-WIFI' (required before WPA2 key management).",
+            "prefix": "AP1(config-ssid)#",
+            "expected": "^authentication\\s+open$",
+            "aliases": ["authentication open"],
+            "hint": "Use: 'authentication open'",
+            "explanation": "Open authentication allows clients to associate with the SSID; WPA2-PSK provides the actual encryption and access control."
+        },
+        {
+            "id": "cisco_wlan__wpa2_key_management",
+            "prompt": "Enable WPA version 2 key management on SSID 'CORP-WIFI'.",
+            "prefix": "AP1(config-ssid)#",
+            "expected": "^authentication\\s+key-management\\s+wpa\\s+version\\s+2$",
+            "aliases": ["authentication key-management wpa version 2"],
+            "hint": "Use: 'authentication key-management wpa version 2'",
+            "explanation": "WPA2 (802.11i) uses AES-CCMP encryption. The 'version 2' keyword selects WPA2 over legacy WPA."
+        },
+        {
+            "id": "cisco_wlan__wpa_psk",
+            "prompt": "Set the WPA2 pre-shared key to 'CiscoSecure2024!' on SSID 'CORP-WIFI'.",
+            "prefix": "AP1(config-ssid)#",
+            "expected": "^wpa-psk\\s+ascii\\s+0\\s+CiscoSecure2024!$",
+            "aliases": ["wpa-psk ascii 0 CiscoSecure2024!"],
+            "hint": "Use: 'wpa-psk ascii 0 CiscoSecure2024!'",
+            "explanation": "The PSK is the passphrase clients use to derive encryption keys. The 'ascii 0' keyword stores the key in cleartext in the running config."
+        },
+        {
+            "id": "cisco_wlan__guest_mode",
+            "prompt": "Enable guest mode on SSID 'CORP-WIFI' so the AP broadcasts the network name.",
+            "prefix": "AP1(config-ssid)#",
+            "expected": "^guest-mode$",
+            "aliases": [],
+            "hint": "Use: 'guest-mode'",
+            "explanation": "Guest mode makes the SSID visible in client wireless scans. Without it, the network is hidden and clients must know the exact SSID."
+        },
+        {
+            "id": "cisco_wlan__interface_dot11radio",
+            "prompt": "Enter configuration mode for the 2.4 GHz radio interface.",
+            "prefix": "AP1(config)#",
+            "expected": "^interface\\s+dot11Radio\\s+0$",
+            "aliases": ["int dot11Radio 0", "interface dot11radio 0"],
+            "hint": "Use: 'interface dot11Radio 0'",
+            "explanation": "dot11Radio 0 is the 2.4 GHz radio on most autonomous APs. SSIDs and channel settings are applied per radio interface."
+        },
+        {
+            "id": "cisco_wlan__ssid_assignment",
+            "prompt": "Bind SSID 'CORP-WIFI' to the 2.4 GHz radio interface.",
+            "prefix": "AP1(config-if)#",
+            "expected": "^ssid\\s+CORP-WIFI$",
+            "aliases": [],
+            "hint": "Use: 'ssid CORP-WIFI'",
+            "explanation": "An SSID must be assigned to a radio interface before clients can associate. Multiple SSIDs can be broadcast from a single radio."
+        },
+        {
+            "id": "cisco_wlan__channel",
+            "prompt": "Set the 2.4 GHz radio to use channel 6 to reduce co-channel interference.",
+            "prefix": "AP1(config-if)#",
+            "expected": "^channel\\s+6$",
+            "aliases": [],
+            "hint": "Use: 'channel 6'",
+            "explanation": "In the 2.4 GHz band, channels 1, 6, and 11 are non-overlapping. Manual channel assignment helps in dense AP deployments."
+        },
+        {
+            "id": "cisco_wlan__tx_power",
+            "prompt": "Set the local transmit power level to 17 dBm on the 2.4 GHz radio.",
+            "prefix": "AP1(config-if)#",
+            "expected": "^power\\s+local\\s+17$",
+            "aliases": ["power local 17"],
+            "hint": "Use: 'power local 17'",
+            "explanation": "Adjusting transmit power controls cell size and reduces co-channel interference between adjacent access points."
+        },
+        {
+            "id": "cisco_wlan__show_associations",
+            "prompt": "Display all wireless clients currently associated with this access point.",
+            "prefix": "AP1#",
+            "expected": "^show\\s+dot11\\s+associations\\s+all-client$",
+            "aliases": ["sh dot11 associations all-client", "show dot11 associations"],
+            "hint": "Use: 'show dot11 associations all-client'",
+            "explanation": "This command lists associated clients with MAC address, SSID, signal strength, and VLAN—essential for wireless troubleshooting."
+        }
+    ]
+}

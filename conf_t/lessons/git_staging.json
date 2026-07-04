@@ -1,0 +1,84 @@
+{
+    "id": "git_staging",
+    "title": "Git Staging & Commits",
+    "platform": "Git",
+    "description": "Learn to stage specific files, unstage changes, inspect diffs, amend commits, and write effective commit messages.",
+    "difficulty": "beginner",
+    "tags": ["staging", "commits", "workflow"],
+    "prerequisites": ["git_basic"],
+    "estimated_minutes": 20,
+    "tasks": [
+        {
+            "id": "git_staging__add_file",
+            "prompt": "Stage only the file 'app.py' for the next commit.",
+            "prefix": "user@ubuntu:~/project$",
+            "expected": "^git\\s+add\\s+app\\.py$",
+            "aliases": [],
+            "hint": "Use git add followed by the filename.",
+            "explanation": "git add stages specific file changes without affecting other files."
+        },
+        {
+            "id": "git_staging__add_patch",
+            "prompt": "Interactively stage hunks of changes (patch mode).",
+            "prefix": "user@ubuntu:~/project$",
+            "expected": "^git\\s+add\\s+-p$",
+            "aliases": ["git add --patch"],
+            "hint": "Use git add with the -p flag.",
+            "explanation": "git add -p lets you selectively stage portions of modified files."
+        },
+        {
+            "id": "git_staging__reset_head_file",
+            "prompt": "Unstage 'app.py' while keeping its working directory changes.",
+            "prefix": "user@ubuntu:~/project$",
+            "expected": "^git\\s+reset\\s+HEAD\\s+app\\.py$",
+            "aliases": ["git restore --staged app.py"],
+            "hint": "Use git reset HEAD with the filename.",
+            "explanation": "git reset HEAD <file> removes a file from the staging area."
+        },
+        {
+            "id": "git_staging__diff_unstaged",
+            "prompt": "Show unstaged changes in the working directory.",
+            "prefix": "user@ubuntu:~/project$",
+            "expected": "^git\\s+diff$",
+            "aliases": [],
+            "hint": "Use git diff with no arguments.",
+            "explanation": "git diff compares working tree changes against the staging area."
+        },
+        {
+            "id": "git_staging__diff_staged",
+            "prompt": "Show changes that are currently staged for commit.",
+            "prefix": "user@ubuntu:~/project$",
+            "expected": "^git\\s+diff\\s+--staged$",
+            "aliases": ["git diff --cached"],
+            "hint": "Use git diff --staged or --cached.",
+            "explanation": "git diff --staged previews exactly what will be committed."
+        },
+        {
+            "id": "git_staging__commit_verbose",
+            "prompt": "Commit staged changes with message 'fix login bug' and show the diffstat.",
+            "prefix": "user@ubuntu:~/project$",
+            "expected": "^git\\s+commit\\s+-v\\s+-m\\s+[\"']fix login bug[\"']$",
+            "aliases": [],
+            "hint": "Use git commit -v -m with your message.",
+            "explanation": "The -v flag displays the staged diff in the commit editor/output."
+        },
+        {
+            "id": "git_staging__commit_amend",
+            "prompt": "Amend the previous commit without changing its message.",
+            "prefix": "user@ubuntu:~/project$",
+            "expected": "^git\\s+commit\\s+--amend\\s+--no-edit$",
+            "aliases": [],
+            "hint": "Use git commit --amend --no-edit.",
+            "explanation": "git commit --amend --no-edit adds staged changes to the last commit."
+        },
+        {
+            "id": "git_staging__status_short",
+            "prompt": "Show repository status in short format.",
+            "prefix": "user@ubuntu:~/project$",
+            "expected": "^git\\s+status\\s+-s$",
+            "aliases": ["git status --short"],
+            "hint": "Use git status -s.",
+            "explanation": "git status -s provides a compact view of staged and unstaged files."
+        }
+    ]
+}

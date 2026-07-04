@@ -1,0 +1,84 @@
+{
+    "id": "powershell_services_processes",
+    "title": "PowerShell Services & Processes",
+    "platform": "PowerShell",
+    "description": "Learn to inspect, start, stop, restart services and manage running processes on Windows.",
+    "difficulty": "intermediate",
+    "tags": ["services", "processes", "management"],
+    "prerequisites": ["powershell_basic"],
+    "estimated_minutes": 25,
+    "tasks": [
+        {
+            "id": "powershell_services_processes__get_service_name",
+            "prompt": "Retrieve detailed information for the 'wuauserv' service.",
+            "prefix": "PS C:\\>",
+            "expected": "^Get-Service\\s+-Name\\s+wuauserv$",
+            "aliases": ["Get-Service -Name wuauserv", "gsv wuauserv"],
+            "hint": "Use Get-Service with the service name.",
+            "explanation": "Get-Service returns status and display name for a specific Windows service."
+        },
+        {
+            "id": "powershell_services_processes__start_service",
+            "prompt": "Start the 'wuauserv' service.",
+            "prefix": "PS C:\\>",
+            "expected": "^Start-Service\\s+-Name\\s+wuauserv$",
+            "aliases": ["Start-Service -Name wuauserv", "Start-Service wuauserv"],
+            "hint": "Use Start-Service with -Name.",
+            "explanation": "Start-Service attempts to start a stopped Windows service."
+        },
+        {
+            "id": "powershell_services_processes__stop_service",
+            "prompt": "Stop the 'wuauserv' service.",
+            "prefix": "PS C:\\>",
+            "expected": "^Stop-Service\\s+-Name\\s+wuauserv$",
+            "aliases": ["Stop-Service -Name wuauserv", "Stop-Service wuauserv"],
+            "hint": "Use Stop-Service with -Name.",
+            "explanation": "Stop-Service gracefully stops a running service."
+        },
+        {
+            "id": "powershell_services_processes__restart_service",
+            "prompt": "Restart the 'wuauserv' service.",
+            "prefix": "PS C:\\>",
+            "expected": "^Restart-Service\\s+-Name\\s+wuauserv$",
+            "aliases": ["Restart-Service -Name wuauserv", "Restart-Service wuauserv"],
+            "hint": "Use Restart-Service with -Name.",
+            "explanation": "Restart-Service stops and then starts the service in one operation."
+        },
+        {
+            "id": "powershell_services_processes__get_process_name",
+            "prompt": "List all running instances of the 'notepad' process.",
+            "prefix": "PS C:\\>",
+            "expected": "^Get-Process\\s+-Name\\s+notepad$",
+            "aliases": ["Get-Process -Name notepad", "gps notepad"],
+            "hint": "Use Get-Process with -Name notepad.",
+            "explanation": "Get-Process -Name filters processes by executable name."
+        },
+        {
+            "id": "powershell_services_processes__stop_process_name",
+            "prompt": "Stop all processes named 'notepad'.",
+            "prefix": "PS C:\\>",
+            "expected": "^Stop-Process\\s+-Name\\s+notepad$",
+            "aliases": ["Stop-Process -Name notepad"],
+            "hint": "Use Stop-Process with -Name.",
+            "explanation": "Stop-Process terminates processes matching the given name."
+        },
+        {
+            "id": "powershell_services_processes__stop_process_id",
+            "prompt": "Forcefully stop the process with ID 1234.",
+            "prefix": "PS C:\\>",
+            "expected": "^Stop-Process\\s+-Id\\s+1234$",
+            "aliases": ["Stop-Process -Id 1234"],
+            "hint": "Use Stop-Process with -Id.",
+            "explanation": "Stop-Process -Id targets a specific process by its numeric identifier."
+        },
+        {
+            "id": "powershell_services_processes__start_process",
+            "prompt": "Launch Notepad as a new process.",
+            "prefix": "PS C:\\>",
+            "expected": "^Start-Process\\s+notepad$",
+            "aliases": ["Start-Process notepad", "start notepad"],
+            "hint": "Use Start-Process with the application name.",
+            "explanation": "Start-Process launches external programs or scripts as child processes."
+        }
+    ]
+}

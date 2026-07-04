@@ -1,0 +1,66 @@
+{
+    "id": "git_stash",
+    "title": "Git Stash",
+    "platform": "Git",
+    "description": "Learn to temporarily save uncommitted work with git stash, list stashes, apply, pop, and drop them.",
+    "difficulty": "intermediate",
+    "tags": ["stash", "workflow"],
+    "prerequisites": ["git_basic"],
+    "estimated_minutes": 15,
+    "tasks": [
+        {
+            "id": "git_stash__stash_push",
+            "prompt": "Stash all tracked changes with message 'wip auth refactor'.",
+            "prefix": "user@ubuntu:~/project$",
+            "expected": "^git\\s+stash\\s+push\\s+-m\\s+[\"']wip auth refactor[\"']$",
+            "aliases": ["git stash save 'wip auth refactor'"],
+            "hint": "Use git stash push -m with a message.",
+            "explanation": "git stash push saves working directory and index changes temporarily."
+        },
+        {
+            "id": "git_stash__stash_list",
+            "prompt": "List all saved stashes.",
+            "prefix": "user@ubuntu:~/project$",
+            "expected": "^git\\s+stash\\s+list$",
+            "aliases": [],
+            "hint": "Use git stash list.",
+            "explanation": "git stash list shows indexed stash entries with their messages."
+        },
+        {
+            "id": "git_stash__stash_apply",
+            "prompt": "Apply the most recent stash without removing it from the stash list.",
+            "prefix": "user@ubuntu:~/project$",
+            "expected": "^git\\s+stash\\s+apply$",
+            "aliases": ["git stash apply stash@{0}"],
+            "hint": "Use git stash apply.",
+            "explanation": "git stash apply restores changes but keeps the stash entry."
+        },
+        {
+            "id": "git_stash__stash_pop",
+            "prompt": "Apply the most recent stash and remove it from the stash list.",
+            "prefix": "user@ubuntu:~/project$",
+            "expected": "^git\\s+stash\\s+pop$",
+            "aliases": ["git stash pop stash@{0}"],
+            "hint": "Use git stash pop.",
+            "explanation": "git stash pop applies and deletes the top stash entry."
+        },
+        {
+            "id": "git_stash__stash_drop",
+            "prompt": "Delete stash entry stash@{1}.",
+            "prefix": "user@ubuntu:~/project$",
+            "expected": "^git\\s+stash\\s+drop\\s+stash@\\{1\\}$",
+            "aliases": [],
+            "hint": "Use git stash drop stash@{1}.",
+            "explanation": "git stash drop removes a specific stash without applying it."
+        },
+        {
+            "id": "git_stash__stash_untracked",
+            "prompt": "Stash tracked and untracked files together.",
+            "prefix": "user@ubuntu:~/project$",
+            "expected": "^git\\s+stash\\s+-u$",
+            "aliases": ["git stash --include-untracked", "git stash push -u"],
+            "hint": "Use git stash -u.",
+            "explanation": "-u includes untracked files in the stash snapshot."
+        }
+    ]
+}

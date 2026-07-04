@@ -1,0 +1,66 @@
+{
+    "id": "git_tags",
+    "title": "Git Tags & Releases",
+    "platform": "Git",
+    "description": "Learn to create lightweight and annotated tags, list tags, push tags, and check out tagged releases.",
+    "difficulty": "intermediate",
+    "tags": ["tags", "releases"],
+    "prerequisites": ["git_basic"],
+    "estimated_minutes": 15,
+    "tasks": [
+        {
+            "id": "git_tags__tag_list",
+            "prompt": "List all tags in the repository.",
+            "prefix": "user@ubuntu:~/project$",
+            "expected": "^git\\s+tag$",
+            "aliases": ["git tag --list"],
+            "hint": "Use git tag with no arguments.",
+            "explanation": "git tag lists lightweight and annotated tag names."
+        },
+        {
+            "id": "git_tags__tag_lightweight",
+            "prompt": "Create a lightweight tag named 'v1.0.0' on the current commit.",
+            "prefix": "user@ubuntu:~/project$",
+            "expected": "^git\\s+tag\\s+v1\\.0\\.0$",
+            "aliases": [],
+            "hint": "Use git tag v1.0.0.",
+            "explanation": "A lightweight tag is simply a named pointer to a commit."
+        },
+        {
+            "id": "git_tags__tag_annotated",
+            "prompt": "Create an annotated tag 'v2.0.0' with message 'Release 2.0'.",
+            "prefix": "user@ubuntu:~/project$",
+            "expected": "^git\\s+tag\\s+-a\\s+v2\\.0\\.0\\s+-m\\s+[\"']Release 2\\.0[\"']$",
+            "aliases": [],
+            "hint": "Use git tag -a v2.0.0 -m with a message.",
+            "explanation": "Annotated tags store metadata like tagger, date, and message."
+        },
+        {
+            "id": "git_tags__tag_show",
+            "prompt": "Show details for tag 'v1.0.0'.",
+            "prefix": "user@ubuntu:~/project$",
+            "expected": "^git\\s+show\\s+v1\\.0\\.0$",
+            "aliases": [],
+            "hint": "Use git show v1.0.0.",
+            "explanation": "git show displays the tag object and the commit it references."
+        },
+        {
+            "id": "git_tags__tag_push",
+            "prompt": "Push tag 'v1.0.0' to the 'origin' remote.",
+            "prefix": "user@ubuntu:~/project$",
+            "expected": "^git\\s+push\\s+origin\\s+v1\\.0\\.0$",
+            "aliases": [],
+            "hint": "Use git push origin v1.0.0.",
+            "explanation": "Tags are not pushed by default; they must be pushed explicitly."
+        },
+        {
+            "id": "git_tags__checkout_tag",
+            "prompt": "Check out the repository at tag 'v1.0.0' (detached HEAD).",
+            "prefix": "user@ubuntu:~/project$",
+            "expected": "^git\\s+checkout\\s+v1\\.0\\.0$",
+            "aliases": ["git switch --detach v1.0.0"],
+            "hint": "Use git checkout v1.0.0.",
+            "explanation": "Checking out a tag places HEAD at the tagged commit in detached state."
+        }
+    ]
+}

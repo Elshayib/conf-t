@@ -1,53 +1,56 @@
 {
-  "id": "docker_basic",
-  "title": "Docker Containerization Basics",
-  "platform": "Docker",
-  "description": "Learn standard commands for running containers, listing containers, building images, stopping workloads, and running terminal commands inside containers.",
-  "tasks": [
-    {
-      "id": "docker_run_nginx",
-      "prompt": "Run an 'nginx' container in detached mode (-d), mapping port '80' of the host to port '80' of the container.",
-      "prefix": "user@ubuntu:~$",
-      "expected": "^docker\\s+run\\s+-d\\s+-p\\s+80:80\\s+nginx$",
-      "aliases": ["docker run -p 80:80 -d nginx"],
-      "hint": "Use docker run with detached (-d) and port (-p) flags: 'docker run -d -p 80:80 nginx'",
-      "explanation": "'docker run' downloads the image if needed and spins it up. '-d' runs it in the background, and '-p 80:80' maps port 80."
-    },
-    {
-      "id": "docker_ps",
-      "prompt": "List all active/running containers.",
-      "prefix": "user@ubuntu:~$",
-      "expected": "^docker\\s+ps$",
-      "aliases": [],
-      "hint": "Use: 'docker ps'",
-      "explanation": "'docker ps' lists container IDs, images, commands, creation time, port mappings, and running names."
-    },
-    {
-      "id": "docker_build",
-      "prompt": "Build a Docker image tagged as 'app:v1' using the Dockerfile in the current directory.",
-      "prefix": "user@ubuntu:~$",
-      "expected": "^docker\\s+build\\s+-t\\s+app:v1\\s+\\.$",
-      "aliases": [],
-      "hint": "Use tag flag (-t) and specify path as dot (.): 'docker build -t app:v1 .'",
-      "explanation": "'docker build' reads the local Dockerfile (indicated by '.') to build a container image, tagging it with '-t'."
-    },
-    {
-      "id": "docker_stop",
-      "prompt": "Stop a running container with ID 'c123'.",
-      "prefix": "user@ubuntu:~$",
-      "expected": "^docker\\s+stop\\s+c123$",
-      "aliases": [],
-      "hint": "Use the stop command: 'docker stop c123'",
-      "explanation": "'docker stop' sends a SIGTERM signal to the main process inside the container, stopping it gracefully."
-    },
-    {
-      "id": "docker_exec",
-      "prompt": "Run an interactive shell command line inside the container 'c123' using the 'bash' shell.",
-      "prefix": "user@ubuntu:~$",
-      "expected": "^docker\\s+exec\\s+-it\\s+c123\\s+bash$",
-      "aliases": [],
-      "hint": "Use exec with interactive tty flags (-it) and bash: 'docker exec -it c123 bash'",
-      "explanation": "'docker exec' spawns a new process inside a running container. '-it' binds the host terminal input/output."
-    }
-  ]
+    "id": "docker_basic",
+    "title": "Docker Containerization Basics",
+    "platform": "Docker",
+    "description": "Learn standard commands for running containers, listing containers, building images, stopping workloads, and running terminal commands inside containers.",
+    "difficulty": "beginner",
+    "tags": ["containers", "images"],
+    "estimated_minutes": 15,
+    "tasks": [
+        {
+            "id": "docker_basic__run_nginx",
+            "prompt": "Run an 'nginx' container in detached mode (-d), mapping port '80' of the host to port '80' of the container.",
+            "prefix": "user@ubuntu:~$",
+            "expected": "^docker\\s+run\\s+-d\\s+-p\\s+80:80\\s+nginx$",
+            "aliases": ["docker run -p 80:80 -d nginx"],
+            "hint": "Use docker run with detached (-d) and port (-p) flags: 'docker run -d -p 80:80 nginx'",
+            "explanation": "'docker run' downloads the image if needed and spins it up. '-d' runs it in the background, and '-p 80:80' maps port 80."
+        },
+        {
+            "id": "docker_basic__ps",
+            "prompt": "List all active/running containers.",
+            "prefix": "user@ubuntu:~$",
+            "expected": "^docker\\s+ps$",
+            "aliases": [],
+            "hint": "Use: 'docker ps'",
+            "explanation": "'docker ps' lists container IDs, images, commands, creation time, port mappings, and running names."
+        },
+        {
+            "id": "docker_basic__build",
+            "prompt": "Build a Docker image tagged as 'app:v1' using the Dockerfile in the current directory.",
+            "prefix": "user@ubuntu:~$",
+            "expected": "^docker\\s+build\\s+-t\\s+app:v1\\s+\\.$",
+            "aliases": [],
+            "hint": "Use tag flag (-t) and specify path as dot (.): 'docker build -t app:v1 .'",
+            "explanation": "'docker build' reads the local Dockerfile (indicated by '.') to build a container image, tagging it with '-t'."
+        },
+        {
+            "id": "docker_basic__stop",
+            "prompt": "Stop a running container with ID 'c123'.",
+            "prefix": "user@ubuntu:~$",
+            "expected": "^docker\\s+stop\\s+c123$",
+            "aliases": [],
+            "hint": "Use the stop command: 'docker stop c123'",
+            "explanation": "'docker stop' sends a SIGTERM signal to the main process inside the container, stopping it gracefully."
+        },
+        {
+            "id": "docker_basic__exec",
+            "prompt": "Run an interactive shell command line inside the container 'c123' using the 'bash' shell.",
+            "prefix": "user@ubuntu:~$",
+            "expected": "^docker\\s+exec\\s+-it\\s+c123\\s+bash$",
+            "aliases": [],
+            "hint": "Use exec with interactive tty flags (-it) and bash: 'docker exec -it c123 bash'",
+            "explanation": "'docker exec' spawns a new process inside a running container. '-it' binds the host terminal input/output."
+        }
+    ]
 }

@@ -1,62 +1,65 @@
 {
-  "id": "git_basic",
-  "title": "Git Version Control Basics",
-  "platform": "Git",
-  "description": "Learn standard commands for initializing, cloning, staging, committing, and branching in Git.",
-  "tasks": [
-    {
-      "id": "git_init",
-      "prompt": "Initialize a new local Git repository in the current folder.",
-      "prefix": "user@ubuntu:~/project$",
-      "expected": "^git\\s+init$",
-      "aliases": [],
-      "hint": "Use: 'git init'",
-      "explanation": "'git init' sets up a hidden '.git' directory inside your directory, enabling tracking."
-    },
-    {
-      "id": "git_clone",
-      "prompt": "Clone the remote repository 'https://github.com/user/repo.git'.",
-      "prefix": "user@ubuntu:~$",
-      "expected": "^git\\s+clone\\s+https://github\\.com/user/repo\\.git$",
-      "aliases": [],
-      "hint": "Use git clone followed by the URL: 'git clone https://github.com/user/repo.git'",
-      "explanation": "'git clone' downloads a full copy of a remote Git repository along with all its version logs."
-    },
-    {
-      "id": "git_status",
-      "prompt": "Check the status of tracked/untracked changes in the current branch.",
-      "prefix": "user@ubuntu:~/project$",
-      "expected": "^git\\s+status$",
-      "aliases": [],
-      "hint": "Use: 'git status'",
-      "explanation": "'git status' displays untracked, modified, or staged files compared to the last commit."
-    },
-    {
-      "id": "git_add_all",
-      "prompt": "Stage all modified and untracked files in the current directory.",
-      "prefix": "user@ubuntu:~/project$",
-      "expected": "^git\\s+add\\s+(\\.|-A|--all)$",
-      "aliases": ["git add .", "git add -A", "git add --all"],
-      "hint": "Use git add followed by dot: 'git add .'",
-      "explanation": "'git add .' stages all directory changes, marking them as ready for the next commit."
-    },
-    {
-      "id": "git_commit",
-      "prompt": "Commit the staged changes with the description message 'initial commit'.",
-      "prefix": "user@ubuntu:~/project$",
-      "expected": "^git\\s+commit\\s+-m\\s+[\"']initial commit[\"']$",
-      "aliases": [],
-      "hint": "Use commit command with message flag: 'git commit -m \"initial commit\"'",
-      "explanation": "'git commit -m' records the staged snapshot to history with a descriptive logs message."
-    },
-    {
-      "id": "git_checkout_branch",
-      "prompt": "Create and immediately switch to a new branch named 'feature'.",
-      "prefix": "user@ubuntu:~/project$",
-      "expected": "^(git\\s+checkout\\s+-b\\s+feature|git\\s+switch\\s+-c\\s+feature)$",
-      "aliases": ["git checkout -b feature", "git switch -c feature"],
-      "hint": "Use git checkout with -b, or git switch with -c: 'git checkout -b feature'",
-      "explanation": "Creates a new branch pointer and updates the HEAD directory pointer to the new branch."
-    }
-  ]
+    "id": "git_basic",
+    "title": "Git Version Control Basics",
+    "platform": "Git",
+    "description": "Learn standard commands for initializing, cloning, staging, committing, and branching in Git.",
+    "difficulty": "beginner",
+    "tags": ["version-control", "workflow"],
+    "estimated_minutes": 15,
+    "tasks": [
+        {
+            "id": "git_basic__init",
+            "prompt": "Initialize a new local Git repository in the current folder.",
+            "prefix": "user@ubuntu:~/project$",
+            "expected": "^git\\s+init$",
+            "aliases": [],
+            "hint": "Use: 'git init'",
+            "explanation": "'git init' sets up a hidden '.git' directory inside your directory, enabling tracking."
+        },
+        {
+            "id": "git_basic__clone",
+            "prompt": "Clone the remote repository 'https://github.com/user/repo.git'.",
+            "prefix": "user@ubuntu:~$",
+            "expected": "^git\\s+clone\\s+https://github\\.com/user/repo\\.git$",
+            "aliases": [],
+            "hint": "Use git clone followed by the URL: 'git clone https://github.com/user/repo.git'",
+            "explanation": "'git clone' downloads a full copy of a remote Git repository along with all its version logs."
+        },
+        {
+            "id": "git_basic__status",
+            "prompt": "Check the status of tracked/untracked changes in the current branch.",
+            "prefix": "user@ubuntu:~/project$",
+            "expected": "^git\\s+status$",
+            "aliases": [],
+            "hint": "Use: 'git status'",
+            "explanation": "'git status' displays untracked, modified, or staged files compared to the last commit."
+        },
+        {
+            "id": "git_basic__add_all",
+            "prompt": "Stage all modified and untracked files in the current directory.",
+            "prefix": "user@ubuntu:~/project$",
+            "expected": "^git\\s+add\\s+(\\.|-A|--all)$",
+            "aliases": ["git add .", "git add -A", "git add --all"],
+            "hint": "Use git add followed by dot: 'git add .'",
+            "explanation": "'git add .' stages all directory changes, marking them as ready for the next commit."
+        },
+        {
+            "id": "git_basic__commit",
+            "prompt": "Commit the staged changes with the description message 'initial commit'.",
+            "prefix": "user@ubuntu:~/project$",
+            "expected": "^git\\s+commit\\s+-m\\s+[\"']initial commit[\"']$",
+            "aliases": [],
+            "hint": "Use commit command with message flag: 'git commit -m \"initial commit\"'",
+            "explanation": "'git commit -m' records the staged snapshot to history with a descriptive logs message."
+        },
+        {
+            "id": "git_basic__checkout_branch",
+            "prompt": "Create and immediately switch to a new branch named 'feature'.",
+            "prefix": "user@ubuntu:~/project$",
+            "expected": "^(git\\s+checkout\\s+-b\\s+feature|git\\s+switch\\s+-c\\s+feature)$",
+            "aliases": ["git checkout -b feature", "git switch -c feature"],
+            "hint": "Use git checkout with -b, or git switch with -c: 'git checkout -b feature'",
+            "explanation": "Creates a new branch pointer and updates the HEAD directory pointer to the new branch."
+        }
+    ]
 }

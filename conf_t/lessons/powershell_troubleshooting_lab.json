@@ -1,0 +1,147 @@
+{
+    "id": "powershell_troubleshooting_lab",
+    "title": "PowerShell Troubleshooting Lab",
+    "platform": "PowerShell",
+    "description": "Capstone lab combining navigation, filtering, services, logs, remoting, and error handling for real-world Windows troubleshooting.",
+    "difficulty": "advanced",
+    "tags": ["troubleshooting", "capstone", "lab"],
+    "prerequisites": ["powershell_error_handling", "powershell_services_processes", "powershell_event_logs"],
+    "estimated_minutes": 45,
+    "tasks": [
+        {
+            "id": "powershell_troubleshooting_lab__check_location",
+            "prompt": "Verify the current working directory before starting diagnostics.",
+            "prefix": "PS C:\\>",
+            "expected": "^(Get-Location|pwd)$",
+            "aliases": ["Get-Location", "pwd"],
+            "hint": "Use Get-Location or pwd.",
+            "explanation": "Knowing your current path prevents accidental changes in the wrong folder."
+        },
+        {
+            "id": "powershell_troubleshooting_lab__test_path_logs",
+            "prompt": "Check whether the folder 'C:\\Logs' exists.",
+            "prefix": "PS C:\\>",
+            "expected": "^Test-Path\\s+C:\\\\Logs$",
+            "aliases": ["Test-Path C:\\Logs"],
+            "hint": "Use Test-Path with the logs directory.",
+            "explanation": "Test-Path quickly confirms a directory is present before reading files."
+        },
+        {
+            "id": "powershell_troubleshooting_lab__find_error_logs",
+            "prompt": "Search all .log files under 'C:\\Logs' for lines containing 'ERROR'.",
+            "prefix": "PS C:\\>",
+            "expected": "^Select-String\\s+-Path\\s+C:\\\\Logs\\\\\\*\\.log\\s+-Pattern\\s+\"ERROR\"$",
+            "aliases": ["Select-String -Path C:\\Logs\\*.log -Pattern ERROR"],
+            "hint": "Use Select-String with a wildcard path and pattern.",
+            "explanation": "Select-String scans multiple log files for failure signatures."
+        },
+        {
+            "id": "powershell_troubleshooting_lab__service_stopped",
+            "prompt": "List all services that are currently stopped.",
+            "prefix": "PS C:\\>",
+            "expected": "^Get-Service\\s+\\|\\s+Where-Object\\s+Status\\s+-eq\\s+'Stopped'$",
+            "aliases": ["Get-Service | Where-Object Status -eq 'Stopped'"],
+            "hint": "Pipe Get-Service to Where-Object filtering Stopped status.",
+            "explanation": "Stopped services often explain application outages on Windows hosts."
+        },
+        {
+            "id": "powershell_troubleshooting_lab__restart_spooler",
+            "prompt": "Restart the Print Spooler service (spooler).",
+            "prefix": "PS C:\\>",
+            "expected": "^Restart-Service\\s+-Name\\s+spooler$",
+            "aliases": ["Restart-Service -Name spooler", "Restart-Service spooler"],
+            "hint": "Use Restart-Service with the spooler service name.",
+            "explanation": "Restarting spooler is a common fix for stuck print jobs."
+        },
+        {
+            "id": "powershell_troubleshooting_lab__high_cpu_processes",
+            "prompt": "Show the top 5 processes sorted by CPU usage descending.",
+            "prefix": "PS C:\\>",
+            "expected": "^Get-Process\\s+\\|\\s+Sort-Object\\s+CPU\\s+-Descending\\s+\\|\\s+Select-Object\\s+-First\\s+5$",
+            "aliases": ["Get-Process | Sort-Object CPU -Descending | Select-Object -First 5"],
+            "hint": "Sort by CPU and select the first 5 results.",
+            "explanation": "High CPU processes are frequent culprits in performance incidents."
+        },
+        {
+            "id": "powershell_troubleshooting_lab__stop_hung_notepad",
+            "prompt": "Stop all hung 'notepad' processes.",
+            "prefix": "PS C:\\>",
+            "expected": "^Stop-Process\\s+-Name\\s+notepad$",
+            "aliases": ["Stop-Process -Name notepad"],
+            "hint": "Use Stop-Process with -Name notepad.",
+            "explanation": "Stop-Process clears stuck user applications during triage."
+        },
+        {
+            "id": "powershell_troubleshooting_lab__system_errors",
+            "prompt": "Retrieve the 10 newest Error events from the System log.",
+            "prefix": "PS C:\\>",
+            "expected": "^Get-EventLog\\s+-LogName\\s+System\\s+-EntryType\\s+Error\\s+-Newest\\s+10$",
+            "aliases": ["Get-EventLog -LogName System -EntryType Error -Newest 10"],
+            "hint": "Query System log with -EntryType Error and -Newest 10.",
+            "explanation": "System log errors reveal driver, disk, and service failures."
+        },
+        {
+            "id": "powershell_troubleshooting_lab__winevent_app_crash",
+            "prompt": "Search the Application log for events with Id 1000 using Get-WinEvent and a FilterHashtable.",
+            "prefix": "PS C:\\>",
+            "expected": "^Get-WinEvent\\s+-FilterHashtable\\s+@\\{LogName='Application';\\s*Id=1000\\}$",
+            "aliases": ["Get-WinEvent -FilterHashtable @{LogName='Application'; Id=1000}"],
+            "hint": "Use Get-WinEvent -FilterHashtable with LogName and Id.",
+            "explanation": "Event ID 1000 commonly indicates application crash details."
+        },
+        {
+            "id": "powershell_troubleshooting_lab__disk_space",
+            "prompt": "Display free disk space for all volumes as a table.",
+            "prefix": "PS C:\\>",
+            "expected": "^Get-PSDrive\\s+-PSProvider\\s+FileSystem\\s+\\|\\s+Format-Table$",
+            "aliases": ["Get-PSDrive -PSProvider FileSystem | Format-Table"],
+            "hint": "Use Get-PSDrive -PSProvider FileSystem piped to Format-Table.",
+            "explanation": "Low disk space causes logging failures and service crashes."
+        },
+        {
+            "id": "powershell_troubleshooting_lab__test_remote",
+            "prompt": "Test WinRM connectivity to the server 'DC01'.",
+            "prefix": "PS C:\\>",
+            "expected": "^Test-WSMan\\s+-ComputerName\\s+DC01$",
+            "aliases": ["Test-WSMan -ComputerName DC01"],
+            "hint": "Use Test-WSMan with -ComputerName DC01.",
+            "explanation": "Remote diagnostics require working WinRM connectivity."
+        },
+        {
+            "id": "powershell_troubleshooting_lab__remote_services",
+            "prompt": "Run 'Get-Service' on remote computer 'DC01' via Invoke-Command.",
+            "prefix": "PS C:\\>",
+            "expected": "^Invoke-Command\\s+-ComputerName\\s+DC01\\s+-ScriptBlock\\s+\\{\\s*Get-Service\\s*\\}$",
+            "aliases": ["Invoke-Command -ComputerName DC01 -ScriptBlock { Get-Service }"],
+            "hint": "Use Invoke-Command with a Get-Service script block.",
+            "explanation": "Invoke-Command collects remote state without an interactive session."
+        },
+        {
+            "id": "powershell_troubleshooting_lab__safe_file_read",
+            "prompt": "Try to read 'missing.cfg'; on failure output 'Config missing' (try/catch).",
+            "prefix": "PS C:\\>",
+            "expected": "^try\\s+\\{\\s*Get-Content\\s+missing\\.cfg\\s*\\}\\s+catch\\s+\\{\\s*\"Config missing\"\\s*\\}$",
+            "aliases": ["try { Get-Content missing.cfg } catch { 'Config missing' }"],
+            "hint": "Wrap Get-Content in try/catch with a friendly message.",
+            "explanation": "Graceful error handling keeps troubleshooting scripts running."
+        },
+        {
+            "id": "powershell_troubleshooting_lab__export_events",
+            "prompt": "Export the 50 newest System log events to 'C:\\Reports\\system-events.xml'.",
+            "prefix": "PS C:\\>",
+            "expected": "^Get-WinEvent\\s+-LogName\\s+System\\s+-MaxEvents\\s+50\\s+\\|\\s+Export-Clixml\\s+C:\\\\Reports\\\\system-events\\.xml$",
+            "aliases": ["Get-WinEvent -LogName System -MaxEvents 50 | Export-Clixml C:\\Reports\\system-events.xml"],
+            "hint": "Pipe Get-WinEvent output to Export-Clixml.",
+            "explanation": "Export-Clixml preserves rich event objects for offline analysis."
+        },
+        {
+            "id": "powershell_troubleshooting_lab__transcript",
+            "prompt": "Start a transcript of the session saved to 'C:\\Reports\\session.log'.",
+            "prefix": "PS C:\\>",
+            "expected": "^Start-Transcript\\s+-Path\\s+C:\\\\Reports\\\\session\\.log$",
+            "aliases": ["Start-Transcript -Path C:\\Reports\\session.log"],
+            "hint": "Use Start-Transcript with -Path.",
+            "explanation": "Transcripts document commands and output for post-incident review."
+        }
+    ]
+}

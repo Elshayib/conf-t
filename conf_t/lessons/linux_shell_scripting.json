@@ -1,0 +1,120 @@
+{
+    "id": "linux_shell_scripting",
+    "title": "Linux Shell Scripting",
+    "platform": "Linux",
+    "description": "Write and execute Bash scripts with variables, conditionals, loops, functions, and proper exit handling.",
+    "difficulty": "advanced",
+    "tags": ["bash", "scripting", "automation"],
+    "prerequisites": ["linux_text_processing"],
+    "estimated_minutes": 40,
+    "tasks": [
+        {
+            "id": "linux_shell_scripting__shebang_line",
+            "prompt": "Write the shebang line that should be the first line of a Bash script.",
+            "prefix": "user@ubuntu:~$",
+            "expected": "^#!/bin/bash$",
+            "aliases": ["#!/usr/bin/env bash"],
+            "hint": "The shebang tells the OS which interpreter to use: '#!/bin/bash'",
+            "explanation": "The shebang (#!/) on line 1 instructs the kernel to execute the script with /bin/bash."
+        },
+        {
+            "id": "linux_shell_scripting__chmod_executable",
+            "prompt": "Make the script 'deploy.sh' executable by the owner.",
+            "prefix": "user@ubuntu:~$",
+            "expected": "^chmod\\s+\\+x\\s+deploy\\.sh$",
+            "aliases": ["chmod u+x deploy.sh"],
+            "hint": "Use chmod add execute: 'chmod +x deploy.sh'",
+            "explanation": "'chmod +x' adds execute permission so the script can be run directly with ./deploy.sh"
+        },
+        {
+            "id": "linux_shell_scripting__run_script",
+            "prompt": "Execute the script 'deploy.sh' in the current directory.",
+            "prefix": "user@ubuntu:~$",
+            "expected": "^\\./deploy\\.sh$",
+            "aliases": [],
+            "hint": "Run with relative path: './deploy.sh'",
+            "explanation": "The './' prefix is required to execute a script in the current directory, which is not in PATH by default."
+        },
+        {
+            "id": "linux_shell_scripting__bash_script",
+            "prompt": "Run 'deploy.sh' explicitly using the bash interpreter (without execute permission).",
+            "prefix": "user@ubuntu:~$",
+            "expected": "^bash\\s+deploy\\.sh$",
+            "aliases": [],
+            "hint": "Invoke bash directly: 'bash deploy.sh'",
+            "explanation": "Running 'bash script.sh' executes the script without needing the executable bit set."
+        },
+        {
+            "id": "linux_shell_scripting__variable_assign",
+            "prompt": "Assign the string 'production' to the shell variable named 'ENV' (no spaces around =).",
+            "prefix": "user@ubuntu:~$",
+            "expected": "^ENV=production$",
+            "aliases": [],
+            "hint": "Assign without spaces: 'ENV=production'",
+            "explanation": "Bash variable assignment must have no spaces around '='. The value is accessed later as $ENV."
+        },
+        {
+            "id": "linux_shell_scripting__echo_variable",
+            "prompt": "Print the value of the variable 'HOSTNAME' to the terminal.",
+            "prefix": "user@ubuntu:~$",
+            "expected": "^echo\\s+\\$HOSTNAME$",
+            "aliases": ["echo ${HOSTNAME}"],
+            "hint": "Use echo with variable: 'echo $HOSTNAME'",
+            "explanation": "'echo $VAR' expands the variable and prints its current value to stdout."
+        },
+        {
+            "id": "linux_shell_scripting__if_test",
+            "prompt": "Write a one-line test: exit 0 if file 'config.yml' exists, else exit 1 (using test builtin).",
+            "prefix": "user@ubuntu:~$",
+            "expected": "^test\\s+-f\\s+config\\.yml$",
+            "aliases": ["[ -f config.yml ]"],
+            "hint": "Use test file exists: 'test -f config.yml'",
+            "explanation": "'test -f file' returns exit code 0 if the file exists and is a regular file, 1 otherwise."
+        },
+        {
+            "id": "linux_shell_scripting__for_loop",
+            "prompt": "Write a for loop header that iterates over files '*.log' (one line, as you'd type in a script).",
+            "prefix": "user@ubuntu:~$",
+            "expected": "^for\\s+file\\s+in\\s+\\*\\.log;\\s+do$",
+            "aliases": ["for file in *.log; do"],
+            "hint": "Use for...in syntax: 'for file in *.log; do'",
+            "explanation": "'for var in list; do' loops over each item. '*.log' expands to all matching filenames."
+        },
+        {
+            "id": "linux_shell_scripting__while_read",
+            "prompt": "Write a while loop header that reads 'app.log' line by line into variable 'line'.",
+            "prefix": "user@ubuntu:~$",
+            "expected": "^while\\s+read\\s+line;\\s+do\\s+<\\s+app\\.log$",
+            "aliases": ["while read line; do < app.log"],
+            "hint": "Use while read with input redirect: 'while read line; do < app.log'",
+            "explanation": "'while read line' reads stdin line by line. Redirecting app.log feeds the file as input."
+        },
+        {
+            "id": "linux_shell_scripting__function_define",
+            "prompt": "Define a Bash function named 'greet' (opening line only).",
+            "prefix": "user@ubuntu:~$",
+            "expected": "^greet\\(\\)\\s+\\{$",
+            "aliases": ["function greet {"],
+            "hint": "Use function syntax: 'greet() {'",
+            "explanation": "Functions in Bash are defined with 'name() {' followed by commands and a closing '}'."
+        },
+        {
+            "id": "linux_shell_scripting__exit_code",
+            "prompt": "Exit the current script with status code 1 to signal failure.",
+            "prefix": "user@ubuntu:~$",
+            "expected": "^exit\\s+1$",
+            "aliases": [],
+            "hint": "Use exit with code: 'exit 1'",
+            "explanation": "'exit 1' terminates the script with a non-zero status, indicating an error to calling processes."
+        },
+        {
+            "id": "linux_shell_scripting__case_statement",
+            "prompt": "Write the opening line of a case statement matching the variable '$ACTION'.",
+            "prefix": "user@ubuntu:~$",
+            "expected": "^case\\s+\\$ACTION\\s+in$",
+            "aliases": ["case $ACTION in"],
+            "hint": "Use case syntax: 'case $ACTION in'",
+            "explanation": "'case $VAR in' begins a multi-branch conditional, similar to switch statements in other languages."
+        }
+    ]
+}

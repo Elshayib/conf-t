@@ -1,0 +1,102 @@
+{
+    "id": "docker_compose",
+    "title": "Docker Compose",
+    "platform": "Docker",
+    "description": "Learn to define multi-container applications with Docker Compose and manage their lifecycle.",
+    "difficulty": "intermediate",
+    "tags": ["compose", "orchestration"],
+    "prerequisites": ["docker_containers"],
+    "estimated_minutes": 30,
+    "tasks": [
+        {
+            "id": "docker_compose__up_detached",
+            "prompt": "Start all services defined in docker-compose.yml in detached mode.",
+            "prefix": "user@ubuntu:~/stack$",
+            "expected": "^docker\\s+compose\\s+up\\s+-d$",
+            "aliases": ["docker-compose up -d"],
+            "hint": "Use docker compose up -d.",
+            "explanation": "compose up creates networks, volumes, and containers from the YAML file."
+        },
+        {
+            "id": "docker_compose__down",
+            "prompt": "Stop and remove containers, networks, and default volumes for the compose project.",
+            "prefix": "user@ubuntu:~/stack$",
+            "expected": "^docker\\s+compose\\s+down$",
+            "aliases": ["docker-compose down"],
+            "hint": "Use docker compose down.",
+            "explanation": "compose down tears down the application stack cleanly."
+        },
+        {
+            "id": "docker_compose__ps",
+            "prompt": "List containers for the current compose project.",
+            "prefix": "user@ubuntu:~/stack$",
+            "expected": "^docker\\s+compose\\s+ps$",
+            "aliases": ["docker-compose ps"],
+            "hint": "Use docker compose ps.",
+            "explanation": "compose ps shows service names, states, and published ports."
+        },
+        {
+            "id": "docker_compose__logs_follow",
+            "prompt": "Follow aggregated logs from all compose services.",
+            "prefix": "user@ubuntu:~/stack$",
+            "expected": "^docker\\s+compose\\s+logs\\s+-f$",
+            "aliases": ["docker-compose logs -f"],
+            "hint": "Use docker compose logs -f.",
+            "explanation": "compose logs -f streams output from every service in the project."
+        },
+        {
+            "id": "docker_compose__build",
+            "prompt": "Build or rebuild images for all compose services.",
+            "prefix": "user@ubuntu:~/stack$",
+            "expected": "^docker\\s+compose\\s+build$",
+            "aliases": ["docker-compose build"],
+            "hint": "Use docker compose build.",
+            "explanation": "compose build uses service build contexts defined in the YAML."
+        },
+        {
+            "id": "docker_compose__up_build",
+            "prompt": "Build images and start services in detached mode.",
+            "prefix": "user@ubuntu:~/stack$",
+            "expected": "^docker\\s+compose\\s+up\\s+-d\\s+--build$",
+            "aliases": ["docker-compose up -d --build"],
+            "hint": "Use docker compose up -d --build.",
+            "explanation": "--build ensures images are rebuilt before containers start."
+        },
+        {
+            "id": "docker_compose__restart_service",
+            "prompt": "Restart only the 'api' service in the compose project.",
+            "prefix": "user@ubuntu:~/stack$",
+            "expected": "^docker\\s+compose\\s+restart\\s+api$",
+            "aliases": ["docker-compose restart api"],
+            "hint": "Use docker compose restart api.",
+            "explanation": "Targeting a service name restarts just that component."
+        },
+        {
+            "id": "docker_compose__exec",
+            "prompt": "Open an interactive bash shell in the running 'api' service container.",
+            "prefix": "user@ubuntu:~/stack$",
+            "expected": "^docker\\s+compose\\s+exec\\s+api\\s+bash$",
+            "aliases": ["docker-compose exec api bash"],
+            "hint": "Use docker compose exec api bash.",
+            "explanation": "compose exec runs commands in an already running service container."
+        },
+        {
+            "id": "docker_compose__pull",
+            "prompt": "Pull the latest images for all compose services.",
+            "prefix": "user@ubuntu:~/stack$",
+            "expected": "^docker\\s+compose\\s+pull$",
+            "aliases": ["docker-compose pull"],
+            "hint": "Use docker compose pull.",
+            "explanation": "compose pull updates service images from their registries."
+        },
+        {
+            "id": "docker_compose__config",
+            "prompt": "Validate and render the final compose configuration.",
+            "prefix": "user@ubuntu:~/stack$",
+            "expected": "^docker\\s+compose\\s+config$",
+            "aliases": ["docker-compose config"],
+            "hint": "Use docker compose config.",
+            "explanation": "compose config catches YAML errors and shows interpolated values."
+        }
+    ]
+}

@@ -1,0 +1,83 @@
+{
+    "id": "powershell_navigation",
+    "title": "PowerShell Navigation & Shell Basics",
+    "platform": "PowerShell",
+    "description": "Learn to navigate the filesystem, inspect locations, manage the directory stack, and use shell history in PowerShell.",
+    "difficulty": "beginner",
+    "tags": ["navigation", "filesystem", "shell"],
+    "estimated_minutes": 20,
+    "tasks": [
+        {
+            "id": "powershell_navigation__get_location",
+            "prompt": "Display the current working directory path.",
+            "prefix": "PS C:\\>",
+            "expected": "^(Get-Location|pwd|gl)$",
+            "aliases": ["Get-Location", "pwd", "gl"],
+            "hint": "Use Get-Location or the pwd alias.",
+            "explanation": "Get-Location returns the current path in the PowerShell session."
+        },
+        {
+            "id": "powershell_navigation__set_location",
+            "prompt": "Change the current directory to 'C:\\Users'.",
+            "prefix": "PS C:\\>",
+            "expected": "^Set-Location\\s+C:\\\\Users$",
+            "aliases": ["Set-Location C:\\Users", "cd C:\\Users", "sl C:\\Users"],
+            "hint": "Use Set-Location or cd with the full path.",
+            "explanation": "Set-Location changes the current working directory for subsequent commands."
+        },
+        {
+            "id": "powershell_navigation__get_childitem",
+            "prompt": "List all files and folders in the current directory.",
+            "prefix": "PS C:\\Users>",
+            "expected": "^(Get-ChildItem|dir|ls|gci)$",
+            "aliases": ["Get-ChildItem", "dir", "ls", "gci"],
+            "hint": "Use Get-ChildItem or the dir/ls aliases.",
+            "explanation": "Get-ChildItem lists items in the current or specified path."
+        },
+        {
+            "id": "powershell_navigation__get_childitem_recurse",
+            "prompt": "List all items in 'C:\\Windows\\Logs' recursively, including subdirectories.",
+            "prefix": "PS C:\\>",
+            "expected": "^Get-ChildItem\\s+-Path\\s+C:\\\\Windows\\\\Logs\\s+-Recurse$",
+            "aliases": ["Get-ChildItem C:\\Windows\\Logs -Recurse", "dir C:\\Windows\\Logs -Recurse"],
+            "hint": "Use Get-ChildItem with -Path and -Recurse.",
+            "explanation": "The -Recurse switch walks all nested directories under the target path."
+        },
+        {
+            "id": "powershell_navigation__push_location",
+            "prompt": "Push 'C:\\Temp' onto the location stack (save current path and navigate there).",
+            "prefix": "PS C:\\>",
+            "expected": "^Push-Location\\s+C:\\\\Temp$",
+            "aliases": ["Push-Location C:\\Temp", "pushd C:\\Temp"],
+            "hint": "Use Push-Location or the pushd alias.",
+            "explanation": "Push-Location saves the current location and moves to a new path on the stack."
+        },
+        {
+            "id": "powershell_navigation__pop_location",
+            "prompt": "Pop the most recent entry off the location stack and return to the previous directory.",
+            "prefix": "PS C:\\Temp>",
+            "expected": "^(Pop-Location|popd)$",
+            "aliases": ["Pop-Location", "popd"],
+            "hint": "Use Pop-Location or the popd alias.",
+            "explanation": "Pop-Location restores the directory saved by the last Push-Location."
+        },
+        {
+            "id": "powershell_navigation__clear_host",
+            "prompt": "Clear the PowerShell console screen.",
+            "prefix": "PS C:\\>",
+            "expected": "^(Clear-Host|cls|clear)$",
+            "aliases": ["Clear-Host", "cls", "clear"],
+            "hint": "Use Clear-Host or the cls alias.",
+            "explanation": "Clear-Host removes visible output from the console buffer."
+        },
+        {
+            "id": "powershell_navigation__get_history",
+            "prompt": "Display the command history for the current PowerShell session.",
+            "prefix": "PS C:\\>",
+            "expected": "^(Get-History|h|history)$",
+            "aliases": ["Get-History", "h", "history"],
+            "hint": "Use Get-History or the h alias.",
+            "explanation": "Get-History lists commands executed during the current session."
+        }
+    ]
+}

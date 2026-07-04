@@ -1,62 +1,65 @@
 {
-  "id": "linux_basic",
-  "title": "Linux Terminal Basics",
-  "platform": "Linux",
-  "description": "Learn essential commands for directory navigation, file listing, folder creation, reading logs, and cleanup tasks.",
-  "tasks": [
-    {
-      "id": "pwd",
-      "prompt": "Print the absolute path of the current working directory.",
-      "prefix": "user@ubuntu:~$",
-      "expected": "^pwd$",
-      "aliases": [],
-      "hint": "Use the command: 'pwd'",
-      "explanation": "The 'pwd' (Print Working Directory) command returns the exact absolute path of the directory you are currently in."
-    },
-    {
-      "id": "ls_la",
-      "prompt": "List all files in the current directory, including hidden files (files starting with a dot) in a long listing format.",
-      "prefix": "user@ubuntu:~$",
-      "expected": "^ls\\s+-(la|al|a\\s+-l|l\\s+-a)$",
-      "aliases": ["ls -al", "ls -la", "ls -l -a", "ls -a -l"],
-      "hint": "Use 'ls' with flags to show all (-a) and use long format (-l)",
-      "explanation": "The 'ls' command listing options can be combined. '-la' or '-al' shows permissions, ownership, sizes, and dot-hidden config files."
-    },
-    {
-      "id": "mkdir",
-      "prompt": "Create a new subdirectory named 'backups' in the current folder.",
-      "prefix": "user@ubuntu:~$",
-      "expected": "^mkdir\\s+backups$",
-      "aliases": [],
-      "hint": "Use the make directory command: 'mkdir backups'",
-      "explanation": "The 'mkdir' (Make Directory) command creates one or more new directories."
-    },
-    {
-      "id": "cd_var_log",
-      "prompt": "Change the active working directory to '/var/log'.",
-      "prefix": "user@ubuntu:~$",
-      "expected": "^cd\\s+/var/log$",
-      "aliases": [],
-      "hint": "Use the change directory command: 'cd /var/log'",
-      "explanation": "The 'cd' command switches your session shell context to a different folder. '/var/log' is a common system log path on Linux."
-    },
-    {
-      "id": "cat_syslog",
-      "prompt": "Display the text contents of the file named 'syslog' onto the standard output screen.",
-      "prefix": "user@ubuntu:/var/log$",
-      "expected": "^(cat\\s+syslog|less\\s+syslog|more\\s+syslog)$",
-      "aliases": [],
-      "hint": "Use the concatenate command: 'cat syslog'",
-      "explanation": "The 'cat' (concatenate) command outputs a file's entire content to the terminal window. 'less' is also acceptable for paginated viewing."
-    },
-    {
-      "id": "rm_rf_temp",
-      "prompt": "Remove the directory named 'temp' and all of its contents (recursively) without asking for confirmation (forcefully).",
-      "prefix": "user@ubuntu:~$",
-      "expected": "^rm\\s+(-rf|-fr|-r\\s+-f|-f\\s+-r)\\s+temp$",
-      "aliases": ["rm -rf temp", "rm -fr temp", "rm -r -f temp", "rm -f -r temp"],
-      "hint": "Use remove command with recursive (-r) and force (-f) flags: 'rm -rf temp'",
-      "explanation": "The 'rm -rf' command removes directories and files recursively (-r) and forcefully (-f) without prompts. Use with caution!"
-    }
-  ]
+    "id": "linux_basic",
+    "title": "Linux Terminal Basics",
+    "platform": "Linux",
+    "description": "Learn essential commands for directory navigation, file listing, folder creation, reading logs, and cleanup tasks.",
+    "difficulty": "beginner",
+    "tags": ["shell", "filesystem"],
+    "estimated_minutes": 15,
+    "tasks": [
+        {
+            "id": "linux_basic__pwd",
+            "prompt": "Print the absolute path of the current working directory.",
+            "prefix": "user@ubuntu:~$",
+            "expected": "^pwd$",
+            "aliases": [],
+            "hint": "Use the command: 'pwd'",
+            "explanation": "The 'pwd' (Print Working Directory) command returns the exact absolute path of the directory you are currently in."
+        },
+        {
+            "id": "linux_basic__ls_la",
+            "prompt": "List all files in the current directory, including hidden files (files starting with a dot) in a long listing format.",
+            "prefix": "user@ubuntu:~$",
+            "expected": "^ls\\s+-(la|al|a\\s+-l|l\\s+-a)$",
+            "aliases": ["ls -al", "ls -la", "ls -l -a", "ls -a -l"],
+            "hint": "Use 'ls' with flags to show all (-a) and use long format (-l)",
+            "explanation": "The 'ls' command listing options can be combined. '-la' or '-al' shows permissions, ownership, sizes, and dot-hidden config files."
+        },
+        {
+            "id": "linux_basic__mkdir",
+            "prompt": "Create a new subdirectory named 'backups' in the current folder.",
+            "prefix": "user@ubuntu:~$",
+            "expected": "^mkdir\\s+backups$",
+            "aliases": [],
+            "hint": "Use the make directory command: 'mkdir backups'",
+            "explanation": "The 'mkdir' (Make Directory) command creates one or more new directories."
+        },
+        {
+            "id": "linux_basic__cd_var_log",
+            "prompt": "Change the active working directory to '/var/log'.",
+            "prefix": "user@ubuntu:~$",
+            "expected": "^cd\\s+/var/log$",
+            "aliases": [],
+            "hint": "Use the change directory command: 'cd /var/log'",
+            "explanation": "The 'cd' command switches your session shell context to a different folder. '/var/log' is a common system log path on Linux."
+        },
+        {
+            "id": "linux_basic__cat_syslog",
+            "prompt": "Display the text contents of the file named 'syslog' onto the standard output screen.",
+            "prefix": "user@ubuntu:/var/log$",
+            "expected": "^(cat\\s+syslog|less\\s+syslog|more\\s+syslog)$",
+            "aliases": [],
+            "hint": "Use the concatenate command: 'cat syslog'",
+            "explanation": "The 'cat' (concatenate) command outputs a file's entire content to the terminal window. 'less' is also acceptable for paginated viewing."
+        },
+        {
+            "id": "linux_basic__rm_rf_temp",
+            "prompt": "Remove the directory named 'temp' and all of its contents (recursively) without asking for confirmation (forcefully).",
+            "prefix": "user@ubuntu:~$",
+            "expected": "^rm\\s+(-rf|-fr|-r\\s+-f|-f\\s+-r)\\s+temp$",
+            "aliases": ["rm -rf temp", "rm -fr temp", "rm -r -f temp", "rm -f -r temp"],
+            "hint": "Use remove command with recursive (-r) and force (-f) flags: 'rm -rf temp'",
+            "explanation": "The 'rm -rf' command removes directories and files recursively (-r) and forcefully (-f) without prompts. Use with caution!"
+        }
+    ]
 }

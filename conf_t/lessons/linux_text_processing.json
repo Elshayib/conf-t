@@ -1,0 +1,84 @@
+{
+    "id": "linux_text_processing",
+    "title": "Linux Text Processing",
+    "platform": "Linux",
+    "description": "Learn powerful text manipulation tools including grep, sed, awk, cut, sort, uniq, wc, and head/tail for log analysis and data extraction.",
+    "difficulty": "beginner",
+    "tags": ["text", "grep", "logs", "pipes"],
+    "prerequisites": ["linux_basic"],
+    "estimated_minutes": 25,
+    "tasks": [
+        {
+            "id": "linux_text_processing__grep_error",
+            "prompt": "Search the file 'app.log' for lines containing the word 'ERROR' (case-sensitive).",
+            "prefix": "user@ubuntu:~$",
+            "expected": "^grep\\s+ERROR\\s+app\\.log$",
+            "aliases": [],
+            "hint": "Use grep with the pattern and file: 'grep ERROR app.log'",
+            "explanation": "'grep' searches file contents line by line and prints lines matching the given pattern."
+        },
+        {
+            "id": "linux_text_processing__head_tail",
+            "prompt": "Display the first 10 lines and last 5 lines of 'server.log' in one command.",
+            "prefix": "user@ubuntu:~$",
+            "expected": "^head\\s+-n\\s+10\\s+server\\.log\\s+;\\s+tail\\s+-n\\s+5\\s+server\\.log$",
+            "aliases": ["head -10 server.log; tail -5 server.log"],
+            "hint": "Use head and tail: 'head -n 10 server.log; tail -n 5 server.log'",
+            "explanation": "'head' shows the beginning of a file and 'tail' shows the end. Both are essential for quick log inspection."
+        },
+        {
+            "id": "linux_text_processing__sed_substitute",
+            "prompt": "Replace the first occurrence of 'localhost' with '127.0.0.1' on each line of 'hosts.txt' and print the result to stdout.",
+            "prefix": "user@ubuntu:~$",
+            "expected": "^sed\\s+'s/localhost/127\\.0\\.0\\.1/'\\s+hosts\\.txt$",
+            "aliases": ["sed \"s/localhost/127.0.0.1/\" hosts.txt"],
+            "hint": "Use sed substitution syntax: 'sed 's/localhost/127.0.0.1/' hosts.txt'",
+            "explanation": "'sed' is a stream editor. The 's/old/new/' syntax performs a substitution on each line of input."
+        },
+        {
+            "id": "linux_text_processing__awk_print_column",
+            "prompt": "Print the third column (field) of each line in 'users.csv' using awk.",
+            "prefix": "user@ubuntu:~$",
+            "expected": "^awk\\s+'\\{print\\s+\\$3\\}'\\s+users\\.csv$",
+            "aliases": ["awk \"{print $3}\" users.csv"],
+            "hint": "Use awk to print field 3: 'awk '{print $3}' users.csv'",
+            "explanation": "'awk' processes text by fields (columns). '$3' refers to the third whitespace-delimited field on each line."
+        },
+        {
+            "id": "linux_text_processing__cut_fields",
+            "prompt": "Extract the first and third colon-delimited fields from '/etc/passwd' using cut.",
+            "prefix": "user@ubuntu:~$",
+            "expected": "^cut\\s+-d:+-f1,3\\s+/etc/passwd$",
+            "aliases": [],
+            "hint": "Use cut with delimiter (-d) and fields (-f): 'cut -d: -f1,3 /etc/passwd'",
+            "explanation": "'cut' extracts columns from text. '-d:' sets the delimiter and '-f1,3' selects fields 1 and 3."
+        },
+        {
+            "id": "linux_text_processing__sort_numeric",
+            "prompt": "Sort the file 'scores.txt' numerically in descending order.",
+            "prefix": "user@ubuntu:~$",
+            "expected": "^sort\\s+-rn\\s+scores\\.txt$",
+            "aliases": ["sort -nr scores.txt"],
+            "hint": "Use sort with numeric (-n) and reverse (-r): 'sort -rn scores.txt'",
+            "explanation": "'sort -n' compares values numerically rather than alphabetically. '-r' reverses to descending order."
+        },
+        {
+            "id": "linux_text_processing__uniq_count",
+            "prompt": "Count the occurrences of each unique line in 'access.log' (input must be sorted first; assume it is).",
+            "prefix": "user@ubuntu:~$",
+            "expected": "^uniq\\s+-c\\s+access\\.log$",
+            "aliases": [],
+            "hint": "Use uniq with count flag (-c): 'uniq -c access.log'",
+            "explanation": "'uniq -c' prefixes each unique line with the number of consecutive duplicate occurrences."
+        },
+        {
+            "id": "linux_text_processing__wc_lines",
+            "prompt": "Count the number of lines in the file 'document.txt'.",
+            "prefix": "user@ubuntu:~$",
+            "expected": "^wc\\s+-l\\s+document\\.txt$",
+            "aliases": [],
+            "hint": "Use wc with lines flag (-l): 'wc -l document.txt'",
+            "explanation": "'wc -l' counts newline characters, giving the total line count of a file."
+        }
+    ]
+}

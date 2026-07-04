@@ -1,0 +1,84 @@
+{
+    "id": "linux_file_operations",
+    "title": "Linux File Operations",
+    "platform": "Linux",
+    "description": "Master essential file manipulation commands including copy, move, link, search, archive, and transfer operations.",
+    "difficulty": "beginner",
+    "tags": ["filesystem", "files", "archives"],
+    "prerequisites": ["linux_basic"],
+    "estimated_minutes": 20,
+    "tasks": [
+        {
+            "id": "linux_file_operations__cp_file",
+            "prompt": "Copy the file 'report.txt' to the directory '/home/user/backups/' (preserve the filename).",
+            "prefix": "user@ubuntu:~$",
+            "expected": "^cp\\s+report\\.txt\\s+/home/user/backups/$",
+            "aliases": [],
+            "hint": "Use the copy command: 'cp report.txt /home/user/backups/'",
+            "explanation": "The 'cp' command copies files or directories. The destination path determines where the copy is placed."
+        },
+        {
+            "id": "linux_file_operations__mv_rename",
+            "prompt": "Rename the file 'draft.txt' to 'final.txt' in the current directory.",
+            "prefix": "user@ubuntu:~$",
+            "expected": "^mv\\s+draft\\.txt\\s+final\\.txt$",
+            "aliases": [],
+            "hint": "Use the move command: 'mv draft.txt final.txt'",
+            "explanation": "When 'mv' is used within the same directory, it renames the file rather than relocating it."
+        },
+        {
+            "id": "linux_file_operations__touch_file",
+            "prompt": "Create an empty file named 'notes.txt' (or update its timestamp if it already exists).",
+            "prefix": "user@ubuntu:~$",
+            "expected": "^touch\\s+notes\\.txt$",
+            "aliases": [],
+            "hint": "Use the touch command: 'touch notes.txt'",
+            "explanation": "The 'touch' command creates a zero-byte file if it does not exist, or updates the modification time if it does."
+        },
+        {
+            "id": "linux_file_operations__ln_symlink",
+            "prompt": "Create a symbolic link named 'config_link' pointing to '/etc/nginx/nginx.conf'.",
+            "prefix": "user@ubuntu:~$",
+            "expected": "^ln\\s+-s\\s+/etc/nginx/nginx\\.conf\\s+config_link$",
+            "aliases": ["ln -s /etc/nginx/nginx.conf config_link"],
+            "hint": "Use ln with the symbolic flag (-s): 'ln -s /etc/nginx/nginx.conf config_link'",
+            "explanation": "A symbolic link (-s) is a pointer to another file path. It can reference files on different filesystems."
+        },
+        {
+            "id": "linux_file_operations__find_name",
+            "prompt": "Search the '/var' directory tree for files named exactly 'error.log'.",
+            "prefix": "user@ubuntu:~$",
+            "expected": "^find\\s+/var\\s+-name\\s+error\\.log$",
+            "aliases": ["find /var -name 'error.log'"],
+            "hint": "Use find with -name: 'find /var -name error.log'",
+            "explanation": "The 'find' command recursively searches directories. '-name' matches filenames using shell glob patterns."
+        },
+        {
+            "id": "linux_file_operations__tar_create",
+            "prompt": "Create a gzip-compressed tar archive named 'project.tar.gz' containing the 'project' directory.",
+            "prefix": "user@ubuntu:~$",
+            "expected": "^tar\\s+-czf\\s+project\\.tar\\.gz\\s+project$",
+            "aliases": [],
+            "hint": "Use tar with create, gzip, and file flags: 'tar -czf project.tar.gz project'",
+            "explanation": "'tar -c' creates an archive, '-z' compresses with gzip, and '-f' specifies the output filename."
+        },
+        {
+            "id": "linux_file_operations__gzip_file",
+            "prompt": "Compress the file 'data.csv' using gzip (produces 'data.csv.gz').",
+            "prefix": "user@ubuntu:~$",
+            "expected": "^gzip\\s+data\\.csv$",
+            "aliases": [],
+            "hint": "Use the gzip command: 'gzip data.csv'",
+            "explanation": "'gzip' compresses a file in place, replacing the original with a .gz version and removing the uncompressed file."
+        },
+        {
+            "id": "linux_file_operations__rsync_copy",
+            "prompt": "Synchronize the local directory 'src/' to 'dest/' recursively, preserving permissions and timestamps.",
+            "prefix": "user@ubuntu:~$",
+            "expected": "^rsync\\s+-a\\s+src/\\s+dest/$",
+            "aliases": ["rsync -a src/ dest/"],
+            "hint": "Use rsync with archive mode (-a): 'rsync -a src/ dest/'",
+            "explanation": "'rsync -a' enables archive mode, which preserves permissions, timestamps, symlinks, and copies recursively."
+        }
+    ]
+}

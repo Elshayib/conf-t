@@ -1,0 +1,102 @@
+{
+    "id": "cisco_trunking_dtp",
+    "title": "Cisco Trunking & DTP",
+    "platform": "Cisco",
+    "description": "Learn how to configure 802.1Q trunk ports, control allowed VLANs, set native VLANs, disable DTP negotiation, and verify trunk status.",
+    "difficulty": "intermediate",
+    "tags": ["trunk", "dtp", "ccna"],
+    "prerequisites": ["cisco_vlan_fundamentals"],
+    "estimated_minutes": 18,
+    "tasks": [
+        {
+            "id": "cisco_trunking_dtp__enable",
+            "prompt": "Enter Privileged EXEC mode.",
+            "prefix": "Switch>",
+            "expected": "^enable$",
+            "aliases": ["en"],
+            "hint": "Use the command: 'enable' or 'en'",
+            "explanation": "Trunk configuration and verification commands require Privileged EXEC mode."
+        },
+        {
+            "id": "cisco_trunking_dtp__configure_terminal",
+            "prompt": "Enter Global Configuration mode.",
+            "prefix": "Switch#",
+            "expected": "^configure\\s+terminal$",
+            "aliases": ["conf t", "config terminal", "config t"],
+            "hint": "Use the command: 'configure terminal' or 'conf t'",
+            "explanation": "Trunk parameters are configured from global configuration mode by entering the interface."
+        },
+        {
+            "id": "cisco_trunking_dtp__interface_gi01",
+            "prompt": "Enter Interface Configuration mode for GigabitEthernet0/1.",
+            "prefix": "Switch(config)#",
+            "expected": "^interface\\s+GigabitEthernet0/1$",
+            "aliases": ["int gi0/1", "int g0/1", "interface gi0/1", "interface g0/1"],
+            "hint": "Use the command: 'interface GigabitEthernet0/1' or 'int gi0/1'",
+            "explanation": "Trunk links are typically configured on uplink ports between switches."
+        },
+        {
+            "id": "cisco_trunking_dtp__switchport_mode_trunk",
+            "prompt": "Configure the interface as an 802.1Q trunk port.",
+            "prefix": "Switch(config-if)#",
+            "expected": "^switchport\\s+mode\\s+trunk$",
+            "aliases": ["sw mod tr", "switchport mode tr"],
+            "hint": "Use the command: 'switchport mode trunk'",
+            "explanation": "Trunk mode allows the port to carry tagged traffic for multiple VLANs simultaneously."
+        },
+        {
+            "id": "cisco_trunking_dtp__trunk_allowed_vlans",
+            "prompt": "Restrict the trunk to carry only VLANs 10 and 20.",
+            "prefix": "Switch(config-if)#",
+            "expected": "^switchport\\s+trunk\\s+allowed\\s+vlan\\s+10,20$",
+            "aliases": ["sw tr all vlan 10,20", "switchport tr allowed vlan 10,20"],
+            "hint": "Use the command: 'switchport trunk allowed vlan 10,20'",
+            "explanation": "Limiting allowed VLANs reduces unnecessary broadcast traffic and improves security on trunk links."
+        },
+        {
+            "id": "cisco_trunking_dtp__trunk_native_vlan",
+            "prompt": "Set the native VLAN on this trunk to VLAN 99.",
+            "prefix": "Switch(config-if)#",
+            "expected": "^switchport\\s+trunk\\s+native\\s+vlan\\s+99$",
+            "aliases": ["sw tr native vlan 99", "switchport tr native vlan 99"],
+            "hint": "Use the command: 'switchport trunk native vlan 99'",
+            "explanation": "The native VLAN carries untagged traffic across the trunk. Both ends of the link must agree on the native VLAN."
+        },
+        {
+            "id": "cisco_trunking_dtp__switchport_nonegotiate",
+            "prompt": "Disable DTP negotiation on this trunk port.",
+            "prefix": "Switch(config-if)#",
+            "expected": "^switchport\\s+nonegotiate$",
+            "aliases": ["sw nonegotiate"],
+            "hint": "Use the command: 'switchport nonegotiate'",
+            "explanation": "Disabling DTP prevents the port from dynamically negotiating trunk or access mode with the neighbor switch."
+        },
+        {
+            "id": "cisco_trunking_dtp__interface_range_fa2324",
+            "prompt": "Enter Interface Configuration mode for FastEthernet0/23 through FastEthernet0/24 simultaneously.",
+            "prefix": "Switch(config-if)#",
+            "expected": "^interface\\s+range\\s+FastEthernet0/23-24$",
+            "aliases": ["int range fa0/23-24", "int ra fa0/23-24", "interface range f0/23-24"],
+            "hint": "Use the command: 'interface range FastEthernet0/23-24'",
+            "explanation": "'interface range' lets you apply configuration to multiple ports at once, saving time on large deployments."
+        },
+        {
+            "id": "cisco_trunking_dtp__dtp_dynamic_desirable",
+            "prompt": "Configure the interfaces to dynamically negotiate trunking using DTP desirable mode.",
+            "prefix": "Switch(config-if-range)#",
+            "expected": "^switchport\\s+mode\\s+dynamic\\s+desirable$",
+            "aliases": ["sw mod dynamic desirable", "switchport mode dynamic desirable"],
+            "hint": "Use the command: 'switchport mode dynamic desirable'",
+            "explanation": "Dynamic desirable actively attempts to form a trunk with the neighbor. If the neighbor is set to auto or desirable, a trunk forms."
+        },
+        {
+            "id": "cisco_trunking_dtp__show_interfaces_trunk",
+            "prompt": "Display the status of all trunk ports on the switch.",
+            "prefix": "Switch(config-if-range)#",
+            "expected": "^show\\s+interfaces\\s+trunk$",
+            "aliases": ["sh int trunk", "sh interfaces trunk"],
+            "hint": "Use the command: 'show interfaces trunk'",
+            "explanation": "'show interfaces trunk' confirms mode, encapsulation, native VLAN, and allowed VLANs for every active trunk."
+        }
+    ]
+}

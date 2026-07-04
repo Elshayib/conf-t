@@ -1,0 +1,102 @@
+{
+    "id": "docker_networking",
+    "title": "Docker Networking",
+    "platform": "Docker",
+    "description": "Learn to create networks, connect containers, inspect network topology, and publish ports.",
+    "difficulty": "intermediate",
+    "tags": ["networking", "ports"],
+    "prerequisites": ["docker_containers"],
+    "estimated_minutes": 30,
+    "tasks": [
+        {
+            "id": "docker_networking__network_ls",
+            "prompt": "List all Docker networks on the host.",
+            "prefix": "user@ubuntu:~$",
+            "expected": "^docker\\s+network\\s+ls$",
+            "aliases": [],
+            "hint": "Use docker network ls.",
+            "explanation": "docker network ls shows bridge, host, and custom user-defined networks."
+        },
+        {
+            "id": "docker_networking__network_create",
+            "prompt": "Create a bridge network named 'app-net'.",
+            "prefix": "user@ubuntu:~$",
+            "expected": "^docker\\s+network\\s+create\\s+app-net$",
+            "aliases": [],
+            "hint": "Use docker network create app-net.",
+            "explanation": "User-defined bridge networks provide DNS-based container discovery."
+        },
+        {
+            "id": "docker_networking__run_network",
+            "prompt": "Run 'nginx' container 'web' attached to network 'app-net' in detached mode.",
+            "prefix": "user@ubuntu:~$",
+            "expected": "^docker\\s+run\\s+-d\\s+--name\\s+web\\s+--network\\s+app-net\\s+nginx$",
+            "aliases": [],
+            "hint": "Use --network app-net with docker run.",
+            "explanation": "--network attaches the container to a specific Docker network at start."
+        },
+        {
+            "id": "docker_networking__network_connect",
+            "prompt": "Connect running container 'api' to network 'app-net'.",
+            "prefix": "user@ubuntu:~$",
+            "expected": "^docker\\s+network\\s+connect\\s+app-net\\s+api$",
+            "aliases": [],
+            "hint": "Use docker network connect app-net api.",
+            "explanation": "docker network connect adds a running container to another network."
+        },
+        {
+            "id": "docker_networking__network_disconnect",
+            "prompt": "Disconnect container 'api' from network 'app-net'.",
+            "prefix": "user@ubuntu:~$",
+            "expected": "^docker\\s+network\\s+disconnect\\s+app-net\\s+api$",
+            "aliases": [],
+            "hint": "Use docker network disconnect app-net api.",
+            "explanation": "disconnect removes a container interface from the specified network."
+        },
+        {
+            "id": "docker_networking__network_inspect",
+            "prompt": "Inspect network 'app-net' to view connected containers.",
+            "prefix": "user@ubuntu:~$",
+            "expected": "^docker\\s+network\\s+inspect\\s+app-net$",
+            "aliases": [],
+            "hint": "Use docker network inspect app-net.",
+            "explanation": "Inspect shows subnets, gateways, and attached endpoints."
+        },
+        {
+            "id": "docker_networking__port_publish",
+            "prompt": "Run 'nginx' mapping host port 8080 to container port 80 in detached mode.",
+            "prefix": "user@ubuntu:~$",
+            "expected": "^docker\\s+run\\s+-d\\s+-p\\s+8080:80\\s+nginx$",
+            "aliases": [],
+            "hint": "Use -p 8080:80 with docker run -d.",
+            "explanation": "-p publishes container ports to the host for external access."
+        },
+        {
+            "id": "docker_networking__port_bind_localhost",
+            "prompt": "Run 'redis' binding port 6379 only to localhost (127.0.0.1).",
+            "prefix": "user@ubuntu:~$",
+            "expected": "^docker\\s+run\\s+-d\\s+-p\\s+127\\.0\\.0\\.1:6379:6379\\s+redis$",
+            "aliases": [],
+            "hint": "Use -p 127.0.0.1:6379:6379.",
+            "explanation": "Binding to 127.0.0.1 restricts access to the local machine."
+        },
+        {
+            "id": "docker_networking__network_rm",
+            "prompt": "Remove the unused network 'app-net'.",
+            "prefix": "user@ubuntu:~$",
+            "expected": "^docker\\s+network\\s+rm\\s+app-net$",
+            "aliases": [],
+            "hint": "Use docker network rm app-net.",
+            "explanation": "Networks with active endpoints cannot be removed until disconnected."
+        },
+        {
+            "id": "docker_networking__host_network",
+            "prompt": "Run 'nginx' using the host network stack.",
+            "prefix": "user@ubuntu:~$",
+            "expected": "^docker\\s+run\\s+-d\\s+--network\\s+host\\s+nginx$",
+            "aliases": [],
+            "hint": "Use --network host.",
+            "explanation": "host networking removes network isolation and uses the host interfaces directly."
+        }
+    ]
+}

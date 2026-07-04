@@ -1,0 +1,102 @@
+{
+    "id": "linux_process_management",
+    "title": "Linux Process Management",
+    "platform": "Linux",
+    "description": "Master process inspection, signaling, priority control, background jobs, and persistent execution with nohup and job control.",
+    "difficulty": "intermediate",
+    "tags": ["processes", "signals", "jobs"],
+    "prerequisites": ["linux_advanced"],
+    "estimated_minutes": 30,
+    "tasks": [
+        {
+            "id": "linux_process_management__ps_tree",
+            "prompt": "Display running processes in a tree format showing parent-child relationships.",
+            "prefix": "user@ubuntu:~$",
+            "expected": "^ps\\s+auxf$",
+            "aliases": ["ps aux f"],
+            "hint": "Use ps with aux and forest format: 'ps auxf'",
+            "explanation": "'ps auxf' lists all processes with the forest ('f') option drawing an ASCII tree of process hierarchy."
+        },
+        {
+            "id": "linux_process_management__pgrep_name",
+            "prompt": "Find the PIDs of all processes whose name matches 'nginx'.",
+            "prefix": "user@ubuntu:~$",
+            "expected": "^pgrep\\s+nginx$",
+            "aliases": [],
+            "hint": "Use pgrep with the process name: 'pgrep nginx'",
+            "explanation": "'pgrep' searches the process table and returns PIDs matching the given name pattern."
+        },
+        {
+            "id": "linux_process_management__pkill_signal",
+            "prompt": "Send SIGTERM to all processes named 'stale_worker'.",
+            "prefix": "user@ubuntu:~$",
+            "expected": "^pkill\\s+stale_worker$",
+            "aliases": [],
+            "hint": "Use pkill with the process name: 'pkill stale_worker'",
+            "explanation": "'pkill' sends the default SIGTERM signal to processes matching the specified name."
+        },
+        {
+            "id": "linux_process_management__kill_sigterm",
+            "prompt": "Send SIGTERM (signal 15) to process with PID 5678 for graceful shutdown.",
+            "prefix": "user@ubuntu:~$",
+            "expected": "^kill\\s+15\\s+5678$",
+            "aliases": ["kill -15 5678", "kill -TERM 5678"],
+            "hint": "Use kill with signal 15: 'kill 15 5678'",
+            "explanation": "SIGTERM (15) requests a process to terminate gracefully, allowing cleanup before exit."
+        },
+        {
+            "id": "linux_process_management__kill_sigkill",
+            "prompt": "Forcefully kill process with PID 9999 using SIGKILL.",
+            "prefix": "user@ubuntu:~$",
+            "expected": "^kill\\s+-9\\s+9999$",
+            "aliases": ["kill -9 9999", "kill -SIGKILL 9999"],
+            "hint": "Use kill with signal 9: 'kill -9 9999'",
+            "explanation": "SIGKILL (-9) cannot be caught or ignored; the kernel immediately terminates the process."
+        },
+        {
+            "id": "linux_process_management__nice_priority",
+            "prompt": "Start 'backup.sh' with a lower priority (nice value 10).",
+            "prefix": "user@ubuntu:~$",
+            "expected": "^nice\\s+-n\\s+10\\s+backup\\.sh$",
+            "aliases": ["nice -n10 backup.sh"],
+            "hint": "Use nice with -n flag: 'nice -n 10 backup.sh'",
+            "explanation": "'nice' launches a command with adjusted scheduling priority. Higher nice values mean lower CPU priority."
+        },
+        {
+            "id": "linux_process_management__renice_pid",
+            "prompt": "Change the nice value of PID 4321 to 5.",
+            "prefix": "user@ubuntu:~$",
+            "expected": "^renice\\s+5\\s+-p\\s+4321$",
+            "aliases": ["renice -n 5 -p 4321"],
+            "hint": "Use renice with priority and PID: 'renice 5 -p 4321'",
+            "explanation": "'renice' adjusts the priority of a running process identified by its PID."
+        },
+        {
+            "id": "linux_process_management__jobs_list",
+            "prompt": "List all background jobs in the current shell session.",
+            "prefix": "user@ubuntu:~$",
+            "expected": "^jobs$",
+            "aliases": [],
+            "hint": "Use the jobs builtin: 'jobs'",
+            "explanation": "'jobs' displays background and suspended tasks started from the current shell."
+        },
+        {
+            "id": "linux_process_management__fg_resume",
+            "prompt": "Bring background job number 1 to the foreground.",
+            "prefix": "user@ubuntu:~$",
+            "expected": "^fg\\s+%1$",
+            "aliases": ["fg 1"],
+            "hint": "Use fg with job number: 'fg %1'",
+            "explanation": "'fg %N' resumes job N in the foreground, reconnecting it to the terminal."
+        },
+        {
+            "id": "linux_process_management__nohup_run",
+            "prompt": "Run 'long_task.sh' immune to hangups, redirecting output to nohup.out by default.",
+            "prefix": "user@ubuntu:~$",
+            "expected": "^nohup\\s+long_task\\.sh$",
+            "aliases": [],
+            "hint": "Use nohup: 'nohup long_task.sh'",
+            "explanation": "'nohup' runs a command that continues after the terminal closes, ignoring SIGHUP signals."
+        }
+    ]
+}

@@ -1,0 +1,66 @@
+{
+    "id": "docker_registry",
+    "title": "Docker Registry & Push",
+    "platform": "Docker",
+    "description": "Learn to log in to registries, tag images for remotes, push and pull from private repositories.",
+    "difficulty": "intermediate",
+    "tags": ["registry", "push", "pull"],
+    "prerequisites": ["docker_images"],
+    "estimated_minutes": 15,
+    "tasks": [
+        {
+            "id": "docker_registry__login",
+            "prompt": "Log in to Docker Hub registry.",
+            "prefix": "user@ubuntu:~$",
+            "expected": "^docker\\s+login$",
+            "aliases": [],
+            "hint": "Use docker login.",
+            "explanation": "docker login stores credentials for pushing to Docker Hub."
+        },
+        {
+            "id": "docker_registry__login_registry",
+            "prompt": "Log in to private registry 'registry.example.com'.",
+            "prefix": "user@ubuntu:~$",
+            "expected": "^docker\\s+login\\s+registry\\.example\\.com$",
+            "aliases": [],
+            "hint": "Use docker login registry.example.com.",
+            "explanation": "Specifying a registry hostname targets private or self-hosted registries."
+        },
+        {
+            "id": "docker_registry__tag_remote",
+            "prompt": "Tag local image 'myapp:1.0' for registry 'registry.example.com/myapp:1.0'.",
+            "prefix": "user@ubuntu:~$",
+            "expected": "^docker\\s+tag\\s+myapp:1\\.0\\s+registry\\.example\\.com/myapp:1\\.0$",
+            "aliases": [],
+            "hint": "Use docker tag myapp:1.0 registry.example.com/myapp:1.0.",
+            "explanation": "Remote tags include the registry hostname in the image reference."
+        },
+        {
+            "id": "docker_registry__push",
+            "prompt": "Push image 'registry.example.com/myapp:1.0' to the registry.",
+            "prefix": "user@ubuntu:~$",
+            "expected": "^docker\\s+push\\s+registry\\.example\\.com/myapp:1\\.0$",
+            "aliases": [],
+            "hint": "Use docker push registry.example.com/myapp:1.0.",
+            "explanation": "docker push uploads image layers to the configured registry."
+        },
+        {
+            "id": "docker_registry__pull_private",
+            "prompt": "Pull image 'registry.example.com/myapp:1.0' from the private registry.",
+            "prefix": "user@ubuntu:~$",
+            "expected": "^docker\\s+pull\\s+registry\\.example\\.com/myapp:1\\.0$",
+            "aliases": [],
+            "hint": "Use docker pull registry.example.com/myapp:1.0.",
+            "explanation": "Private pulls require authentication via docker login."
+        },
+        {
+            "id": "docker_registry__logout",
+            "prompt": "Log out from the Docker registry on this host.",
+            "prefix": "user@ubuntu:~$",
+            "expected": "^docker\\s+logout$",
+            "aliases": [],
+            "hint": "Use docker logout.",
+            "explanation": "docker logout removes stored registry credentials."
+        }
+    ]
+}

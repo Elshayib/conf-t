@@ -1,0 +1,84 @@
+{
+    "id": "cisco_dhcp",
+    "title": "Cisco DHCP Server",
+    "platform": "Cisco",
+    "description": "Learn to configure a Cisco IOS router as a DHCP server, including address pools, excluded ranges, default gateways, DNS servers, lease times, and DHCP relay with helper addresses.",
+    "difficulty": "intermediate",
+    "tags": ["dhcp", "services", "ccna"],
+    "prerequisites": ["cisco_basic"],
+    "estimated_minutes": 15,
+    "tasks": [
+        {
+            "id": "cisco_dhcp__exclude_addresses",
+            "prompt": "Exclude IP addresses 192.168.1.1 through 192.168.1.10 from the DHCP pool.",
+            "prefix": "Router(config)#",
+            "expected": "^ip\\s+dhcp\\s+excluded-address\\s+192\\.168\\.1\\.1\\s+192\\.168\\.1\\.10$",
+            "aliases": ["ip dhcp excluded-address 192.168.1.1 192.168.1.10"],
+            "hint": "Use: 'ip dhcp excluded-address 192.168.1.1 192.168.1.10'",
+            "explanation": "Excluded addresses reserve specific IPs for static assignments such as gateways, servers, and printers so DHCP does not lease them."
+        },
+        {
+            "id": "cisco_dhcp__create_pool",
+            "prompt": "Create a DHCP address pool named 'LAN-POOL'.",
+            "prefix": "Router(config)#",
+            "expected": "^ip\\s+dhcp\\s+pool\\s+LAN-POOL$",
+            "aliases": ["ip dhcp pool LAN-POOL"],
+            "hint": "Use: 'ip dhcp pool LAN-POOL'",
+            "explanation": "The 'ip dhcp pool' command enters DHCP pool configuration mode where you define the network scope and options for clients."
+        },
+        {
+            "id": "cisco_dhcp__network",
+            "prompt": "Define the DHCP network as 192.168.1.0 with subnet mask 255.255.255.0.",
+            "prefix": "Router(dhcp-config)#",
+            "expected": "^network\\s+192\\.168\\.1\\.0\\s+255\\.255\\.255\\.0$",
+            "aliases": ["net 192.168.1.0 255.255.255.0"],
+            "hint": "Use: 'network 192.168.1.0 255.255.255.0'",
+            "explanation": "The 'network' command specifies the subnet from which the DHCP server assigns addresses to requesting clients."
+        },
+        {
+            "id": "cisco_dhcp__default_router",
+            "prompt": "Set the default gateway (default-router) for DHCP clients to 192.168.1.1.",
+            "prefix": "Router(dhcp-config)#",
+            "expected": "^default-router\\s+192\\.168\\.1\\.1$",
+            "aliases": ["default-router 192.168.1.1"],
+            "hint": "Use: 'default-router 192.168.1.1'",
+            "explanation": "The default-router option (Option 3) tells DHCP clients which IP address to use as their default gateway."
+        },
+        {
+            "id": "cisco_dhcp__dns_server",
+            "prompt": "Configure the DNS server option for DHCP clients to 8.8.8.8.",
+            "prefix": "Router(dhcp-config)#",
+            "expected": "^dns-server\\s+8\\.8\\.8\\.8$",
+            "aliases": ["dns-server 8.8.8.8"],
+            "hint": "Use: 'dns-server 8.8.8.8'",
+            "explanation": "The dns-server option (Option 6) provides clients with a DNS resolver address for hostname lookups."
+        },
+        {
+            "id": "cisco_dhcp__domain_name",
+            "prompt": "Set the DHCP domain name option to 'corp.local'.",
+            "prefix": "Router(dhcp-config)#",
+            "expected": "^domain-name\\s+corp\\.local$",
+            "aliases": ["domain-name corp.local"],
+            "hint": "Use: 'domain-name corp.local'",
+            "explanation": "The domain-name option (Option 15) appends a default DNS suffix to unqualified hostnames on client machines."
+        },
+        {
+            "id": "cisco_dhcp__lease",
+            "prompt": "Set the DHCP lease time to 7 days, 0 hours, and 0 minutes.",
+            "prefix": "Router(dhcp-config)#",
+            "expected": "^lease\\s+7\\s+0\\s+0$",
+            "aliases": ["lease 7 0 0"],
+            "hint": "Use: 'lease 7 0 0' (days hours minutes)",
+            "explanation": "The lease command controls how long a client may use an assigned IP address before it must renew or release it."
+        },
+        {
+            "id": "cisco_dhcp__helper_address",
+            "prompt": "Configure interface GigabitEthernet0/0 as a DHCP relay by forwarding broadcasts to DHCP server 10.0.0.5.",
+            "prefix": "Router(config-if)#",
+            "expected": "^ip\\s+helper-address\\s+10\\.0\\.0\\.5$",
+            "aliases": ["ip helper-address 10.0.0.5", "ip helper 10.0.0.5"],
+            "hint": "Use: 'ip helper-address 10.0.0.5'",
+            "explanation": "The ip helper-address command converts local DHCP broadcasts into unicast packets forwarded to a remote DHCP server across subnets."
+        }
+    ]
+}

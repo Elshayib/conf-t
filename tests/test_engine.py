@@ -4,7 +4,20 @@ import json
 import re
 from pathlib import Path
 from conf_t.models import Lesson, Task, SessionStats
-from conf_t.engine import validate_input, LessonLoader, ProgressManager
+from conf_t.engine import (
+    LESSON_STATUS_COMPLETED,
+    LESSON_STATUS_IN_PROGRESS,
+    LESSON_STATUS_NOT_STARTED,
+    LessonLoader,
+    ProgressManager,
+    are_prerequisites_met,
+    format_display_answer,
+    get_lesson_status,
+    get_missing_prerequisites,
+    get_recommended_lesson,
+    sort_lessons_by_curriculum,
+    validate_input,
+)
 
 # 1. Tests for validate_input
 def test_validate_input_cisco_case_insensitive():
@@ -109,6 +122,7 @@ def test_progress_manager_defaults(tmp_path):
     progress_file = tmp_path / "progress.json"
     manager = ProgressManager(filepath=progress_file)
     assert manager.data["completed_lessons"] == []
+    assert manager.data["attempted_lessons"] == []
     assert manager.data["failed_tasks"] == []
     assert manager.data["total_attempts"] == 0
     assert manager.data["correct_first_try"] == 0
@@ -184,3 +198,85 @@ def test_progress_manager_reset(tmp_path):
     manager.reset_progress()
     assert manager.data["total_attempts"] == 0
     assert manager.data["completed_lessons"] == []
+
+def test_format_display_answer_prefers_alias():
+    task = Task(
+        id="t1",
+        prompt="Enter config mode",
+        prefix="Router#",
+        expected="^configure\\s+terminal$",
+        aliases=["conf t", "config t"],
+    )
+    assert format_display_answer(task, "Cisco") == "conf t"
+
+def test_format_display_answer_strips_regex():
+    task = Task(
+        id="t1",
+        prompt="Print directory",
+        prefix="$",
+        expected="^pwd$",
+        aliases=[],
+    )
+    assert format_display_answer(task, "Linux") == "pwd"
+
+def test_sort_lessons_by_curriculum_orders_by_difficulty():
+    lessons = [
+        Lesson(id="advanced", title="Advanced", platform="Linux", description="", difficulty="advanced", tasks=[]),
+        Lesson(id="beginner", title="Basics", platform="Linux", description="", difficulty="beginner", tasks=[]),
+        Lesson(id="intermediate", title="Middle", platform="Linux", description="", difficulty="intermediate", tasks=[]),
+    ]
+    ordered = sort_lessons_by_curriculum(lessons)
+    assert [lesson.id for lesson in ordered] == ["beginner", "intermediate", "advanced"]
+
+def test_prerequisite_helpers():
+    lesson = Lesson(
+        id="vlan",
+        title="VLANs",
+        platform="Cisco",
+        description="",
+        prerequisites=["cisco_basic", "cisco_interface_basics"],
+        tasks=[],
+    )
+    assert get_missing_prerequisites(lesson, ["cisco_basic"]) == ["cisco_interface_basics"]
+    assert are_prerequisites_met(lesson, ["cisco_basic", "cisco_interface_basics"]) is True
+
+def test_get_lesson_status():
+    assert get_lesson_status("l1", ["l1"], [], []) == LESSON_STATUS_COMPLETED
+    assert get_lesson_status("l2", [], ["l2"], []) == LESSON_STATUS_IN_PROGRESS
+    assert get_lesson_status("l3", [], [], ["l3"]) == LESSON_STATUS_IN_PROGRESS
+    assert get_lesson_status("l4", [], [], []) == LESSON_STATUS_NOT_STARTED
+
+def test_get_recommended_lesson():
+    lessons = [
+        Lesson(id="basic", title="Basic", platform="Cisco", description="", difficulty="beginner", tasks=[]),
+        Lesson(
+            id="vlan",
+            title="VLAN",
+            platform="Cisco",
+            description="",
+            difficulty="intermediate",
+            prerequisites=["basic"],
+            tasks=[],
+        ),
+        Lesson(
+            id="ospf",
+            title="OSPF",
+            platform="Cisco",
+            description="",
+            difficulty="intermediate",
+            prerequisites=["vlan"],
+            tasks=[],
+        ),
+    ]
+    assert get_recommended_lesson(lessons, []).id == "basic"
+    assert get_recommended_lesson(lessons, ["basic"]).id == "vlan"
+    assert get_recommended_lesson(lessons, ["basic", "vlan"]).id == "ospf"
+    assert get_recommended_lesson(lessons, ["basic", "vlan", "ospf"]) is None
+
+def test_mark_lesson_attempted(tmp_path):
+    progress_file = tmp_path / "progress.json"
+    manager = ProgressManager(filepath=progress_file)
+    manager.mark_lesson_attempted("lesson_a")
+    assert "lesson_a" in manager.data["attempted_lessons"]
+    manager.mark_lesson_attempted("lesson_a")
+    assert manager.data["attempted_lessons"].count("lesson_a") == 1

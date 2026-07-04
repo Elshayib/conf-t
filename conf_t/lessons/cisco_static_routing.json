@@ -1,0 +1,102 @@
+{
+    "id": "cisco_static_routing",
+    "title": "Cisco IOS Static Routing",
+    "platform": "Cisco",
+    "description": "Configure static routes using next-hop and exit-interface methods, default routes, floating static routes with administrative distance, and verify the routing table.",
+    "difficulty": "intermediate",
+    "tags": ["routing", "static", "ccna"],
+    "prerequisites": ["cisco_basic"],
+    "estimated_minutes": 18,
+    "tasks": [
+        {
+            "id": "cisco_static_routing__configure_terminal",
+            "prompt": "Enter Global Configuration mode to begin adding static routes.",
+            "prefix": "Branch-R1#",
+            "expected": "^configure\\s+terminal$",
+            "aliases": ["conf t", "config terminal", "config t"],
+            "hint": "Use: 'configure terminal' or 'conf t'",
+            "explanation": "Static routes are configured in global configuration mode. The prompt changes to Branch-R1(config)#."
+        },
+        {
+            "id": "cisco_static_routing__ip_route_next_hop",
+            "prompt": "Add a static route to network 192.168.50.0/24 via next-hop 10.1.1.2.",
+            "prefix": "Branch-R1(config)#",
+            "expected": "^ip\\s+route\\s+192\\.168\\.50\\.0\\s+255\\.255\\.255\\.0\\s+10\\.1\\.1\\.2$",
+            "aliases": ["ip route 192.168.50.0 255.255.255.0 10.1.1.2"],
+            "hint": "Use: 'ip route [network] [mask] [next-hop]'",
+            "explanation": "A recursive static route points to a remote network and forwards packets to a directly reachable next-hop IP address."
+        },
+        {
+            "id": "cisco_static_routing__ip_route_exit_interface",
+            "prompt": "Add a static route to 172.16.0.0/16 using Serial0/0/1 as the exit interface.",
+            "prefix": "Branch-R1(config)#",
+            "expected": "^ip\\s+route\\s+172\\.16\\.0\\.0\\s+255\\.255\\.0\\.0\\s+Serial0/0/1$",
+            "aliases": ["ip route 172.16.0.0 255.255.0.0 s0/0/1", "ip route 172.16.0.0 255.255.0.0 serial 0/0/1"],
+            "hint": "Use: 'ip route [network] [mask] [exit-interface]'",
+            "explanation": "On point-to-point serial links, a static route can reference the outbound interface instead of a next-hop IP."
+        },
+        {
+            "id": "cisco_static_routing__default_route",
+            "prompt": "Configure a default static route to the Internet gateway at 203.0.113.1.",
+            "prefix": "Branch-R1(config)#",
+            "expected": "^ip\\s+route\\s+0\\.0\\.0\\.0\\s+0\\.0\\.0\\.0\\s+203\\.0\\.113\\.1$",
+            "aliases": ["ip route 0.0.0.0 0.0.0.0 203.0.113.1"],
+            "hint": "Use: 'ip route 0.0.0.0 0.0.0.0 [next-hop]'",
+            "explanation": "A default route (0.0.0.0/0) matches all destinations not found in the routing table and is commonly used for Internet exit."
+        },
+        {
+            "id": "cisco_static_routing__floating_static",
+            "prompt": "Add a backup static route to 10.0.0.0/8 via 10.1.1.3 with administrative distance 250.",
+            "prefix": "Branch-R1(config)#",
+            "expected": "^ip\\s+route\\s+10\\.0\\.0\\.0\\s+255\\.0\\.0\\.0\\s+10\\.1\\.1\\.3\\s+250$",
+            "aliases": ["ip route 10.0.0.0 255.0.0.0 10.1.1.3 250"],
+            "hint": "Append the administrative distance at the end: 'ip route [network] [mask] [next-hop] [distance]'",
+            "explanation": "A floating static route uses a higher administrative distance so it is installed only when the primary route is unavailable."
+        },
+        {
+            "id": "cisco_static_routing__ip_route_both",
+            "prompt": "Add a static route to 10.20.30.0/24 out GigabitEthernet0/0 with next-hop 10.1.1.5.",
+            "prefix": "Branch-R1(config)#",
+            "expected": "^ip\\s+route\\s+10\\.20\\.30\\.0\\s+255\\.255\\.255\\.0\\s+GigabitEthernet0/0\\s+10\\.1\\.1\\.5$",
+            "aliases": ["ip route 10.20.30.0 255.255.255.0 g0/0 10.1.1.5", "ip route 10.20.30.0 255.255.255.0 gigabitethernet0/0 10.1.1.5"],
+            "hint": "Specify both exit interface and next-hop: 'ip route [network] [mask] [interface] [next-hop]'",
+            "explanation": "On multi-access networks like Ethernet, specifying both the exit interface and next-hop avoids proxy ARP issues."
+        },
+        {
+            "id": "cisco_static_routing__no_ip_route",
+            "prompt": "Remove the static route to 172.16.0.0/16 via Serial0/0/1.",
+            "prefix": "Branch-R1(config)#",
+            "expected": "^no\\s+ip\\s+route\\s+172\\.16\\.0\\.0\\s+255\\.255\\.0\\.0\\s+Serial0/0/1$",
+            "aliases": ["no ip route 172.16.0.0 255.255.0.0 s0/0/1"],
+            "hint": "Prefix the original route command with 'no': 'no ip route ...'",
+            "explanation": "The 'no' form of a configuration command removes the matching static route from the running configuration."
+        },
+        {
+            "id": "cisco_static_routing__exit_config",
+            "prompt": "Exit global configuration mode back to privileged EXEC mode.",
+            "prefix": "Branch-R1(config)#",
+            "expected": "^(exit|end)$",
+            "aliases": [],
+            "hint": "Use: 'exit' or 'end'",
+            "explanation": "Verification commands such as 'show ip route' are executed from privileged EXEC mode."
+        },
+        {
+            "id": "cisco_static_routing__show_ip_route",
+            "prompt": "Display the full IP routing table.",
+            "prefix": "Branch-R1#",
+            "expected": "^show\\s+ip\\s+route$",
+            "aliases": ["sh ip route", "sh ip ro"],
+            "hint": "Use: 'show ip route'",
+            "explanation": "The routing table shows how the router reaches each destination, including codes for static (S), connected (C), and other route sources."
+        },
+        {
+            "id": "cisco_static_routing__show_ip_route_static",
+            "prompt": "Display only static routes in the routing table.",
+            "prefix": "Branch-R1#",
+            "expected": "^show\\s+ip\\s+route\\s+static$",
+            "aliases": ["sh ip route static", "sh ip ro static"],
+            "hint": "Use: 'show ip route static'",
+            "explanation": "Filtering the show command to static routes helps verify your configured entries without connected or dynamic routes."
+        }
+    ]
+}

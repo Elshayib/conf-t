@@ -1,0 +1,102 @@
+{
+    "id": "cisco_interface_basics",
+    "title": "Cisco IOS Interface Configuration",
+    "platform": "Cisco",
+    "description": "Learn how to configure switch and router interface properties including descriptions, speed, duplex, VLAN assignment, administrative state, bandwidth, MTU, and event logging.",
+    "difficulty": "beginner",
+    "tags": ["ios", "interfaces", "ccna"],
+    "prerequisites": ["cisco_basic"],
+    "estimated_minutes": 15,
+    "tasks": [
+        {
+            "id": "cisco_interface_basics__description",
+            "prompt": "Set the interface description to 'Uplink-to-Core'.",
+            "prefix": "Switch(config-if)#",
+            "expected": "^description\\s+Uplink-to-Core$",
+            "aliases": ["desc Uplink-to-Core"],
+            "hint": "Use the command: 'description Uplink-to-Core' or 'desc Uplink-to-Core'",
+            "explanation": "The 'description' command adds a human-readable label to an interface. It appears in 'show interfaces' output and helps document network topology."
+        },
+        {
+            "id": "cisco_interface_basics__duplex_full",
+            "prompt": "Configure the interface to operate in full-duplex mode.",
+            "prefix": "Switch(config-if)#",
+            "expected": "^duplex\\s+full$",
+            "aliases": [],
+            "hint": "Use the command: 'duplex full'",
+            "explanation": "Full-duplex allows simultaneous send and receive on the link. A duplex mismatch with the connected device causes performance problems and CRC errors."
+        },
+        {
+            "id": "cisco_interface_basics__speed_100",
+            "prompt": "Set the interface speed to 100 Mbps.",
+            "prefix": "Switch(config-if)#",
+            "expected": "^speed\\s+100$",
+            "aliases": [],
+            "hint": "Use the command: 'speed 100'",
+            "explanation": "The 'speed' command hard-sets the port rate. On auto-negotiating links, manually fixing speed (and duplex) prevents mismatches with legacy devices."
+        },
+        {
+            "id": "cisco_interface_basics__switchport_mode_access",
+            "prompt": "Configure this port as an access port (carries traffic for a single VLAN).",
+            "prefix": "Switch(config-if)#",
+            "expected": "^switchport\\s+mode\\s+access$",
+            "aliases": ["sw mod acc", "sw mo ac"],
+            "hint": "Use the command: 'switchport mode access' or 'sw mod acc'",
+            "explanation": "Access ports connect end devices and carry untagged traffic for one VLAN. This is the default role for user-facing switch ports."
+        },
+        {
+            "id": "cisco_interface_basics__switchport_access_vlan",
+            "prompt": "Assign this access port to VLAN 20.",
+            "prefix": "Switch(config-if)#",
+            "expected": "^switchport\\s+access\\s+vlan\\s+20$",
+            "aliases": ["sw acc vlan 20"],
+            "hint": "Use the command: 'switchport access vlan 20' or 'sw acc vlan 20'",
+            "explanation": "The 'switchport access vlan' command places an access port into the specified VLAN, isolating its traffic from other broadcast domains."
+        },
+        {
+            "id": "cisco_interface_basics__shutdown",
+            "prompt": "Administratively disable (shut down) this interface.",
+            "prefix": "Switch(config-if)#",
+            "expected": "^shutdown$",
+            "aliases": ["shut"],
+            "hint": "Use the command: 'shutdown' or 'shut'",
+            "explanation": "The 'shutdown' command places the interface in an administratively down state. The link LED goes off and no traffic passes until 'no shutdown' is applied."
+        },
+        {
+            "id": "cisco_interface_basics__no_shutdown",
+            "prompt": "Enable (bring up) this administratively disabled interface.",
+            "prefix": "Switch(config-if)#",
+            "expected": "^no\\s+shutdown$",
+            "aliases": ["no shut"],
+            "hint": "Use the command: 'no shutdown' or 'no shut'",
+            "explanation": "Newly created or previously shut down interfaces require 'no shutdown' to transition from administratively down to up, allowing the physical link to operate."
+        },
+        {
+            "id": "cisco_interface_basics__bandwidth",
+            "prompt": "Set the interface bandwidth metric to 10000 kilobits per second (used by routing protocols).",
+            "prefix": "Switch(config-if)#",
+            "expected": "^bandwidth\\s+10000$",
+            "aliases": [],
+            "hint": "Use the command: 'bandwidth 10000'",
+            "explanation": "The 'bandwidth' command sets a logical metric for EIGRP and OSPF cost calculations—it does not change the actual physical port speed."
+        },
+        {
+            "id": "cisco_interface_basics__mtu",
+            "prompt": "Set the maximum transmission unit (MTU) to 1500 bytes on this interface.",
+            "prefix": "Switch(config-if)#",
+            "expected": "^mtu\\s+1500$",
+            "aliases": [],
+            "hint": "Use the command: 'mtu 1500'",
+            "explanation": "MTU defines the largest Layer 3 packet the interface can carry. The default Ethernet MTU of 1500 bytes is standard for most IPv4 networks."
+        },
+        {
+            "id": "cisco_interface_basics__logging_events",
+            "prompt": "Enable syslog messages when this interface's link status changes.",
+            "prefix": "Switch(config-if)#",
+            "expected": "^logging\\s+events\\s+link-status$",
+            "aliases": ["log events link-status"],
+            "hint": "Use the command: 'logging events link-status' or 'log events link-status'",
+            "explanation": "The 'logging events link-status' command generates a syslog entry whenever the interface transitions between up and down, aiding link-flap diagnosis."
+        }
+    ]
+}

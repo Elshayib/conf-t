@@ -1,0 +1,102 @@
+{
+    "id": "linux_firewall",
+    "title": "Linux Firewall Configuration",
+    "platform": "Linux",
+    "description": "Configure host-based firewalls using ufw, firewalld, and iptables to control inbound and outbound network traffic.",
+    "difficulty": "advanced",
+    "tags": ["firewall", "security", "iptables"],
+    "prerequisites": ["linux_networking"],
+    "estimated_minutes": 35,
+    "tasks": [
+        {
+            "id": "linux_firewall__ufw_status",
+            "prompt": "Display the current status and rules of the ufw firewall.",
+            "prefix": "user@ubuntu:~$",
+            "expected": "^sudo\\s+ufw\\s+status$",
+            "aliases": ["ufw status"],
+            "hint": "Use ufw status: 'sudo ufw status'",
+            "explanation": "'ufw status' shows whether the firewall is active and lists configured allow/deny rules."
+        },
+        {
+            "id": "linux_firewall__ufw_enable",
+            "prompt": "Enable the ufw firewall (will prompt for confirmation on remote SSH sessions).",
+            "prefix": "user@ubuntu:~$",
+            "expected": "^sudo\\s+ufw\\s+enable$",
+            "aliases": ["ufw enable"],
+            "hint": "Use ufw enable: 'sudo ufw enable'",
+            "explanation": "'ufw enable' activates the firewall and configures it to start on boot."
+        },
+        {
+            "id": "linux_firewall__ufw_allow_ssh",
+            "prompt": "Allow incoming SSH connections (port 22/tcp) through ufw.",
+            "prefix": "user@ubuntu:~$",
+            "expected": "^sudo\\s+ufw\\s+allow\\s+ssh$",
+            "aliases": ["sudo ufw allow 22/tcp", "ufw allow OpenSSH"],
+            "hint": "Use ufw allow ssh: 'sudo ufw allow ssh'",
+            "explanation": "'ufw allow ssh' adds a rule permitting inbound TCP traffic on port 22 using the built-in SSH profile."
+        },
+        {
+            "id": "linux_firewall__ufw_allow_port",
+            "prompt": "Allow incoming TCP traffic on port 443 through ufw.",
+            "prefix": "user@ubuntu:~$",
+            "expected": "^sudo\\s+ufw\\s+allow\\s+443/tcp$",
+            "aliases": ["ufw allow 443/tcp"],
+            "hint": "Use ufw allow with port: 'sudo ufw allow 443/tcp'",
+            "explanation": "'ufw allow 443/tcp' permits HTTPS traffic, commonly needed for web servers."
+        },
+        {
+            "id": "linux_firewall__ufw_deny_ip",
+            "prompt": "Deny all incoming traffic from IP address '192.168.1.100' via ufw.",
+            "prefix": "user@ubuntu:~$",
+            "expected": "^sudo\\s+ufw\\s+deny\\s+from\\s+192\\.168\\.1\\.100$",
+            "aliases": ["ufw deny from 192.168.1.100"],
+            "hint": "Use ufw deny from: 'sudo ufw deny from 192.168.1.100'",
+            "explanation": "'ufw deny from' blocks all inbound connections originating from the specified source IP."
+        },
+        {
+            "id": "linux_firewall__iptables_list",
+            "prompt": "List all rules in the iptables filter table with line numbers.",
+            "prefix": "user@ubuntu:~$",
+            "expected": "^sudo\\s+iptables\\s+-L\\s+-n\\s+--line-numbers$",
+            "aliases": ["iptables -L -n --line-numbers"],
+            "hint": "Use iptables list: 'sudo iptables -L -n --line-numbers'",
+            "explanation": "'iptables -L -n --line-numbers' shows filter table rules numerically without DNS resolution."
+        },
+        {
+            "id": "linux_firewall__iptables_allow_port",
+            "prompt": "Allow incoming TCP traffic on port 80 in iptables INPUT chain.",
+            "prefix": "user@ubuntu:~$",
+            "expected": "^sudo\\s+iptables\\s+-A\\s+INPUT\\s+-p\\s+tcp\\s+--dport\\s+80\\s+-j\\s+ACCEPT$",
+            "aliases": [],
+            "hint": "Use iptables append rule: 'sudo iptables -A INPUT -p tcp --dport 80 -j ACCEPT'",
+            "explanation": "This appends (-A) a rule to INPUT allowing TCP destination port 80 with action ACCEPT."
+        },
+        {
+            "id": "linux_firewall__iptables_drop_all",
+            "prompt": "Set the default policy of the iptables INPUT chain to DROP.",
+            "prefix": "user@ubuntu:~$",
+            "expected": "^sudo\\s+iptables\\s+-P\\s+INPUT\\s+DROP$",
+            "aliases": ["iptables -P INPUT DROP"],
+            "hint": "Use iptables policy: 'sudo iptables -P INPUT DROP'",
+            "explanation": "'iptables -P' sets the default policy for a chain. DROP silently discards unmatched packets."
+        },
+        {
+            "id": "linux_firewall__firewalld_status",
+            "prompt": "Check whether firewalld is running on this RHEL-style system.",
+            "prefix": "user@ubuntu:~$",
+            "expected": "^sudo\\s+firewall-cmd\\s+--state$",
+            "aliases": ["firewall-cmd --state"],
+            "hint": "Use firewall-cmd state: 'sudo firewall-cmd --state'",
+            "explanation": "'firewall-cmd --state' reports if firewalld is running, the default firewall on RHEL/CentOS/Fedora."
+        },
+        {
+            "id": "linux_firewall__firewalld_add_service",
+            "prompt": "Permanently allow the 'http' service through firewalld.",
+            "prefix": "user@ubuntu:~$",
+            "expected": "^sudo\\s+firewall-cmd\\s+--permanent\\s+--add-service=http$",
+            "aliases": ["firewall-cmd --permanent --add-service=http"],
+            "hint": "Use firewall-cmd permanent add: 'sudo firewall-cmd --permanent --add-service=http'",
+            "explanation": "'--permanent' saves the rule across reboots. '--add-service=http' opens the predefined HTTP ports."
+        }
+    ]
+}

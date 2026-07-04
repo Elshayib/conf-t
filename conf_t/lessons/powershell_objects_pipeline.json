@@ -1,0 +1,84 @@
+{
+    "id": "powershell_objects_pipeline",
+    "title": "PowerShell Objects & Pipelines",
+    "platform": "PowerShell",
+    "description": "Learn how PowerShell passes objects through pipelines using Format, Select, Sort, Measure, and Get-Member.",
+    "difficulty": "beginner",
+    "tags": ["pipeline", "objects", "cmdlets"],
+    "prerequisites": ["powershell_navigation"],
+    "estimated_minutes": 25,
+    "tasks": [
+        {
+            "id": "powershell_objects_pipeline__format_table",
+            "prompt": "List all processes and format the output as a table.",
+            "prefix": "PS C:\\>",
+            "expected": "^Get-Process\\s+\\|\\s+Format-Table$",
+            "aliases": ["Get-Process | Format-Table", "gps | ft"],
+            "hint": "Pipe Get-Process to Format-Table.",
+            "explanation": "Format-Table renders object properties in a readable column layout."
+        },
+        {
+            "id": "powershell_objects_pipeline__select_object",
+            "prompt": "List all services and select only the Name and Status properties.",
+            "prefix": "PS C:\\>",
+            "expected": "^Get-Service\\s+\\|\\s+Select-Object\\s+Name,\\s*Status$",
+            "aliases": ["Get-Service | Select-Object Name, Status", "gsv | select Name, Status"],
+            "hint": "Pipe Get-Service to Select-Object with property names.",
+            "explanation": "Select-Object narrows output to specific properties from pipeline objects."
+        },
+        {
+            "id": "powershell_objects_pipeline__sort_object",
+            "prompt": "List processes sorted by CPU usage in descending order.",
+            "prefix": "PS C:\\>",
+            "expected": "^Get-Process\\s+\\|\\s+Sort-Object\\s+CPU\\s+-Descending$",
+            "aliases": ["Get-Process | Sort-Object CPU -Descending"],
+            "hint": "Pipe Get-Process to Sort-Object with -Descending.",
+            "explanation": "Sort-Object orders pipeline objects by one or more property values."
+        },
+        {
+            "id": "powershell_objects_pipeline__measure_object",
+            "prompt": "Count the total number of registered services.",
+            "prefix": "PS C:\\>",
+            "expected": "^Get-Service\\s+\\|\\s+Measure-Object$",
+            "aliases": ["Get-Service | Measure-Object", "gsv | measure"],
+            "hint": "Pipe Get-Service to Measure-Object.",
+            "explanation": "Measure-Object returns aggregate statistics such as Count for a collection."
+        },
+        {
+            "id": "powershell_objects_pipeline__select_first",
+            "prompt": "Show only the first 5 processes from the process list.",
+            "prefix": "PS C:\\>",
+            "expected": "^Get-Process\\s+\\|\\s+Select-Object\\s+-First\\s+5$",
+            "aliases": ["Get-Process | Select-Object -First 5", "gps | select -First 5"],
+            "hint": "Use Select-Object with the -First parameter.",
+            "explanation": "Select-Object -First limits how many objects pass through the pipeline."
+        },
+        {
+            "id": "powershell_objects_pipeline__get_member",
+            "prompt": "Inspect the members (properties and methods) of process objects.",
+            "prefix": "PS C:\\>",
+            "expected": "^Get-Process\\s+\\|\\s+Get-Member$",
+            "aliases": ["Get-Process | Get-Member", "gps | gm"],
+            "hint": "Pipe Get-Process to Get-Member.",
+            "explanation": "Get-Member reveals the type, properties, and methods available on objects."
+        },
+        {
+            "id": "powershell_objects_pipeline__group_object",
+            "prompt": "Group files in the current directory by their file extension.",
+            "prefix": "PS C:\\>",
+            "expected": "^Get-ChildItem\\s+\\|\\s+Group-Object\\s+Extension$",
+            "aliases": ["Get-ChildItem | Group-Object Extension", "gci | group Extension"],
+            "hint": "Pipe Get-ChildItem to Group-Object using the Extension property.",
+            "explanation": "Group-Object clusters objects that share the same property value."
+        },
+        {
+            "id": "powershell_objects_pipeline__format_list",
+            "prompt": "Display the current date and time formatted as a detailed list.",
+            "prefix": "PS C:\\>",
+            "expected": "^Get-Date\\s+\\|\\s+Format-List$",
+            "aliases": ["Get-Date | Format-List", "Get-Date | fl"],
+            "hint": "Pipe Get-Date to Format-List.",
+            "explanation": "Format-List shows each property on its own line for detailed inspection."
+        }
+    ]
+}

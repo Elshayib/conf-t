@@ -1,89 +1,92 @@
 {
-  "id": "cisco_basic",
-  "title": "Cisco IOS Basic Configuration",
-  "platform": "Cisco",
-  "description": "Learn standard commands for navigating IOS modes, configuring device hostnames, setting up interfaces, and saving configurations.",
-  "tasks": [
-    {
-      "id": "enable",
-      "prompt": "Enter Privileged EXEC mode.",
-      "prefix": "Router>",
-      "expected": "^enable$",
-      "aliases": ["en"],
-      "hint": "Use the command: 'enable' or 'en'",
-      "explanation": "The 'enable' command transitions you from user EXEC mode (Router>) to privileged EXEC mode (Router#), unlocking diagnostic and configuration options."
-    },
-    {
-      "id": "configure_terminal",
-      "prompt": "Enter Global Configuration mode.",
-      "prefix": "Router#",
-      "expected": "^configure\\s+terminal$",
-      "aliases": ["conf t", "config terminal", "config t"],
-      "hint": "Use the command: 'configure terminal' or 'conf t'",
-      "explanation": "Entering 'configure terminal' allows you to make system-wide changes. The prompt changes to Router(config)#."
-    },
-    {
-      "id": "hostname",
-      "prompt": "Change the device hostname to 'Core-Switch'.",
-      "prefix": "Router(config)#",
-      "expected": "^hostname\\s+Core-Switch$",
-      "aliases": ["host Core-Switch"],
-      "hint": "Use the command: 'hostname Core-Switch'",
-      "explanation": "The 'hostname' command modifies the identity of the device, updating the prompt representation instantly."
-    },
-    {
-      "id": "interface",
-      "prompt": "Enter Interface Configuration mode for interface 'GigabitEthernet0/1'.",
-      "prefix": "Core-Switch(config)#",
-      "expected": "^interface\\s+GigabitEthernet0/1$",
-      "aliases": ["int g0/1", "int gig0/1", "interface g0/1", "interface gigabitethernet 0/1"],
-      "hint": "Use interface command followed by the interface name: 'interface GigabitEthernet0/1' or 'int g0/1'",
-      "explanation": "To configure a specific port, enter Interface Configuration mode. The prompt changes to Core-Switch(config-if)#."
-    },
-    {
-      "id": "ip_address",
-      "prompt": "Configure the interface IP address to '192.168.1.1' with a subnet mask of '255.255.255.0'.",
-      "prefix": "Core-Switch(config-if)#",
-      "expected": "^ip\\s+address\\s+192\\.168\\.1\\.1\\s+255\\.255\\.255\\.0$",
-      "aliases": ["ip add 192.168.1.1 255.255.255.0"],
-      "hint": "Use the command: 'ip address [IP] [SubnetMask]'",
-      "explanation": "The 'ip address' command assigns the IPv4 settings to the selected logical or physical interface."
-    },
-    {
-      "id": "no_shutdown",
-      "prompt": "Enable/activate the interface (bring it administratively up).",
-      "prefix": "Core-Switch(config-if)#",
-      "expected": "^no\\s+shutdown$",
-      "aliases": ["no shut"],
-      "hint": "Use the command: 'no shutdown' or 'no shut'",
-      "explanation": "Cisco interfaces are disabled (shutdown) by default. The 'no shutdown' command turns the interface on."
-    },
-    {
-      "id": "exit_interface",
-      "prompt": "Exit the interface configuration mode back to global configuration mode.",
-      "prefix": "Core-Switch(config-if)#",
-      "expected": "^exit$",
-      "aliases": [],
-      "hint": "Use: 'exit'",
-      "explanation": "The 'exit' command takes you up one level in the configuration hierarchy."
-    },
-    {
-      "id": "exit_global",
-      "prompt": "Exit global configuration mode back to privileged EXEC mode.",
-      "prefix": "Core-Switch(config)#",
-      "expected": "^(exit|end)$",
-      "aliases": [],
-      "hint": "Use: 'exit' or 'end'",
-      "explanation": "Using 'exit' or 'end' moves you out of config mode back to privileged EXEC mode."
-    },
-    {
-      "id": "copy_run_start",
-      "prompt": "Save the current running configuration to the startup configuration so it persists across reboots.",
-      "prefix": "Core-Switch#",
-      "expected": "^(copy\\s+running-config\\s+startup-config|write|write\\s+memory)$",
-      "aliases": ["copy run start", "wr", "wr mem"],
-      "hint": "Use the copy command or write shortcut: 'copy running-config startup-config' or 'write'",
-      "explanation": "The active configuration is stored in volatile RAM. Saving it to non-volatile RAM (NVRAM) using copy run start or write ensures it survives a reboot."
-    }
-  ]
+    "id": "cisco_basic",
+    "title": "Cisco IOS Basic Configuration",
+    "platform": "Cisco",
+    "description": "Learn standard commands for navigating IOS modes, configuring device hostnames, setting up interfaces, and saving configurations.",
+    "difficulty": "beginner",
+    "tags": ["ios", "navigation", "ccna"],
+    "estimated_minutes": 15,
+    "tasks": [
+        {
+            "id": "cisco_basic__enable",
+            "prompt": "Enter Privileged EXEC mode.",
+            "prefix": "Router>",
+            "expected": "^enable$",
+            "aliases": ["en"],
+            "hint": "Use the command: 'enable' or 'en'",
+            "explanation": "The 'enable' command transitions you from user EXEC mode (Router>) to privileged EXEC mode (Router#), unlocking diagnostic and configuration options."
+        },
+        {
+            "id": "cisco_basic__configure_terminal",
+            "prompt": "Enter Global Configuration mode.",
+            "prefix": "Router#",
+            "expected": "^configure\\s+terminal$",
+            "aliases": ["conf t", "config terminal", "config t"],
+            "hint": "Use the command: 'configure terminal' or 'conf t'",
+            "explanation": "Entering 'configure terminal' allows you to make system-wide changes. The prompt changes to Router(config)#."
+        },
+        {
+            "id": "cisco_basic__hostname",
+            "prompt": "Change the device hostname to 'Core-Switch'.",
+            "prefix": "Router(config)#",
+            "expected": "^hostname\\s+Core-Switch$",
+            "aliases": ["host Core-Switch"],
+            "hint": "Use the command: 'hostname Core-Switch'",
+            "explanation": "The 'hostname' command modifies the identity of the device, updating the prompt representation instantly."
+        },
+        {
+            "id": "cisco_basic__interface",
+            "prompt": "Enter Interface Configuration mode for interface 'GigabitEthernet0/1'.",
+            "prefix": "Core-Switch(config)#",
+            "expected": "^interface\\s+GigabitEthernet0/1$",
+            "aliases": ["int g0/1", "int gig0/1", "interface g0/1", "interface gigabitethernet 0/1"],
+            "hint": "Use interface command followed by the interface name: 'interface GigabitEthernet0/1' or 'int g0/1'",
+            "explanation": "To configure a specific port, enter Interface Configuration mode. The prompt changes to Core-Switch(config-if)#."
+        },
+        {
+            "id": "cisco_basic__ip_address",
+            "prompt": "Configure the interface IP address to '192.168.1.1' with a subnet mask of '255.255.255.0'.",
+            "prefix": "Core-Switch(config-if)#",
+            "expected": "^ip\\s+address\\s+192\\.168\\.1\\.1\\s+255\\.255\\.255\\.0$",
+            "aliases": ["ip add 192.168.1.1 255.255.255.0"],
+            "hint": "Use the command: 'ip address [IP] [SubnetMask]'",
+            "explanation": "The 'ip address' command assigns the IPv4 settings to the selected logical or physical interface."
+        },
+        {
+            "id": "cisco_basic__no_shutdown",
+            "prompt": "Enable/activate the interface (bring it administratively up).",
+            "prefix": "Core-Switch(config-if)#",
+            "expected": "^no\\s+shutdown$",
+            "aliases": ["no shut"],
+            "hint": "Use the command: 'no shutdown' or 'no shut'",
+            "explanation": "Cisco interfaces are disabled (shutdown) by default. The 'no shutdown' command turns the interface on."
+        },
+        {
+            "id": "cisco_basic__exit_interface",
+            "prompt": "Exit the interface configuration mode back to global configuration mode.",
+            "prefix": "Core-Switch(config-if)#",
+            "expected": "^exit$",
+            "aliases": [],
+            "hint": "Use: 'exit'",
+            "explanation": "The 'exit' command takes you up one level in the configuration hierarchy."
+        },
+        {
+            "id": "cisco_basic__exit_global",
+            "prompt": "Exit global configuration mode back to privileged EXEC mode.",
+            "prefix": "Core-Switch(config)#",
+            "expected": "^(exit|end)$",
+            "aliases": [],
+            "hint": "Use: 'exit' or 'end'",
+            "explanation": "Using 'exit' or 'end' moves you out of config mode back to privileged EXEC mode."
+        },
+        {
+            "id": "cisco_basic__copy_run_start",
+            "prompt": "Save the current running configuration to the startup configuration so it persists across reboots.",
+            "prefix": "Core-Switch#",
+            "expected": "^(copy\\s+running-config\\s+startup-config|write|write\\s+memory)$",
+            "aliases": ["copy run start", "wr", "wr mem"],
+            "hint": "Use the copy command or write shortcut: 'copy running-config startup-config' or 'write'",
+            "explanation": "The active configuration is stored in volatile RAM. Saving it to NVRAM using copy run start or write ensures it survives a reboot."
+        }
+    ]
 }

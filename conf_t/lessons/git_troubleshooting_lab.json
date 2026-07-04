@@ -1,0 +1,120 @@
+{
+    "id": "git_troubleshooting_lab",
+    "title": "Git Troubleshooting Lab",
+    "platform": "Git",
+    "description": "Capstone lab for diagnosing detached HEAD, merge conflicts, lost commits, diverged branches, and remote sync issues.",
+    "difficulty": "advanced",
+    "tags": ["troubleshooting", "capstone", "lab"],
+    "prerequisites": ["git_recovery", "git_merging", "git_remote"],
+    "estimated_minutes": 40,
+    "tasks": [
+        {
+            "id": "git_troubleshooting_lab__status",
+            "prompt": "Check repository status to identify unmerged paths and branch state.",
+            "prefix": "user@ubuntu:~/project$",
+            "expected": "^git\\s+status$",
+            "aliases": [],
+            "hint": "Start with git status.",
+            "explanation": "git status is the first command in most Git incident triage."
+        },
+        {
+            "id": "git_troubleshooting_lab__detached_head",
+            "prompt": "Create branch 'recovery' from detached HEAD and switch to it.",
+            "prefix": "user@ubuntu:~/project$",
+            "expected": "^(git\\s+switch\\s+-c\\s+recovery|git\\s+checkout\\s+-b\\s+recovery)$",
+            "aliases": ["git switch -c recovery", "git checkout -b recovery"],
+            "hint": "Use git switch -c recovery or checkout -b.",
+            "explanation": "Creating a branch preserves work made in detached HEAD state."
+        },
+        {
+            "id": "git_troubleshooting_lab__conflict_files",
+            "prompt": "List files still in conflict after a failed merge.",
+            "prefix": "user@ubuntu:~/project$",
+            "expected": "^git\\s+diff\\s+--name-only\\s+--diff-filter=U$",
+            "aliases": [],
+            "hint": "Use git diff --name-only --diff-filter=U.",
+            "explanation": "Unmerged paths must be identified before conflict resolution."
+        },
+        {
+            "id": "git_troubleshooting_lab__merge_abort",
+            "prompt": "Abort the broken merge and return to the pre-merge branch tip.",
+            "prefix": "user@ubuntu:~/project$",
+            "expected": "^git\\s+merge\\s+--abort$",
+            "aliases": [],
+            "hint": "Use git merge --abort.",
+            "explanation": "Aborting restores a known-good state when a merge goes wrong."
+        },
+        {
+            "id": "git_troubleshooting_lab__reflog_find",
+            "prompt": "Inspect reflog to locate the commit before the accidental reset.",
+            "prefix": "user@ubuntu:~/project$",
+            "expected": "^git\\s+reflog$",
+            "aliases": ["git reflog show"],
+            "hint": "Use git reflog.",
+            "explanation": "reflog is the primary recovery tool for 'lost' local commits."
+        },
+        {
+            "id": "git_troubleshooting_lab__reset_recovery",
+            "prompt": "Hard reset the current branch to reflog entry HEAD@{1}.",
+            "prefix": "user@ubuntu:~/project$",
+            "expected": "^git\\s+reset\\s+--hard\\s+HEAD@\\{1\\}$",
+            "aliases": [],
+            "hint": "Use git reset --hard HEAD@{1}.",
+            "explanation": "Resetting to a reflog entry restores a previous branch position."
+        },
+        {
+            "id": "git_troubleshooting_lab__fetch_prune",
+            "prompt": "Fetch from origin and prune deleted remote-tracking branches.",
+            "prefix": "user@ubuntu:~/project$",
+            "expected": "^git\\s+fetch\\s+--prune\\s+origin$",
+            "aliases": ["git fetch -p origin"],
+            "hint": "Use git fetch --prune origin.",
+            "explanation": "Pruning removes stale remote references that cause confusion."
+        },
+        {
+            "id": "git_troubleshooting_lab__diverged_log",
+            "prompt": "Show commits reachable from HEAD but not from origin/main.",
+            "prefix": "user@ubuntu:~/project$",
+            "expected": "^git\\s+log\\s+origin/main\\.\\.HEAD$",
+            "aliases": [],
+            "hint": "Use git log origin/main..HEAD.",
+            "explanation": "This range reveals local commits not yet on the remote."
+        },
+        {
+            "id": "git_troubleshooting_lab__rebase_abort",
+            "prompt": "Abort a conflicted rebase in progress.",
+            "prefix": "user@ubuntu:~/project$",
+            "expected": "^git\\s+rebase\\s+--abort$",
+            "aliases": [],
+            "hint": "Use git rebase --abort.",
+            "explanation": "Aborting a rebase returns the branch to its pre-rebase state."
+        },
+        {
+            "id": "git_troubleshooting_lab__stash_save",
+            "prompt": "Stash uncommitted changes with message 'pre-hotfix backup'.",
+            "prefix": "user@ubuntu:~/project$",
+            "expected": "^git\\s+stash\\s+push\\s+-m\\s+[\"']pre-hotfix backup[\"']$",
+            "aliases": [],
+            "hint": "Use git stash push -m with a descriptive message.",
+            "explanation": "Stashing protects work in progress before emergency branch switches."
+        },
+        {
+            "id": "git_troubleshooting_lab__cherry_pick_fix",
+            "prompt": "Cherry-pick commit 'f1x1234' onto the current hotfix branch.",
+            "prefix": "user@ubuntu:~/project$",
+            "expected": "^git\\s+cherry-pick\\s+f1x1234$",
+            "aliases": [],
+            "hint": "Use git cherry-pick f1x1234.",
+            "explanation": "Cherry-pick brings a single fix commit onto another branch."
+        },
+        {
+            "id": "git_troubleshooting_lab__push_force_lease",
+            "prompt": "Force-push the current branch to origin safely using --force-with-lease.",
+            "prefix": "user@ubuntu:~/project$",
+            "expected": "^git\\s+push\\s+--force-with-lease\\s+origin\\s+HEAD$",
+            "aliases": [],
+            "hint": "Use git push --force-with-lease origin HEAD.",
+            "explanation": "--force-with-lease refuses to overwrite remote commits you have not seen."
+        }
+    ]
+}

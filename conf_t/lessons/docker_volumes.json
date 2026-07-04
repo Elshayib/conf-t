@@ -1,0 +1,84 @@
+{
+    "id": "docker_volumes",
+    "title": "Docker Volumes & Storage",
+    "platform": "Docker",
+    "description": "Learn to create, list, inspect, mount, and remove Docker volumes and bind mounts for persistent data.",
+    "difficulty": "intermediate",
+    "tags": ["volumes", "storage", "persistence"],
+    "prerequisites": ["docker_containers"],
+    "estimated_minutes": 25,
+    "tasks": [
+        {
+            "id": "docker_volumes__volume_create",
+            "prompt": "Create a named volume called 'db-data'.",
+            "prefix": "user@ubuntu:~$",
+            "expected": "^docker\\s+volume\\s+create\\s+db-data$",
+            "aliases": [],
+            "hint": "Use docker volume create db-data.",
+            "explanation": "Named volumes are managed by Docker and persist beyond container lifecycle."
+        },
+        {
+            "id": "docker_volumes__volume_ls",
+            "prompt": "List all Docker volumes on the host.",
+            "prefix": "user@ubuntu:~$",
+            "expected": "^docker\\s+volume\\s+ls$",
+            "aliases": [],
+            "hint": "Use docker volume ls.",
+            "explanation": "docker volume ls shows driver, name, and mountpoint metadata."
+        },
+        {
+            "id": "docker_volumes__volume_inspect",
+            "prompt": "Inspect the volume named 'db-data'.",
+            "prefix": "user@ubuntu:~$",
+            "expected": "^docker\\s+volume\\s+inspect\\s+db-data$",
+            "aliases": [],
+            "hint": "Use docker volume inspect db-data.",
+            "explanation": "Inspect reveals mountpoint path and volume driver details."
+        },
+        {
+            "id": "docker_volumes__run_mount_volume",
+            "prompt": "Run 'postgres:16' with volume 'db-data' mounted at '/var/lib/postgresql/data'.",
+            "prefix": "user@ubuntu:~$",
+            "expected": "^docker\\s+run\\s+-d\\s+-v\\s+db-data:/var/lib/postgresql/data\\s+postgres:16$",
+            "aliases": [],
+            "hint": "Use docker run -d -v db-data:/path postgres:16.",
+            "explanation": "-v mounts a named volume into the container filesystem."
+        },
+        {
+            "id": "docker_volumes__run_bind_mount",
+            "prompt": "Run 'nginx' binding host directory './html' to '/usr/share/nginx/html'.",
+            "prefix": "user@ubuntu:~$",
+            "expected": "^docker\\s+run\\s+-d\\s+-v\\s+\\./html:/usr/share/nginx/html\\s+nginx$",
+            "aliases": [],
+            "hint": "Use -v ./html:/usr/share/nginx/html.",
+            "explanation": "Bind mounts map a host path directly into the container."
+        },
+        {
+            "id": "docker_volumes__run_readonly",
+            "prompt": "Run 'nginx' mounting './html' read-only at '/usr/share/nginx/html'.",
+            "prefix": "user@ubuntu:~$",
+            "expected": "^docker\\s+run\\s+-d\\s+-v\\s+\\./html:/usr/share/nginx/html:ro\\s+nginx$",
+            "aliases": [],
+            "hint": "Append :ro to the bind mount.",
+            "explanation": ":ro prevents the container from modifying the mounted host files."
+        },
+        {
+            "id": "docker_volumes__volume_rm",
+            "prompt": "Remove the unused volume 'db-data'.",
+            "prefix": "user@ubuntu:~$",
+            "expected": "^docker\\s+volume\\s+rm\\s+db-data$",
+            "aliases": [],
+            "hint": "Use docker volume rm db-data.",
+            "explanation": "Volumes must not be in use by any container before removal."
+        },
+        {
+            "id": "docker_volumes__run_tmpfs",
+            "prompt": "Run 'redis' with a tmpfs mount at '/data' limited to 64 megabytes.",
+            "prefix": "user@ubuntu:~$",
+            "expected": "^docker\\s+run\\s+-d\\s+--tmpfs\\s+/data:size=64m\\s+redis$",
+            "aliases": [],
+            "hint": "Use --tmpfs /data:size=64m.",
+            "explanation": "tmpfs stores data in memory and is cleared when the container stops."
+        }
+    ]
+}

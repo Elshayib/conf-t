@@ -132,6 +132,32 @@ def get_failed_lesson_ids(failed_tasks: List[Dict[str, str]]) -> List[str]:
     return sorted({entry["lesson_id"] for entry in failed_tasks if "lesson_id" in entry})
 
 
+def parse_tags_csv(tags: Optional[str]) -> List[str]:
+    if not tags:
+        return []
+    return [tag.strip().lower() for tag in tags.split(",") if tag.strip()]
+
+
+def lesson_matches_tags(lesson: Lesson, tags: List[str]) -> bool:
+    if not tags:
+        return True
+    lesson_tags = {tag.lower() for tag in lesson.tags}
+    return all(tag in lesson_tags for tag in tags)
+
+
+def filter_lessons_by_tags(lessons: List[Lesson], tags: List[str]) -> List[Lesson]:
+    if not tags:
+        return lessons
+    return [lesson for lesson in lessons if lesson_matches_tags(lesson, tags)]
+
+
+def collect_all_tags(lessons: List[Lesson]) -> List[str]:
+    tags: set[str] = set()
+    for lesson in lessons:
+        tags.update(tag.lower() for tag in lesson.tags)
+    return sorted(tags)
+
+
 def is_task_progress_passed(entry: Optional[Dict[str, Any]]) -> bool:
     if not entry:
         return False

@@ -25,6 +25,10 @@ def build_parser() -> argparse.ArgumentParser:
         help="Filter lessons by platform (use with --list)",
     )
     parser.add_argument(
+        "--tags",
+        help="Comma-separated tags to filter lessons (use with --list)",
+    )
+    parser.add_argument(
         "--lesson",
         metavar="ID",
         help="Start a lesson by ID (resume flow applies if in progress)",

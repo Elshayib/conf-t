@@ -5,6 +5,22 @@ All notable changes to Conf T are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.3.4] - 2026-07-04
+
+### Added
+
+- **Tag filter** in the lesson browser — filter by topic after choosing a platform
+- `--tags` CLI flag for `conf-t --list` (comma-separated, e.g. `--tags vlan,ospf`)
+- Tags column in `--list` output; tags shown in lesson detail panel and browser labels
+- Progress **percentage** in lesson browser (e.g. `7/12 · 58%`)
+- README curriculum browser screenshot (`docs/screenshots/curriculum-browser.svg`)
+
+### Changed
+
+- Version bumped to **0.3.4**
+
+---
+
 ## [0.3.3] - 2026-07-04
 
 ### Added
@@ -125,6 +141,7 @@ If you have an older `~/.conf_t_progress.json` from v0.1.x, reset progress from 
 - Lesson creator wizard
 - Starter lessons for Cisco, Linux, PowerShell, Git, and Docker
 
+[0.3.4]: https://github.com/Elshayib/conf-t/releases/tag/v0.3.4
 [0.3.3]: https://github.com/Elshayib/conf-t/releases/tag/v0.3.3
 [0.3.2]: https://github.com/Elshayib/conf-t/releases/tag/v0.3.2
 [0.3.1]: https://github.com/Elshayib/conf-t/releases/tag/v0.3.1

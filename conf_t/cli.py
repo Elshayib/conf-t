@@ -20,11 +20,14 @@ from conf_t.engine import (
     LessonLoader,
     ProgressManager,
     are_prerequisites_met,
+    collect_all_tags,
+    filter_lessons_by_tags,
     format_display_answer,
     get_failed_lesson_ids,
     get_lesson_status,
     get_missing_prerequisites,
     get_recommended_lesson,
+    parse_tags_csv,
     sort_lessons_by_curriculum,
     validate_input,
 )
@@ -51,7 +54,11 @@ class ConfTCLI:
         ])
         return choices
 
-    def list_lessons(self, platform: str | None = None) -> None:
+    def list_lessons(
+        self,
+        platform: str | None = None,
+        tags: str | None = None,
+    ) -> None:
         lessons = self.loader.load_all_lessons()
         if platform:
             lessons = [
@@ -59,37 +66,89 @@ class ConfTCLI:
                 for lesson in lessons
                 if lesson.platform.lower() == platform.lower()
             ]
+        tag_list = parse_tags_csv(tags)
+        lessons = filter_lessons_by_tags(lessons, tag_list)
+
         if not lessons:
+            console.print("[yellow]No lessons match the selected filters.[/]")
             if platform:
-                console.print(f"[yellow]No lessons found for platform '{platform}'.[/]")
-            else:
-                console.print("[yellow]No lessons found.[/]")
+                console.print(f"[dim]Platform: {platform}[/]")
+            if tag_list:
+                console.print(f"[dim]Tags: {', '.join(tag_list)}[/]")
             return
 
         sorted_lessons = sort_lessons_by_curriculum(lessons)
-        table = Table(
-            title="[bold cyan]Conf T Lessons[/]",
-            box=box.ROUNDED,
-            border_style="cyan",
-        )
+        title = "[bold cyan]Conf T Lessons[/]"
+        if platform or tag_list:
+            filters = []
+            if platform:
+                filters.append(platform)
+            if tag_list:
+                filters.append(", ".join(tag_list))
+            title = f"[bold cyan]Conf T Lessons[/] [dim]({' · '.join(filters)})[/]"
+
+        table = Table(title=title, box=box.ROUNDED, border_style="cyan")
         table.add_column("ID", style="dim")
         table.add_column("Title", style="white")
         table.add_column("Platform", style="cyan")
         table.add_column("Difficulty", style="yellow")
+        table.add_column("Tags", style="dim")
         table.add_column("Progress", style="green")
 
         for lesson in sorted_lessons:
             task_ids = [task.id for task in lesson.tasks]
             summary = self.progress.get_lesson_task_summary(lesson.id, task_ids)
+            tags_display = ", ".join(lesson.tags) if lesson.tags else "—"
+            total = summary["total"]
+            passed = summary["passed"]
+            progress = (
+                f"{passed}/{total} ({int((passed / total) * 100)}%)"
+                if total
+                else "0/0"
+            )
             table.add_row(
                 lesson.id,
                 lesson.title,
                 lesson.platform,
                 lesson.difficulty,
-                f"{summary['passed']}/{summary['total']}",
+                tags_display,
+                progress,
             )
 
         console.print(table)
+        console.print(f"\n[dim]{len(sorted_lessons)} lesson(s) shown[/]")
+
+    def _prompt_tag_filter(self, lessons: list[Lesson], context: str) -> list[Lesson]:
+        available_tags = collect_all_tags(lessons)
+        if not available_tags:
+            return lessons
+
+        choices = [questionary.Choice("All topics", value="__all__")]
+        for tag in available_tags:
+            count = sum(1 for lesson in lessons if tag in {t.lower() for t in lesson.tags})
+            choices.append(questionary.Choice(f"{tag} ({count})", value=tag))
+        choices.append(questionary.Choice("Custom tags (comma-separated)", value="__custom__"))
+
+        selected = questionary.select(
+            f"Filter {context} by topic:",
+            choices=choices,
+        ).ask()
+
+        if not selected or selected == "__all__":
+            return lessons
+        if selected == "__custom__":
+            raw = questionary.text("Enter tags (comma-separated, e.g. vlan,ospf):").ask()
+            tag_list = parse_tags_csv(raw)
+            if not tag_list:
+                return lessons
+            filtered = filter_lessons_by_tags(lessons, tag_list)
+            if not filtered:
+                console.print("[yellow]No lessons match those tags. Showing all topics.[/]")
+                return lessons
+            return filtered
+
+        filtered = filter_lessons_by_tags(lessons, [selected])
+        return filtered if filtered else lessons
 
     def run_lesson_by_id(self, lesson_id: str) -> None:
         lesson = self.loader.get_lesson_by_id(lesson_id)
@@ -109,7 +168,7 @@ class ConfTCLI:
 
     def run_from_args(self, args) -> None:
         if args.list:
-            self.list_lessons(args.platform)
+            self.list_lessons(args.platform, args.tags)
             return
         if args.stats:
             self.view_stats(interactive=False)
@@ -205,7 +264,14 @@ class ConfTCLI:
     ) -> str:
         icon = self._lesson_status_icon(status)
         total = len(lesson.tasks)
-        label = f"{icon} {lesson.title} ({passed_count}/{total})"
+        if total:
+            percent = int((passed_count / total) * 100)
+            progress = f"{passed_count}/{total} · {percent}%"
+        else:
+            progress = "0/0"
+        label = f"{icon} {lesson.title} ({progress})"
+        if lesson.tags:
+            label += f" [{', '.join(lesson.tags[:2])}{'…' if len(lesson.tags) > 2 else ''}]"
         if lesson.estimated_minutes:
             label += f" · ~{lesson.estimated_minutes}m"
         if failed_count:
@@ -298,6 +364,8 @@ class ConfTCLI:
         ]
         if lesson.estimated_minutes:
             detail_lines.append(f"[cyan]Estimated time:[/] ~{lesson.estimated_minutes} minutes")
+        if lesson.tags:
+            detail_lines.append(f"[cyan]Tags:[/] {', '.join(lesson.tags)}")
         if lesson.prerequisites:
             prereq_titles = [
                 lesson_map[prereq_id].title
@@ -347,6 +415,13 @@ class ConfTCLI:
             return
 
         filtered_lessons = [lesson for lesson in lessons if lesson.platform == selected_platform]
+        filtered_lessons = self._prompt_tag_filter(
+            filtered_lessons, f"{selected_platform} lessons"
+        )
+        if not filtered_lessons:
+            console.print("[yellow]No lessons available for the selected filters.[/]")
+            return
+
         sorted_lessons = sort_lessons_by_curriculum(filtered_lessons)
         completed = self.progress.data.get("completed_lessons", [])
         attempted = self.progress.data.get("attempted_lessons", [])

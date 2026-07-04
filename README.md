@@ -71,7 +71,7 @@ You will be greeted with an interactive menu:
 
 ```
 ╔══════════════════════════════╗
-║         Conf T  v0.3.3       ║
+║         Conf T  v0.3.4       ║
 ╚══════════════════════════════╝
 
 ? Select an option:
@@ -84,7 +84,11 @@ You will be greeted with an interactive menu:
     6. Exit
 ```
 
-When practicing a lesson, the curriculum browser groups lessons by difficulty, shows your progress (✓ ◐ ○) and **passed/total** counts (e.g. `7/12`), highlights a **recommended next** lesson, and warns softly if prerequisites are not yet completed. Re-entering a lesson lets you **resume**, **start over**, or **pick a task** to continue from.
+### Curriculum browser
+
+![Conf T curriculum browser](docs/screenshots/curriculum-browser.svg)
+
+When practicing a lesson, the curriculum browser groups lessons by difficulty, shows your progress (✓ ◐ ○) and **passed/total · %** (e.g. `7/12 · 58%`), highlights a **recommended next** lesson, and lets you **filter by topic tags**. Prerequisites warn softly before starting. Re-entering a lesson lets you **resume**, **start over**, or **pick a task** to continue from.
 
 **Spaced repetition:** failed commands resurface on a schedule (due now → 1 day → 3 days → 7 days). When tasks are due, **Daily Review** appears at the top of the main menu.
 
@@ -94,6 +98,7 @@ When practicing a lesson, the curriculum browser groups lessons by difficulty, s
 conf-t                              # interactive menu (default)
 conf-t --list                       # list all lessons
 conf-t --list --platform Cisco      # filter by platform
+conf-t --list --tags vlan,ospf      # filter by tags
 conf-t --lesson cisco_basic         # start a lesson by ID
 conf-t --review                     # daily review (due tasks)
 conf-t --review-all                 # review entire failed queue

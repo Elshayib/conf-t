@@ -18,7 +18,11 @@ from conf_t.engine import (
     _parse_iso_datetime,
     _utc_now,
     are_prerequisites_met,
+    collect_all_tags,
+    filter_lessons_by_tags,
     format_display_answer,
+    lesson_matches_tags,
+    parse_tags_csv,
     get_lesson_status,
     get_missing_prerequisites,
     get_recommended_lesson,
@@ -495,6 +499,45 @@ def test_migration_v3_to_v4_schedules_non_passed(tmp_path):
 
 def test_review_interval_constants():
     assert REVIEW_INTERVALS_DAYS == [0, 1, 3, 7]
+
+
+def test_parse_tags_csv():
+    assert parse_tags_csv(None) == []
+    assert parse_tags_csv("") == []
+    assert parse_tags_csv("vlan, ospf, CCNA") == ["vlan", "ospf", "ccna"]
+
+
+def test_filter_lessons_by_tags():
+    lessons = [
+        Lesson(
+            id="vlan",
+            title="VLAN",
+            platform="Cisco",
+            description="",
+            tags=["vlan", "switching"],
+            tasks=[],
+        ),
+        Lesson(
+            id="ospf",
+            title="OSPF",
+            platform="Cisco",
+            description="",
+            tags=["ospf", "routing"],
+            tasks=[],
+        ),
+    ]
+    assert [lesson.id for lesson in filter_lessons_by_tags(lessons, ["vlan"])] == ["vlan"]
+    assert [lesson.id for lesson in filter_lessons_by_tags(lessons, ["routing"])] == ["ospf"]
+    assert len(filter_lessons_by_tags(lessons, ["vlan", "routing"])) == 0
+    assert lesson_matches_tags(lessons[0], ["vlan", "switching"]) is True
+
+
+def test_collect_all_tags():
+    lessons = [
+        Lesson(id="a", title="A", platform="Cisco", description="", tags=["vlan", "ccna"], tasks=[]),
+        Lesson(id="b", title="B", platform="Cisco", description="", tags=["ospf", "ccna"], tasks=[]),
+    ]
+    assert collect_all_tags(lessons) == ["ccna", "ospf", "vlan"]
 
 
 def test_mark_lesson_attempted(tmp_path):

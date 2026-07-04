@@ -28,6 +28,12 @@ def test_list_with_platform(parser):
     assert args.platform == "Cisco"
 
 
+def test_list_with_tags(parser):
+    args = parser.parse_args(["--list", "--platform", "Cisco", "--tags", "vlan,ospf"])
+    assert args.list is True
+    assert args.tags == "vlan,ospf"
+
+
 def test_lesson_is_action(parser):
     args = parser.parse_args(["--lesson", "cisco_basic"])
     assert has_cli_action(args) is True

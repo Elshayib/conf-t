@@ -1,15 +1,25 @@
-import os
 import json
 import re
-from typing import List, Dict, Any, Optional, Tuple
+from datetime import datetime, timezone
+from typing import List, Dict, Any, Optional
 from pathlib import Path
 
-from conf_t.models import Lesson, Task, SessionStats
+from conf_t.models import Lesson, Task, SessionStats, TaskProgress
 
 DIFFICULTY_ORDER = {"beginner": 0, "intermediate": 1, "advanced": 2}
 LESSON_STATUS_COMPLETED = "completed"
 LESSON_STATUS_IN_PROGRESS = "in_progress"
 LESSON_STATUS_NOT_STARTED = "not_started"
+
+TASK_STATUS_PASSED = "passed"
+TASK_STATUS_FAILED = "failed"
+TASK_STATUS_SKIPPED = "skipped"
+
+PROGRESS_VERSION = 3
+
+
+def _utc_now_iso() -> str:
+    return datetime.now(timezone.utc).replace(microsecond=0).isoformat()
 
 
 def validate_input(user_input: str, task: Task, platform: str) -> bool:
@@ -112,6 +122,15 @@ def get_failed_lesson_ids(failed_tasks: List[Dict[str, str]]) -> List[str]:
     return sorted({entry["lesson_id"] for entry in failed_tasks if "lesson_id" in entry})
 
 
+def is_task_progress_passed(entry: Optional[Dict[str, Any]]) -> bool:
+    if not entry:
+        return False
+    return (
+        entry.get("status") == TASK_STATUS_PASSED
+        and entry.get("passed_first_try", False)
+    )
+
+
 class LessonLoader:
     """Loads and caches lessons from JSON files in the lessons directory."""
     def __init__(self, lessons_dir: Optional[Path] = None):
@@ -167,33 +186,66 @@ class ProgressManager:
             self.filepath = Path.home() / ".conf_t_progress.json"
         else:
             self.filepath = Path(filepath)
-        self.data = self._load_data()
+        self.data, migrated = self._load_data()
+        if migrated:
+            self.save()
 
-    def _load_data(self) -> Dict[str, Any]:
+    def _load_data(self) -> tuple[Dict[str, Any], bool]:
         if not self.filepath.exists():
-            return self._default_structure()
+            return self._default_structure(), False
         try:
             with open(self.filepath, "r", encoding="utf-8") as f:
                 data = json.load(f)
-                # Ensure all default keys exist
+                original_version = data.get("progress_version", 1)
                 defaults = self._default_structure()
-                for k, v in defaults.items():
-                    if k not in data:
-                        data[k] = v
-                return data
+                for key, value in defaults.items():
+                    if key not in data and key not in ("progress_version", "task_progress"):
+                        data[key] = value
+                data = self._migrate_if_needed(data, original_version)
+                for key, value in defaults.items():
+                    if key not in data:
+                        data[key] = value
+                migrated = original_version < PROGRESS_VERSION
+                return data, migrated
         except (json.JSONDecodeError, OSError):
-            return self._default_structure()
+            return self._default_structure(), False
 
     def _default_structure(self) -> Dict[str, Any]:
         return {
-            "completed_lessons": [],      # List of lesson IDs completed
-            "attempted_lessons": [],      # Lessons with at least one recorded attempt
-            "failed_tasks": [],           # List of task definitions for spaced review/re-queueing
+            "progress_version": PROGRESS_VERSION,
+            "completed_lessons": [],
+            "attempted_lessons": [],
+            "task_progress": {},
+            "failed_tasks": [],
             "total_attempts": 0,
             "correct_first_try": 0,
             "skipped_count": 0,
-            "platform_stats": {}          # e.g., {"Cisco": {"attempts": 10, "correct": 8}}
+            "platform_stats": {},
         }
+
+    def _migrate_if_needed(
+        self, data: Dict[str, Any], original_version: int
+    ) -> Dict[str, Any]:
+        if original_version >= PROGRESS_VERSION:
+            return data
+
+        task_progress: Dict[str, Any] = dict(data.get("task_progress", {}))
+        for entry in data.get("failed_tasks", []):
+            task_id = entry.get("task_id")
+            lesson_id = entry.get("lesson_id")
+            if not task_id or not lesson_id or task_id in task_progress:
+                continue
+            task_progress[task_id] = TaskProgress(
+                lesson_id=lesson_id,
+                status=TASK_STATUS_FAILED,
+                passed_first_try=False,
+                attempts=1,
+                last_attempt=None,
+            ).to_dict()
+
+        data["task_progress"] = task_progress
+        data["progress_version"] = PROGRESS_VERSION
+        return data
 
     def save(self):
         try:
@@ -207,8 +259,58 @@ class ProgressManager:
             self.data["attempted_lessons"].append(lesson_id)
             self.save()
 
+    def _update_task_progress(
+        self,
+        lesson_id: str,
+        task_id: str,
+        is_correct: bool,
+        is_first_try: bool,
+        is_skipped: bool,
+    ) -> None:
+        existing = self.data["task_progress"].get(task_id, {})
+        attempts = existing.get("attempts", 0) + 1
+        now = _utc_now_iso()
+
+        if is_skipped:
+            status = TASK_STATUS_SKIPPED
+            passed_first_try = False
+        elif is_correct and is_first_try:
+            status = TASK_STATUS_PASSED
+            passed_first_try = True
+        else:
+            status = TASK_STATUS_FAILED
+            passed_first_try = False
+
+        self.data["task_progress"][task_id] = TaskProgress(
+            lesson_id=lesson_id,
+            status=status,
+            passed_first_try=passed_first_try,
+            attempts=attempts,
+            last_attempt=now,
+        ).to_dict()
+
+    def get_task_progress_entry(self, task_id: str) -> Optional[Dict[str, Any]]:
+        return self.data.get("task_progress", {}).get(task_id)
+
+    def is_task_passed(self, task_id: str) -> bool:
+        return is_task_progress_passed(self.get_task_progress_entry(task_id))
+
+    def get_lesson_task_summary(
+        self, lesson_id: str, task_ids: List[str]
+    ) -> Dict[str, int]:
+        passed = sum(1 for task_id in task_ids if self.is_task_passed(task_id))
+        total = len(task_ids)
+        return {
+            "passed": passed,
+            "total": total,
+            "incomplete": total - passed,
+        }
+
     def record_attempt(self, lesson_id: str, platform: str, task_id: str, is_correct: bool, is_first_try: bool, is_skipped: bool):
         self.mark_lesson_attempted(lesson_id)
+        self._update_task_progress(
+            lesson_id, task_id, is_correct, is_first_try, is_skipped
+        )
         self.data["total_attempts"] += 1
         
         # Initialize platform stats
@@ -225,16 +327,12 @@ class ProgressManager:
         if is_skipped:
             self.data["skipped_count"] += 1
             p_stats["skipped"] += 1
-            # Add to failed tasks queue so they can review it
             self.add_failed_task(lesson_id, task_id)
-        elif is_correct:
-            if is_first_try:
-                self.data["correct_first_try"] += 1
-                p_stats["correct_first_try"] += 1
-            # Remove from failed tasks queue if they got it correct
+        elif is_correct and is_first_try:
+            self.data["correct_first_try"] += 1
+            p_stats["correct_first_try"] += 1
             self.remove_failed_task(task_id)
-        else:
-            # Incorrect attempt, add to failed tasks queue
+        elif not is_correct:
             self.add_failed_task(lesson_id, task_id)
             
         self.save()

@@ -5,6 +5,26 @@ All notable changes to Conf T are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.3.0] - 2026-07-04
+
+### Added
+
+- **Task-level progress tracking** — per-task status (`passed`, `failed`, `skipped`), attempt count, and timestamps in `task_progress`
+- **First-try-only pass semantics** — a task counts as passed only on a correct first attempt; retries stay in the review queue
+- `get_lesson_task_summary()` and `is_task_passed()` helpers for upcoming resume and browser features
+- Automatic **migration** from v0.2.x progress files (`failed_tasks` → `task_progress`, `progress_version: 3`)
+
+### Changed
+
+- Minimum Python version raised to **3.10** (3.8 removed from CI matrix)
+- Version bumped to **0.3.0**
+
+### Migration
+
+Existing `~/.conf_t_progress.json` files from v0.2.x are upgraded automatically on first launch. Completed lessons and aggregate stats are preserved; failed tasks gain per-task records. Legacy v0.1.x files with old task IDs should still be reset manually.
+
+---
+
 ## [0.2.0] - 2026-07-04
 
 ### Added
@@ -50,5 +70,6 @@ If you have an older `~/.conf_t_progress.json` from v0.1.x, reset progress from 
 - Lesson creator wizard
 - Starter lessons for Cisco, Linux, PowerShell, Git, and Docker
 
+[0.3.0]: https://github.com/Elshayib/conf-t/releases/tag/v0.3.0
 [0.2.0]: https://github.com/Elshayib/conf-t/releases/tag/v0.2.0
 [0.1.0]: https://github.com/Elshayib/conf-t/releases/tag/v0.1.0

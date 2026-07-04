@@ -81,6 +81,36 @@ class Lesson:
 
 
 @dataclass
+class TaskProgress:
+    lesson_id: str
+    status: str  # passed, failed, skipped
+    passed_first_try: bool = False
+    attempts: int = 0
+    last_attempt: Optional[str] = None
+
+    @classmethod
+    def from_dict(cls, data: Dict[str, Any]) -> "TaskProgress":
+        return cls(
+            lesson_id=data["lesson_id"],
+            status=data["status"],
+            passed_first_try=data.get("passed_first_try", False),
+            attempts=data.get("attempts", 0),
+            last_attempt=data.get("last_attempt"),
+        )
+
+    def to_dict(self) -> Dict[str, Any]:
+        result: Dict[str, Any] = {
+            "lesson_id": self.lesson_id,
+            "status": self.status,
+            "passed_first_try": self.passed_first_try,
+            "attempts": self.attempts,
+        }
+        if self.last_attempt:
+            result["last_attempt"] = self.last_attempt
+        return result
+
+
+@dataclass
 class SessionStats:
     total_questions: int = 0
     correct_first_try: int = 0

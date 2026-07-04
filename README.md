@@ -4,7 +4,7 @@
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 [![CI](https://github.com/Elshayib/conf-t/actions/workflows/ci.yml/badge.svg)](https://github.com/Elshayib/conf-t/actions/workflows/ci.yml)
-[![Python](https://img.shields.io/badge/Python-3.8%2B-blue?logo=python)](https://www.python.org/)
+[![Python](https://img.shields.io/badge/Python-3.10%2B-blue?logo=python)](https://www.python.org/)
 [![Platforms](https://img.shields.io/badge/Platforms-Cisco%20%7C%20Linux%20%7C%20PowerShell%20%7C%20Git%20%7C%20Docker-informational)]()
 
 ---
@@ -37,7 +37,7 @@ You get a simulated shell prompt, type the command, and receive instant feedback
 
 ### Requirements
 
-- Python 3.8+
+- Python 3.10+
 - pip
 
 ### Installation
@@ -71,7 +71,7 @@ You will be greeted with an interactive menu:
 
 ```
 ╔══════════════════════════════╗
-║         Conf T  v0.2.0       ║
+║         Conf T  v0.3.0       ║
 ╚══════════════════════════════╝
 
 ? Select an option:
@@ -127,7 +127,7 @@ Conf T ships with **68 lessons** and **640 practice tasks** across five platform
 
 Each platform follows a **beginner → intermediate → advanced → capstone** path. Capstone labs (`*_troubleshooting_lab`) mix scenarios from prior lessons. Use the in-app lesson browser to explore the full list.
 
-> **Progress migration:** Task IDs were renamed to a globally-unique format (`lesson_id__action`). If you have an older `~/.conf_t_progress.json`, reset progress from the main menu after upgrading.
+> **Progress migration:** v0.3.0 adds per-task progress (`task_progress`) and migrates existing `failed_tasks` automatically. Task IDs use the format `lesson_id__action`. Legacy v0.1.x progress should still be reset from the main menu if task IDs no longer match.
 
 ---
 

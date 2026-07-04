@@ -8,6 +8,10 @@ from conf_t.engine import (
     LESSON_STATUS_COMPLETED,
     LESSON_STATUS_IN_PROGRESS,
     LESSON_STATUS_NOT_STARTED,
+    PROGRESS_VERSION,
+    TASK_STATUS_FAILED,
+    TASK_STATUS_PASSED,
+    TASK_STATUS_SKIPPED,
     LessonLoader,
     ProgressManager,
     are_prerequisites_met,
@@ -15,6 +19,7 @@ from conf_t.engine import (
     get_lesson_status,
     get_missing_prerequisites,
     get_recommended_lesson,
+    is_task_progress_passed,
     sort_lessons_by_curriculum,
     validate_input,
 )
@@ -121,8 +126,10 @@ def test_lesson_loader_save_and_load(tmp_path):
 def test_progress_manager_defaults(tmp_path):
     progress_file = tmp_path / "progress.json"
     manager = ProgressManager(filepath=progress_file)
+    assert manager.data["progress_version"] == PROGRESS_VERSION
     assert manager.data["completed_lessons"] == []
     assert manager.data["attempted_lessons"] == []
+    assert manager.data["task_progress"] == {}
     assert manager.data["failed_tasks"] == []
     assert manager.data["total_attempts"] == 0
     assert manager.data["correct_first_try"] == 0
@@ -146,6 +153,9 @@ def test_progress_manager_record_attempt(tmp_path):
     assert manager.data["platform_stats"]["Linux"]["attempts"] == 1
     assert manager.data["platform_stats"]["Linux"]["correct_first_try"] == 1
     assert manager.data["failed_tasks"] == []
+    assert manager.is_task_passed("t1") is True
+    assert manager.data["task_progress"]["t1"]["status"] == TASK_STATUS_PASSED
+    assert manager.data["task_progress"]["t1"]["passed_first_try"] is True
     
     # Record an incorrect attempt (not first try, not correct)
     manager.record_attempt(
@@ -160,7 +170,7 @@ def test_progress_manager_record_attempt(tmp_path):
     assert manager.data["correct_first_try"] == 1
     assert {"lesson_id": "l1", "task_id": "t2"} in manager.data["failed_tasks"]
 
-    # Record a correct attempt that resolves the failed task
+    # Correct on retry does not pass under first-try-only rules
     manager.record_attempt(
         lesson_id="l1",
         platform="Linux",
@@ -170,8 +180,10 @@ def test_progress_manager_record_attempt(tmp_path):
         is_skipped=False
     )
     assert manager.data["total_attempts"] == 3
-    assert manager.data["correct_first_try"] == 1  # not first try, so remains 1
-    assert {"lesson_id": "l1", "task_id": "t2"} not in manager.data["failed_tasks"]
+    assert manager.data["correct_first_try"] == 1
+    assert {"lesson_id": "l1", "task_id": "t2"} in manager.data["failed_tasks"]
+    assert manager.is_task_passed("t2") is False
+    assert manager.data["task_progress"]["t2"]["status"] == TASK_STATUS_FAILED
 
 def test_progress_manager_skipped_attempt(tmp_path):
     progress_file = tmp_path / "progress.json"
@@ -188,6 +200,8 @@ def test_progress_manager_skipped_attempt(tmp_path):
     )
     assert manager.data["skipped_count"] == 1
     assert {"lesson_id": "l1", "task_id": "t3"} in manager.data["failed_tasks"]
+    assert manager.data["task_progress"]["t3"]["status"] == TASK_STATUS_SKIPPED
+    assert manager.is_task_passed("t3") is False
 
 def test_progress_manager_reset(tmp_path):
     progress_file = tmp_path / "progress.json"
@@ -272,6 +286,51 @@ def test_get_recommended_lesson():
     assert get_recommended_lesson(lessons, ["basic"]).id == "vlan"
     assert get_recommended_lesson(lessons, ["basic", "vlan"]).id == "ospf"
     assert get_recommended_lesson(lessons, ["basic", "vlan", "ospf"]) is None
+
+def test_get_lesson_task_summary(tmp_path):
+    progress_file = tmp_path / "progress.json"
+    manager = ProgressManager(filepath=progress_file)
+    manager.record_attempt("l1", "Linux", "l1__a", True, True, False)
+    manager.record_attempt("l1", "Linux", "l1__b", False, True, False)
+
+    summary = manager.get_lesson_task_summary("l1", ["l1__a", "l1__b", "l1__c"])
+    assert summary == {"passed": 1, "total": 3, "incomplete": 2}
+
+
+def test_progress_migration_from_v0_2(tmp_path):
+    progress_file = tmp_path / "progress.json"
+    legacy = {
+        "completed_lessons": ["cisco_basic"],
+        "attempted_lessons": ["cisco_basic"],
+        "failed_tasks": [
+            {"lesson_id": "cisco_basic", "task_id": "cisco_basic__enable"},
+            {"lesson_id": "cisco_vlan", "task_id": "cisco_vlan__create"},
+        ],
+        "total_attempts": 5,
+        "correct_first_try": 2,
+        "skipped_count": 1,
+        "platform_stats": {"Cisco": {"attempts": 5, "correct_first_try": 2, "skipped": 1}},
+    }
+    progress_file.write_text(json.dumps(legacy), encoding="utf-8")
+
+    manager = ProgressManager(filepath=progress_file)
+    assert manager.data["progress_version"] == PROGRESS_VERSION
+    assert manager.data["completed_lessons"] == ["cisco_basic"]
+    assert manager.data["total_attempts"] == 5
+    assert "cisco_basic__enable" in manager.data["task_progress"]
+    assert manager.data["task_progress"]["cisco_basic__enable"]["status"] == TASK_STATUS_FAILED
+    assert "cisco_vlan__create" in manager.data["task_progress"]
+    reloaded = json.loads(progress_file.read_text(encoding="utf-8"))
+    assert reloaded["progress_version"] == PROGRESS_VERSION
+    assert "task_progress" in reloaded
+
+
+def test_is_task_progress_passed_helper():
+    assert is_task_progress_passed({"status": TASK_STATUS_PASSED, "passed_first_try": True})
+    assert not is_task_progress_passed({"status": TASK_STATUS_PASSED, "passed_first_try": False})
+    assert not is_task_progress_passed({"status": TASK_STATUS_FAILED, "passed_first_try": False})
+    assert not is_task_progress_passed(None)
+
 
 def test_mark_lesson_attempted(tmp_path):
     progress_file = tmp_path / "progress.json"

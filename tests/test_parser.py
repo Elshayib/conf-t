@@ -50,6 +50,12 @@ def test_review_flags(parser):
     assert args.review_all is True
 
 
+def test_continue_is_action(parser):
+    args = parser.parse_args(["--continue"])
+    assert has_cli_action(args) is True
+    assert args.continue_session is True
+
+
 def test_stats_is_action(parser):
     args = parser.parse_args(["--stats"])
     assert has_cli_action(args) is True

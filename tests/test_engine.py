@@ -23,6 +23,7 @@ from conf_t.engine import (
     format_display_answer,
     lesson_matches_tags,
     parse_tags_csv,
+    get_continue_target,
     get_lesson_status,
     get_missing_prerequisites,
     get_recommended_lesson,
@@ -530,6 +531,67 @@ def test_filter_lessons_by_tags():
     assert [lesson.id for lesson in filter_lessons_by_tags(lessons, ["routing"])] == ["ospf"]
     assert len(filter_lessons_by_tags(lessons, ["vlan", "routing"])) == 0
     assert lesson_matches_tags(lessons[0], ["vlan", "switching"]) is True
+
+
+def test_get_continue_target_prefers_daily_review():
+    lessons = [
+        Lesson(id="basic", title="Basic", platform="Cisco", description="", tasks=[]),
+    ]
+    target = get_continue_target(
+        lessons=lessons,
+        completed_lessons=[],
+        attempted_lessons=[],
+        due_review_count=3,
+        lesson_has_resume_state_fn=lambda _lesson: False,
+        is_lesson_fully_passed_fn=lambda _lesson: False,
+    )
+    assert target == {"action": "daily_review"}
+
+
+def test_get_continue_target_resumes_last_lesson(tmp_path):
+    progress_file = tmp_path / "progress.json"
+    manager = ProgressManager(filepath=progress_file)
+    lesson = Lesson(
+        id="l1",
+        title="Lesson 1",
+        platform="Linux",
+        description="",
+        tasks=[Task(id="l1__a", prompt="A", prefix="$", expected="^a$")],
+    )
+    manager.record_attempt("l1", "Linux", "l1__a", False, True, False)
+    target = get_continue_target(
+        lessons=[lesson],
+        completed_lessons=[],
+        attempted_lessons=manager.data["attempted_lessons"],
+        due_review_count=0,
+        lesson_has_resume_state_fn=manager.lesson_has_resume_state,
+        is_lesson_fully_passed_fn=manager.is_lesson_fully_passed,
+    )
+    assert target == {"action": "lesson", "lesson_id": "l1"}
+
+
+def test_get_continue_target_falls_back_to_recommended():
+    lessons = [
+        Lesson(id="basic", title="Basic", platform="Cisco", description="", difficulty="beginner", tasks=[]),
+        Lesson(
+            id="vlan",
+            title="VLAN",
+            platform="Cisco",
+            description="",
+            difficulty="intermediate",
+            prerequisites=["basic"],
+            tasks=[],
+        ),
+    ]
+    target = get_continue_target(
+        lessons=lessons,
+        completed_lessons=["basic"],
+        attempted_lessons=[],
+        due_review_count=0,
+        lesson_has_resume_state_fn=lambda _lesson: False,
+        is_lesson_fully_passed_fn=lambda _lesson: False,
+    )
+    assert target == {"action": "lesson", "lesson_id": "vlan"}
 
 
 def test_collect_all_tags():

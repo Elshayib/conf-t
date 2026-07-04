@@ -128,6 +128,41 @@ def get_recommended_lesson(
     return None
 
 
+def get_continue_target(
+    lessons: List[Lesson],
+    completed_lessons: List[str],
+    attempted_lessons: List[str],
+    due_review_count: int,
+    lesson_has_resume_state_fn,
+    is_lesson_fully_passed_fn,
+) -> Optional[Dict[str, str]]:
+    """
+    Pick the best continue action for --continue / quick start.
+    Returns {"action": "daily_review"} or {"action": "lesson", "lesson_id": "..."}.
+    """
+    if due_review_count > 0:
+        return {"action": "daily_review"}
+
+    for lesson_id in reversed(attempted_lessons):
+        lesson = next((item for item in lessons if item.id == lesson_id), None)
+        if not lesson:
+            continue
+        if is_lesson_fully_passed_fn(lesson):
+            continue
+        if lesson_has_resume_state_fn(lesson):
+            return {"action": "lesson", "lesson_id": lesson.id}
+
+    recommended = get_recommended_lesson(lessons, completed_lessons)
+    if recommended:
+        return {"action": "lesson", "lesson_id": recommended.id}
+
+    if lessons:
+        first = sort_lessons_by_curriculum(lessons)[0]
+        return {"action": "lesson", "lesson_id": first.id}
+
+    return None
+
+
 def get_failed_lesson_ids(failed_tasks: List[Dict[str, str]]) -> List[str]:
     return sorted({entry["lesson_id"] for entry in failed_tasks if "lesson_id" in entry})
 
@@ -257,6 +292,7 @@ class ProgressManager:
             "correct_first_try": 0,
             "skipped_count": 0,
             "platform_stats": {},
+            "onboarding_complete": False,
         }
 
     def _migrate_if_needed(

@@ -3,16 +3,26 @@ requires = ["setuptools>=61.0.0", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "conf_t"
-version = "0.3.4"
-description = "Conf T: An extensible interactive CLI simulator for learning and practicing command line tools."
+name = "conf-t"
+version = "0.4.0"
+description = "Interactive CLI trainer for Cisco, Linux, PowerShell, Git, and Docker commands."
 readme = "README.md"
 authors = [
     { name = "Islam Elshayib", email = "30467832+Elshayib@users.noreply.github.com" }
 ]
 license = { file = "LICENSE" }
+keywords = ["cli", "training", "cisco", "linux", "docker", "git", "powershell", "ccna"]
 classifiers = [
+    "Development Status :: 4 - Beta",
+    "Environment :: Console",
+    "Intended Audience :: Education",
     "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Topic :: Education",
+    "Topic :: System :: Systems Administration",
     "License :: OSI Approved :: MIT License",
     "Operating System :: OS Independent",
 ]
@@ -24,13 +34,17 @@ dependencies = [
 
 [project.optional-dependencies]
 dev = [
-    "pytest>=7.0"
+    "pytest>=7.0",
+    "build>=1.0.0",
+    "twine>=5.0.0",
 ]
 
 
 [project.urls]
-"Homepage" = "https://github.com/Elshayib/conf-t"
+Homepage = "https://github.com/Elshayib/conf-t"
+Repository = "https://github.com/Elshayib/conf-t"
 "Bug Tracker" = "https://github.com/Elshayib/conf-t/issues"
+Documentation = "https://github.com/Elshayib/conf-t#readme"
 
 [project.scripts]
 conf-t = "conf_t.main:main"

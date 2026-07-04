@@ -49,6 +49,19 @@ def build_parser() -> argparse.ArgumentParser:
         action="store_true",
         help="Show progress statistics and exit",
     )
+    parser.add_argument(
+        "--continue",
+        action="store_true",
+        dest="continue_session",
+        help="Continue where you left off (due review, last lesson, or recommended next)",
+    )
+    parser.epilog = (
+        "Examples:\n"
+        "  conf-t --continue              Jump back into practice\n"
+        "  conf-t --list --platform Cisco List Cisco lessons\n"
+        "  conf-t --lesson cisco_basic    Start a lesson by ID\n"
+        "  pipx install conf-t            Easiest install (recommended)"
+    )
     return parser
 
 
@@ -59,4 +72,5 @@ def has_cli_action(args: argparse.Namespace) -> bool:
         or args.review
         or args.review_all
         or args.stats
+        or args.continue_session
     )

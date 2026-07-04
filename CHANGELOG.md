@@ -5,6 +5,28 @@ All notable changes to Conf T are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.4.0] - 2026-07-04
+
+### Added
+
+- **PyPI publishing** — install with `pip install conf-t` or `pipx install conf-t`
+- **`conf-t --continue`** — jump into daily review, last in-progress lesson, or recommended next
+- **"Continue where I left off"** in the interactive main menu
+- **First-run welcome** panel with quick-start tips (shown once)
+- GitHub Actions workflow to publish to PyPI on GitHub Release (`PYPI_API_TOKEN` secret required)
+
+### Changed
+
+- PyPI package name set to **`conf-t`** (import remains `conf_t`)
+- README install section leads with pip/pipx, not git clone
+- Version bumped to **0.4.0**
+
+### Publish note
+
+Create a PyPI API token and add it as repository secret `PYPI_API_TOKEN`, then publish a GitHub Release to trigger the upload workflow.
+
+---
+
 ## [0.3.4] - 2026-07-04
 
 ### Added
@@ -141,6 +163,7 @@ If you have an older `~/.conf_t_progress.json` from v0.1.x, reset progress from 
 - Lesson creator wizard
 - Starter lessons for Cisco, Linux, PowerShell, Git, and Docker
 
+[0.4.0]: https://github.com/Elshayib/conf-t/releases/tag/v0.4.0
 [0.3.4]: https://github.com/Elshayib/conf-t/releases/tag/v0.3.4
 [0.3.3]: https://github.com/Elshayib/conf-t/releases/tag/v0.3.3
 [0.3.2]: https://github.com/Elshayib/conf-t/releases/tag/v0.3.2

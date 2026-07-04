@@ -23,6 +23,7 @@ from conf_t.engine import (
     collect_all_tags,
     filter_lessons_by_tags,
     format_display_answer,
+    get_continue_target,
     get_failed_lesson_ids,
     get_lesson_status,
     get_missing_prerequisites,
@@ -44,6 +45,7 @@ class ConfTCLI:
         choices = []
         if due_count > 0:
             choices.append(f"★ Daily Review ({due_count} due)")
+        choices.append("↩ Continue where I left off")
         choices.extend([
             "1. Practice a Lesson",
             "2. Review All Failed Commands",
@@ -173,6 +175,9 @@ class ConfTCLI:
         if args.stats:
             self.view_stats(interactive=False)
             return
+        if args.continue_session:
+            self.run_continue(interactive=False)
+            return
         if args.review:
             self.daily_review_menu(interactive=False)
             return
@@ -183,9 +188,73 @@ class ConfTCLI:
             self.run_lesson_by_id(args.lesson)
             return
 
+    def show_first_run_welcome(self) -> None:
+        if self.progress.data.get("onboarding_complete"):
+            return
+        if self.progress.data.get("total_attempts", 0) > 0:
+            return
+
+        console.print(Panel(
+            "[bold white]Welcome! Here's the fastest way to get started:[/]\n\n"
+            "1. Run [bold cyan]conf-t --continue[/] anytime to jump back in\n"
+            "2. Try [bold cyan]cisco_basic[/] (Cisco) or [bold cyan]linux_basic[/] (Linux)\n"
+            "3. Type [bold cyan]hint[/] during practice · [bold cyan]skip[/] to see answers\n"
+            "4. [bold cyan]Daily Review[/] appears when spaced-repetition tasks are due\n\n"
+            "[dim]Install tip: pipx install conf-t  (or pip install conf-t)[/]",
+            title="[bold green]First time with Conf T?[/]",
+            border_style="green",
+            box=box.ROUNDED,
+        ))
+        self.progress.data["onboarding_complete"] = True
+        self.progress.save()
+
+    def run_continue(self, interactive: bool = True) -> None:
+        lessons = self.loader.load_all_lessons()
+        if not lessons:
+            console.print("[bold red]No lessons found.[/]")
+            return
+
+        target = get_continue_target(
+            lessons=lessons,
+            completed_lessons=self.progress.data.get("completed_lessons", []),
+            attempted_lessons=self.progress.data.get("attempted_lessons", []),
+            due_review_count=self.progress.get_due_review_count(),
+            lesson_has_resume_state_fn=self.progress.lesson_has_resume_state,
+            is_lesson_fully_passed_fn=self.progress.is_lesson_fully_passed,
+        )
+
+        if not target:
+            console.print("[yellow]Nothing to continue yet. Try --list to pick a lesson.[/]")
+            return
+
+        if target["action"] == "daily_review":
+            due = self.progress.get_due_review_count()
+            console.print(
+                f"\n[bold yellow]Continuing:[/] [white]Daily Review[/] "
+                f"[dim]({due} task(s) due)[/]\n"
+            )
+            self.daily_review_menu(interactive=interactive)
+            return
+
+        lesson_id = target["lesson_id"]
+        lesson = next((item for item in lessons if item.id == lesson_id), None)
+        if not lesson:
+            console.print(f"[red]Lesson not found: {lesson_id}[/]")
+            return
+
+        console.print(
+            f"\n[bold yellow]Continuing:[/] [white]{lesson.title}[/] "
+            f"[dim]({lesson.platform})[/]\n"
+        )
+        tasks_to_run = self._choose_lesson_tasks(lesson)
+        if tasks_to_run is None:
+            return
+        self.run_practice_session(lesson, tasks_to_run=tasks_to_run)
+
     def run(self):
         """Main application execution loop."""
         self.show_welcome_banner()
+        self.show_first_run_welcome()
         
         while True:
             try:
@@ -209,6 +278,8 @@ class ConfTCLI:
 
                 if "Daily Review" in choice:
                     self.daily_review_menu()
+                elif "Continue where" in choice:
+                    self.run_continue()
                 elif "1. Practice" in choice:
                     self.practice_lessons_menu()
                 elif "2. Review" in choice:

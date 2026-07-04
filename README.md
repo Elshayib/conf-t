@@ -6,6 +6,7 @@
 [![CI](https://github.com/Elshayib/conf-t/actions/workflows/ci.yml/badge.svg)](https://github.com/Elshayib/conf-t/actions/workflows/ci.yml)
 [![Python](https://img.shields.io/badge/Python-3.10%2B-blue?logo=python)](https://www.python.org/)
 [![Platforms](https://img.shields.io/badge/Platforms-Cisco%20%7C%20Linux%20%7C%20PowerShell%20%7C%20Git%20%7C%20Docker-informational)]()
+[![PyPI](https://img.shields.io/pypi/v/conf-t?logo=pypi)](https://pypi.org/project/conf-t/)
 
 ---
 
@@ -38,24 +39,29 @@ You get a simulated shell prompt, type the command, and receive instant feedback
 ### Requirements
 
 - Python 3.10+
-- pip
 
-### Installation
+### Install (recommended)
 
 ```bash
-# 1. Clone the repository
+# Easiest — isolated global install (recommended)
+pipx install conf-t
+
+# Or with pip
+pip install conf-t
+
+# Launch
+conf-t
+
+# Jump straight into practice
+conf-t --continue
+```
+
+### Install from source (developers)
+
+```bash
 git clone https://github.com/Elshayib/conf-t.git
 cd conf-t
-
-# 2. (Recommended) Create a virtual environment
-python -m venv venv
-source venv/bin/activate        # Linux / macOS
-.\venv\Scripts\Activate.ps1     # Windows PowerShell
-
-# 3. Install in editable mode
-pip install -e .
-
-# 4. Launch!
+pip install -e ".[dev]"
 conf-t
 ```
 
@@ -71,7 +77,7 @@ You will be greeted with an interactive menu:
 
 ```
 ╔══════════════════════════════╗
-║         Conf T  v0.3.4       ║
+║         Conf T  v0.4.0       ║
 ╚══════════════════════════════╝
 
 ? Select an option:
@@ -92,10 +98,11 @@ When practicing a lesson, the curriculum browser groups lessons by difficulty, s
 
 **Spaced repetition:** failed commands resurface on a schedule (due now → 1 day → 3 days → 7 days). When tasks are due, **Daily Review** appears at the top of the main menu.
 
-### CLI flags (power users)
+### CLI flags
 
 ```bash
 conf-t                              # interactive menu (default)
+conf-t --continue                   # resume review, last lesson, or recommended next
 conf-t --list                       # list all lessons
 conf-t --list --platform Cisco      # filter by platform
 conf-t --list --tags vlan,ospf      # filter by tags

@@ -34,6 +34,7 @@ export type ProgressContextValue = {
   resetLessonProgress: (lessonId: string, taskIds: string[]) => void;
   markLessonCompleted: (lessonId: string) => void;
   resetProgress: () => void;
+  completeOnboarding: () => void;
 };
 
 const ProgressContext = createContext<ProgressContextValue | null>(null);
@@ -249,6 +250,17 @@ function useProgressState(): ProgressContextValue {
     bumpRevision();
   }, [markDirty, bumpRevision]);
 
+  const completeOnboarding = useCallback(() => {
+    const manager = progressManagerRef.current;
+    if (!manager) {
+      return;
+    }
+
+    manager.data.onboarding_complete = true;
+    markDirty();
+    bumpRevision();
+  }, [markDirty, bumpRevision]);
+
   return {
     progressManager,
     loading,
@@ -260,6 +272,7 @@ function useProgressState(): ProgressContextValue {
     resetLessonProgress,
     markLessonCompleted,
     resetProgress,
+    completeOnboarding,
   };
 }
 

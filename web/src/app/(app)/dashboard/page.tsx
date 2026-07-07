@@ -1,6 +1,8 @@
 "use client";
 
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
+import { Suspense } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { useProgress } from "@/hooks/useProgress";
 
@@ -50,9 +52,11 @@ function MenuLink({ item }: { item: MenuItem }) {
   );
 }
 
-export default function DashboardPage() {
+function DashboardContent() {
   const { user } = useAuth();
+  const searchParams = useSearchParams();
   const { progressManager, loading } = useProgress();
+  const resetSuccess = searchParams.get("reset") === "success";
 
   if (loading) {
     return (
@@ -135,6 +139,11 @@ export default function DashboardPage() {
           Your CLI practice hub. Pick an action below to review due tasks,
           continue a lesson, or track your progress.
         </p>
+        {resetSuccess ? (
+          <p className="mt-4 rounded-lg border border-emerald-500/30 bg-emerald-500/10 px-4 py-3 font-mono text-sm text-emerald-400">
+            ✔ All progress and statistics have been reset successfully.
+          </p>
+        ) : null}
       </div>
 
       <div className="space-y-3">
@@ -148,5 +157,19 @@ export default function DashboardPage() {
         </nav>
       </div>
     </div>
+  );
+}
+
+export default function DashboardPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="mx-auto max-w-3xl px-4 py-12 sm:px-6">
+          <LoadingState />
+        </div>
+      }
+    >
+      <DashboardContent />
+    </Suspense>
   );
 }

@@ -1,11 +1,24 @@
+import {
+  loadAllCustomLessons,
+  loadCustomLesson as fetchCustomLesson,
+  lessonToIndexEntry,
+} from "@/lib/firebase/custom-lessons";
 import type { Lesson, LessonIndexEntry } from "@/lib/engine/types";
 
-export async function loadLesson(id: string): Promise<Lesson | null> {
+export async function loadLesson(
+  id: string,
+  uid?: string
+): Promise<Lesson | null> {
   const res = await fetch(`/lessons/${id}.json`);
-  if (!res.ok) {
-    return null;
+  if (res.ok) {
+    return res.json() as Promise<Lesson>;
   }
-  return res.json() as Promise<Lesson>;
+
+  if (uid) {
+    return fetchCustomLesson(uid, id);
+  }
+
+  return null;
 }
 
 export async function loadLessonsIndex(): Promise<LessonIndexEntry[]> {
@@ -16,18 +29,21 @@ export async function loadLessonsIndex(): Promise<LessonIndexEntry[]> {
   return res.json() as Promise<LessonIndexEntry[]>;
 }
 
-/** Stub for Firestore custom lessons (Task 16). Returns [] until wired. */
 export async function loadCustomLessons(
-  _uid: string
+  uid: string
 ): Promise<LessonIndexEntry[]> {
-  return [];
+  const lessons = await loadAllCustomLessons(uid);
+  return lessons.map(lessonToIndexEntry);
 }
 
 export async function loadLessonsByIds(
-  ids: string[]
+  ids: string[],
+  uid?: string
 ): Promise<Lesson[]> {
   const uniqueIds = [...new Set(ids)];
-  const loaded = await Promise.all(uniqueIds.map((id) => loadLesson(id)));
+  const loaded = await Promise.all(
+    uniqueIds.map((id) => loadLesson(id, uid))
+  );
   return loaded.filter((lesson): lesson is Lesson => lesson !== null);
 }
 

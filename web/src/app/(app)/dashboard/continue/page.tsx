@@ -3,10 +3,11 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
+import { useAuth } from "@/hooks/useAuth";
 import { useProgress } from "@/hooks/useProgress";
 import { getContinueTarget } from "@/lib/engine/curriculum";
 import type { Lesson, LessonIndexEntry } from "@/lib/engine/types";
-import { loadLesson, loadLessonsIndex } from "@/lib/lessons/loader";
+import { loadAllLessonEntries, loadLesson } from "@/lib/lessons/loader";
 
 function indexEntryToLesson(entry: LessonIndexEntry): Lesson {
   return {
@@ -37,6 +38,7 @@ function LoadingState() {
 
 export default function ContinuePage() {
   const router = useRouter();
+  const { user } = useAuth();
   const { progressManager, loading: progressLoading } = useProgress();
   const [error, setError] = useState<string | null>(null);
 
@@ -54,10 +56,10 @@ export default function ContinuePage() {
 
     async function resolveContinueTarget() {
       try {
-        const index = await loadLessonsIndex();
+        const index = await loadAllLessonEntries(user?.uid);
         const attemptedIds = progressManager!.data.attempted_lessons;
         const fullLessons = await Promise.all(
-          attemptedIds.map((lessonId) => loadLesson(lessonId))
+          attemptedIds.map((lessonId) => loadLesson(lessonId, user?.uid))
         );
 
         const lessonById = new Map(
@@ -111,7 +113,7 @@ export default function ContinuePage() {
     return () => {
       cancelled = true;
     };
-  }, [progressLoading, progressManager, router]);
+  }, [progressLoading, progressManager, router, user?.uid]);
 
   if (error) {
     return (

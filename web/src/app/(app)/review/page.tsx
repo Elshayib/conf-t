@@ -6,6 +6,7 @@ import {
   PracticeTerminal,
   type SessionStats,
 } from "@/components/terminal/PracticeTerminal";
+import { useAuth } from "@/hooks/useAuth";
 import { useProgress } from "@/hooks/useProgress";
 import { resolveReviewEntries, type ReviewItem } from "@/lib/engine/review";
 import { loadLessonsByIds } from "@/lib/lessons/loader";
@@ -24,6 +25,7 @@ function LoadingState({ message }: { message: string }) {
 }
 
 export default function ReviewPage() {
+  const { user } = useAuth();
   const {
     progressManager,
     loading: progressLoading,
@@ -58,7 +60,10 @@ export default function ReviewPage() {
     let cancelled = false;
     setPhase("loading");
 
-    loadLessonsByIds(dueEntries.map((entry) => entry.lesson_id))
+    loadLessonsByIds(
+      dueEntries.map((entry) => entry.lesson_id),
+      user?.uid
+    )
       .then((lessons) => {
         if (cancelled) {
           return;
@@ -84,7 +89,7 @@ export default function ReviewPage() {
     return () => {
       cancelled = true;
     };
-  }, [progressLoading, progressManager, revision]);
+  }, [progressLoading, progressManager, revision, user?.uid]);
 
   const handleSessionEnd = useCallback(
     (_stats: SessionStats) => {

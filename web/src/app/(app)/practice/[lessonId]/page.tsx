@@ -7,10 +7,11 @@ import {
   PracticeTerminal,
   type SessionStats,
 } from "@/components/terminal/PracticeTerminal";
+import { useAuth } from "@/hooks/useAuth";
 import { useProgress } from "@/hooks/useProgress";
 import { getMissingPrerequisites } from "@/lib/engine/curriculum";
 import type { Lesson, LessonIndexEntry, Task } from "@/lib/engine/types";
-import { loadLesson, loadLessonsIndex } from "@/lib/lessons/loader";
+import { loadAllLessonEntries, loadLesson } from "@/lib/lessons/loader";
 
 type PagePhase =
   | "loading"
@@ -121,6 +122,7 @@ export default function PracticeLessonPage() {
   const params = useParams<{ lessonId: string }>();
   const lessonId = params.lessonId;
   const router = useRouter();
+  const { user } = useAuth();
 
   const {
     progressManager,
@@ -144,7 +146,10 @@ export default function PracticeLessonPage() {
     let cancelled = false;
     setLessonLoading(true);
 
-    Promise.all([loadLesson(lessonId), loadLessonsIndex()])
+    Promise.all([
+      loadLesson(lessonId, user?.uid),
+      loadAllLessonEntries(user?.uid),
+    ])
       .then(([loadedLesson, index]) => {
         if (cancelled) {
           return;
@@ -164,7 +169,7 @@ export default function PracticeLessonPage() {
     return () => {
       cancelled = true;
     };
-  }, [lessonId]);
+  }, [lessonId, user?.uid]);
 
   const lessonMap = useMemo(
     () => new Map(lessonsIndex.map((entry) => [entry.id, entry])),

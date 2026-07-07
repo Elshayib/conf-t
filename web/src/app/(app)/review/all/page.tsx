@@ -6,6 +6,7 @@ import {
   PracticeTerminal,
   type SessionStats,
 } from "@/components/terminal/PracticeTerminal";
+import { useAuth } from "@/hooks/useAuth";
 import { useProgress } from "@/hooks/useProgress";
 import { resolveReviewEntries, type ReviewItem } from "@/lib/engine/review";
 import { loadLessonsByIds } from "@/lib/lessons/loader";
@@ -29,6 +30,7 @@ function LoadingState({ message }: { message: string }) {
 }
 
 export default function ReviewAllPage() {
+  const { user } = useAuth();
   const {
     progressManager,
     loading: progressLoading,
@@ -81,7 +83,10 @@ export default function ReviewAllPage() {
 
     setPhase("loading");
 
-    loadLessonsByIds(failedEntries.map((entry) => entry.lesson_id))
+    loadLessonsByIds(
+      failedEntries.map((entry) => entry.lesson_id),
+      user?.uid
+    )
       .then((lessons) => {
         const items = resolveReviewEntries(failedEntries, lessons);
         if (items.length === 0) {
@@ -97,7 +102,7 @@ export default function ReviewAllPage() {
         setReviewItems([]);
         setPhase("unresolved");
       });
-  }, [progressManager]);
+  }, [progressManager, user?.uid]);
 
   const handleSessionEnd = useCallback(
     (_stats: SessionStats) => {

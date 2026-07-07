@@ -215,5 +215,356 @@
     },
     "platform": "Linux",
     "python_result": "pwd"
+  },
+  {
+    "fn": "is_task_progress_passed",
+    "entry": {
+      "status": "passed",
+      "passed_first_try": true
+    },
+    "python_result": true
+  },
+  {
+    "fn": "is_task_progress_passed",
+    "entry": {
+      "status": "passed",
+      "passed_first_try": false
+    },
+    "python_result": false
+  },
+  {
+    "fn": "is_task_progress_passed",
+    "entry": {
+      "status": "failed",
+      "passed_first_try": false
+    },
+    "python_result": false
+  },
+  {
+    "fn": "is_task_progress_passed",
+    "entry": null,
+    "python_result": false
+  },
+  {
+    "fn": "get_recommended_lesson",
+    "lessons": [
+      {
+        "id": "basic",
+        "title": "Basic",
+        "platform": "Cisco",
+        "description": "",
+        "tasks": [],
+        "difficulty": "beginner",
+        "tags": [],
+        "prerequisites": [],
+        "estimated_minutes": 0
+      },
+      {
+        "id": "vlan",
+        "title": "VLAN",
+        "platform": "Cisco",
+        "description": "",
+        "tasks": [],
+        "difficulty": "intermediate",
+        "prerequisites": [
+          "basic"
+        ],
+        "tags": [],
+        "estimated_minutes": 0
+      },
+      {
+        "id": "ospf",
+        "title": "OSPF",
+        "platform": "Cisco",
+        "description": "",
+        "tasks": [],
+        "difficulty": "intermediate",
+        "prerequisites": [
+          "vlan"
+        ],
+        "tags": [],
+        "estimated_minutes": 0
+      }
+    ],
+    "completed_lessons": [],
+    "python_result": "basic"
+  },
+  {
+    "fn": "get_recommended_lesson",
+    "lessons": [
+      {
+        "id": "basic",
+        "title": "Basic",
+        "platform": "Cisco",
+        "description": "",
+        "tasks": [],
+        "difficulty": "beginner",
+        "tags": [],
+        "prerequisites": [],
+        "estimated_minutes": 0
+      },
+      {
+        "id": "vlan",
+        "title": "VLAN",
+        "platform": "Cisco",
+        "description": "",
+        "tasks": [],
+        "difficulty": "intermediate",
+        "prerequisites": [
+          "basic"
+        ],
+        "tags": [],
+        "estimated_minutes": 0
+      },
+      {
+        "id": "ospf",
+        "title": "OSPF",
+        "platform": "Cisco",
+        "description": "",
+        "tasks": [],
+        "difficulty": "intermediate",
+        "prerequisites": [
+          "vlan"
+        ],
+        "tags": [],
+        "estimated_minutes": 0
+      }
+    ],
+    "completed_lessons": [
+      "basic"
+    ],
+    "python_result": "vlan"
+  },
+  {
+    "fn": "get_recommended_lesson",
+    "lessons": [
+      {
+        "id": "basic",
+        "title": "Basic",
+        "platform": "Cisco",
+        "description": "",
+        "tasks": [],
+        "difficulty": "beginner",
+        "tags": [],
+        "prerequisites": [],
+        "estimated_minutes": 0
+      },
+      {
+        "id": "vlan",
+        "title": "VLAN",
+        "platform": "Cisco",
+        "description": "",
+        "tasks": [],
+        "difficulty": "intermediate",
+        "prerequisites": [
+          "basic"
+        ],
+        "tags": [],
+        "estimated_minutes": 0
+      },
+      {
+        "id": "ospf",
+        "title": "OSPF",
+        "platform": "Cisco",
+        "description": "",
+        "tasks": [],
+        "difficulty": "intermediate",
+        "prerequisites": [
+          "vlan"
+        ],
+        "tags": [],
+        "estimated_minutes": 0
+      }
+    ],
+    "completed_lessons": [
+      "basic",
+      "vlan"
+    ],
+    "python_result": "ospf"
+  },
+  {
+    "fn": "get_recommended_lesson",
+    "lessons": [
+      {
+        "id": "basic",
+        "title": "Basic",
+        "platform": "Cisco",
+        "description": "",
+        "tasks": [],
+        "difficulty": "beginner",
+        "tags": [],
+        "prerequisites": [],
+        "estimated_minutes": 0
+      },
+      {
+        "id": "vlan",
+        "title": "VLAN",
+        "platform": "Cisco",
+        "description": "",
+        "tasks": [],
+        "difficulty": "intermediate",
+        "prerequisites": [
+          "basic"
+        ],
+        "tags": [],
+        "estimated_minutes": 0
+      },
+      {
+        "id": "ospf",
+        "title": "OSPF",
+        "platform": "Cisco",
+        "description": "",
+        "tasks": [],
+        "difficulty": "intermediate",
+        "prerequisites": [
+          "vlan"
+        ],
+        "tags": [],
+        "estimated_minutes": 0
+      }
+    ],
+    "completed_lessons": [
+      "basic",
+      "vlan",
+      "ospf"
+    ],
+    "python_result": null
+  },
+  {
+    "fn": "get_continue_target",
+    "lessons": [
+      {
+        "id": "basic",
+        "title": "Basic",
+        "platform": "Cisco",
+        "description": "",
+        "tasks": [],
+        "difficulty": "beginner",
+        "tags": [],
+        "prerequisites": [],
+        "estimated_minutes": 0
+      }
+    ],
+    "completed_lessons": [],
+    "attempted_lessons": [],
+    "due_review_count": 3,
+    "use_progress_manager": false,
+    "progress_setup": null,
+    "python_result": {
+      "action": "daily_review"
+    }
+  },
+  {
+    "fn": "get_continue_target",
+    "lessons": [
+      {
+        "id": "basic",
+        "title": "Basic",
+        "platform": "Cisco",
+        "description": "",
+        "tasks": [],
+        "difficulty": "beginner",
+        "tags": [],
+        "prerequisites": [],
+        "estimated_minutes": 0
+      },
+      {
+        "id": "vlan",
+        "title": "VLAN",
+        "platform": "Cisco",
+        "description": "",
+        "tasks": [],
+        "difficulty": "intermediate",
+        "prerequisites": [
+          "basic"
+        ],
+        "tags": [],
+        "estimated_minutes": 0
+      },
+      {
+        "id": "ospf",
+        "title": "OSPF",
+        "platform": "Cisco",
+        "description": "",
+        "tasks": [],
+        "difficulty": "intermediate",
+        "prerequisites": [
+          "vlan"
+        ],
+        "tags": [],
+        "estimated_minutes": 0
+      }
+    ],
+    "completed_lessons": [
+      "basic"
+    ],
+    "attempted_lessons": [],
+    "due_review_count": 0,
+    "use_progress_manager": false,
+    "progress_setup": null,
+    "python_result": {
+      "action": "lesson",
+      "lesson_id": "vlan"
+    }
+  },
+  {
+    "fn": "get_continue_target",
+    "lessons": [
+      {
+        "id": "l1",
+        "title": "Lesson 1",
+        "platform": "Linux",
+        "description": "",
+        "tasks": [
+          {
+            "id": "l1__a",
+            "prompt": "A",
+            "prefix": "$",
+            "expected": "^a$",
+            "aliases": [],
+            "hint": "",
+            "explanation": ""
+          }
+        ],
+        "difficulty": "beginner",
+        "tags": [],
+        "prerequisites": [],
+        "estimated_minutes": 0
+      }
+    ],
+    "completed_lessons": [],
+    "attempted_lessons": [
+      "l1"
+    ],
+    "due_review_count": 0,
+    "use_progress_manager": true,
+    "progress_setup": {
+      "record_attempt": {
+        "lesson_id": "l1",
+        "platform": "Linux",
+        "task_id": "l1__a",
+        "is_correct": false,
+        "is_first_try": true,
+        "is_skipped": false
+      }
+    },
+    "python_result": {
+      "action": "lesson",
+      "lesson_id": "l1"
+    }
+  },
+  {
+    "fn": "get_due_review_count",
+    "progress_setup": {
+      "record_attempt": {
+        "lesson_id": "l1",
+        "platform": "Linux",
+        "task_id": "l1__a",
+        "is_correct": false,
+        "is_first_try": true,
+        "is_skipped": false
+      }
+    },
+    "python_result": 1
   }
 ]

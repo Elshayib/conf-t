@@ -1,9 +1,11 @@
 "use client";
 
-import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useMemo } from "react";
+import { ErrorPanel } from "@/components/ui/ErrorPanel";
+import { LessonBrowserSkeleton } from "@/components/ui/Skeleton";
 import { useProgress } from "@/hooks/useProgress";
+import { getFirebaseErrorMessage } from "@/lib/errors";
 import {
   arePrerequisitesMet,
   getFailedLessonIds,
@@ -116,7 +118,7 @@ export function LessonBrowser({
   lessonMap,
 }: LessonBrowserProps) {
   const router = useRouter();
-  const { progressManager, loading, revision } = useProgress();
+  const { progressManager, loading, error, revision } = useProgress();
 
   const styles = PLATFORM_STYLES[platform] ?? DEFAULT_PLATFORM_STYLE;
 
@@ -155,27 +157,28 @@ export function LessonBrowser({
   }, [progressManager, sortedLessons, revision]);
 
   if (loading) {
+    return <LessonBrowserSkeleton />;
+  }
+
+  if (error) {
     return (
-      <div className="flex min-h-[30vh] items-center justify-center">
-        <div className="flex flex-col items-center gap-4">
-          <div className="h-8 w-8 animate-spin rounded-full border-2 border-emerald-500/30 border-t-emerald-400" />
-          <p className="font-mono text-sm text-zinc-500">Loading progress...</p>
-        </div>
-      </div>
+      <ErrorPanel
+        title="Could not load progress"
+        message={getFirebaseErrorMessage(error)}
+        backHref="/dashboard"
+        backLabel="← Back to dashboard"
+      />
     );
   }
 
   if (!progressManager) {
     return (
-      <div className="rounded-lg border border-zinc-800 bg-[#0d0d0d] p-8 text-center">
-        <p className="font-mono text-sm text-red-400">Progress data unavailable</p>
-        <Link
-          href="/dashboard"
-          className="mt-6 inline-block font-mono text-sm text-emerald-400 hover:text-emerald-300"
-        >
-          ← Back to dashboard
-        </Link>
-      </div>
+      <ErrorPanel
+        title="Progress data unavailable"
+        message="Your practice history could not be loaded. Sign in again or retry from the dashboard."
+        backHref="/dashboard"
+        backLabel="← Back to dashboard"
+      />
     );
   }
 
@@ -214,7 +217,7 @@ export function LessonBrowser({
           <button
             type="button"
             onClick={() => router.push(`/practice/${recommended.id}`)}
-            className="mt-3 w-full rounded-lg border border-emerald-500/30 bg-emerald-500/5 px-4 py-4 text-left transition-colors hover:border-emerald-500/50 hover:bg-emerald-500/10"
+            className="mt-3 min-h-11 w-full rounded-lg border border-emerald-500/30 bg-emerald-500/5 px-4 py-4 text-left transition-colors hover:border-emerald-500/50 hover:bg-emerald-500/10"
           >
             <p className={`font-mono text-base font-semibold ${styles.accent}`}>
               {recommended.title}
@@ -304,15 +307,15 @@ export function LessonBrowser({
                       <button
                         type="button"
                         onClick={() => router.push(`/practice/${entry.id}`)}
-                        className={`flex w-full flex-col gap-1 rounded-lg border px-4 py-3 text-left transition-colors hover:bg-zinc-900/60 ${
+                        className={`flex min-h-11 w-full flex-col gap-2 rounded-lg border px-4 py-4 text-left transition-colors hover:bg-zinc-900/60 md:gap-1 md:py-3 ${
                           isRecommended
                             ? "border-emerald-500/40 bg-emerald-500/5"
                             : "border-zinc-800 bg-[#0d0d0d] hover:border-zinc-700"
                         }`}
                       >
-                        <div className="flex items-start gap-3">
+                        <div className="flex flex-col gap-2 md:flex-row md:items-start md:gap-3">
                           <span
-                            className={`mt-0.5 shrink-0 font-mono text-sm ${
+                            className={`shrink-0 font-mono text-sm ${
                               status === LESSON_STATUS_COMPLETED
                                 ? "text-emerald-400"
                                 : status === LESSON_STATUS_IN_PROGRESS
@@ -329,21 +332,28 @@ export function LessonBrowser({
                               ) : null}
                               {entry.title}
                             </p>
-                            <p className="mt-1 font-mono text-xs text-zinc-500">
-                              {summary.passed}/{summary.total} · {percent}%
-                              {tagPreview
-                                ? ` · [${tagPreview}${tagSuffix}]`
-                                : ""}
-                              {entry.estimated_minutes
-                                ? ` · ~${entry.estimated_minutes}m`
-                                : ""}
-                              {failedCount > 0
-                                ? ` · ${failedCount} failed`
-                                : ""}
-                              {!prereqsMet ? " · prereqs" : ""}
-                            </p>
+                            <div className="mt-2 flex flex-col gap-1 md:mt-1">
+                              <p className="font-mono text-xs text-zinc-500">
+                                {summary.passed}/{summary.total} · {percent}%
+                              </p>
+                              <p className="font-mono text-xs text-zinc-500">
+                                {tagPreview
+                                  ? `[${tagPreview}${tagSuffix}]`
+                                  : null}
+                                {tagPreview && entry.estimated_minutes
+                                  ? " · "
+                                  : null}
+                                {entry.estimated_minutes
+                                  ? `~${entry.estimated_minutes}m`
+                                  : null}
+                                {failedCount > 0
+                                  ? ` · ${failedCount} failed`
+                                  : null}
+                                {!prereqsMet ? " · prereqs" : null}
+                              </p>
+                            </div>
                             {!prereqsMet && missingTitles.length > 0 ? (
-                              <p className="mt-1 font-mono text-xs text-amber-500/80">
+                              <p className="mt-2 font-mono text-xs text-amber-500/80 md:mt-1">
                                 Recommended first: {missingTitles.join(", ")}
                               </p>
                             ) : null}

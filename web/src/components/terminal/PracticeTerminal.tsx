@@ -453,10 +453,10 @@ export function PracticeTerminal(props: PracticeTerminalProps) {
           </p>
 
           <form onSubmit={handleSubmit} className="mt-4">
-            <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+            <div className="flex flex-col gap-3 md:flex-row md:items-center">
               <label
                 htmlFor="practice-input"
-                className={`shrink-0 font-mono text-sm ${styles.prompt}`}
+                className={`shrink-0 font-mono text-sm md:min-h-11 md:py-2.5 ${styles.prompt}`}
               >
                 {currentTask?.prefix}
               </label>
@@ -471,14 +471,14 @@ export function PracticeTerminal(props: PracticeTerminalProps) {
                 autoCorrect="off"
                 autoCapitalize="off"
                 spellCheck={false}
-                className="min-w-0 flex-1 rounded border border-zinc-700 bg-black px-3 py-2.5 font-mono text-sm text-zinc-100 outline-none transition-colors focus:border-emerald-500/50 disabled:opacity-50"
+                className="min-h-11 min-w-0 flex-1 rounded border border-zinc-700 bg-black px-3 py-3 font-mono text-base text-zinc-100 outline-none transition-colors focus:border-emerald-500/50 disabled:opacity-50 md:text-sm"
                 aria-label="Command input"
               />
             </div>
             {!awaitingAdvance ? (
               <button
                 type="submit"
-                className="mt-3 w-full rounded border border-emerald-500/40 bg-emerald-500/10 px-4 py-2.5 font-mono text-sm text-emerald-400 transition-colors hover:bg-emerald-500/20 sm:w-auto"
+                className="mt-3 min-h-11 w-full rounded border border-emerald-500/40 bg-emerald-500/10 px-4 py-3 font-mono text-sm text-emerald-400 transition-colors hover:bg-emerald-500/20 md:w-auto"
               >
                 Submit
               </button>
@@ -492,18 +492,18 @@ export function PracticeTerminal(props: PracticeTerminalProps) {
                   ? "Exit review mode?"
                   : "Exit this lesson?"}
               </p>
-              <div className="mt-3 flex flex-wrap gap-2">
+              <div className="mt-3 flex flex-col gap-2 sm:flex-row sm:flex-wrap">
                 <button
                   type="button"
                   onClick={() => handleExitConfirm(true)}
-                  className="rounded border border-yellow-500/40 px-3 py-1.5 font-mono text-xs text-yellow-300 hover:bg-yellow-500/10"
+                  className="min-h-11 rounded border border-yellow-500/40 px-4 py-3 font-mono text-sm text-yellow-300 hover:bg-yellow-500/10"
                 >
                   Yes, exit
                 </button>
                 <button
                   type="button"
                   onClick={() => handleExitConfirm(false)}
-                  className="rounded border border-zinc-700 px-3 py-1.5 font-mono text-xs text-zinc-400 hover:bg-zinc-900"
+                  className="min-h-11 rounded border border-zinc-700 px-4 py-3 font-mono text-sm text-zinc-400 hover:bg-zinc-900"
                 >
                   Continue practicing
                 </button>
@@ -566,7 +566,7 @@ export function PracticeTerminal(props: PracticeTerminalProps) {
             <button
               type="button"
               onClick={advanceToNextTask}
-              className="mt-4 w-full rounded border border-zinc-700 px-4 py-2.5 font-mono text-sm text-zinc-300 transition-colors hover:border-zinc-600 hover:text-zinc-100 sm:w-auto"
+              className="mt-4 min-h-11 w-full rounded border border-zinc-700 px-4 py-3 font-mono text-sm text-zinc-300 transition-colors hover:border-zinc-600 hover:text-zinc-100 md:w-auto"
             >
               {taskIndex + 1 >= sessionItems.length
                 ? "View summary"

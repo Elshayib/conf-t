@@ -11,6 +11,7 @@ import {
   signInWithGoogle,
 } from "@/lib/firebase/auth";
 import { createUserDocument } from "@/lib/firebase/progress";
+import { getAuthErrorMessage } from "@/lib/errors";
 
 function LoginForm() {
   const router = useRouter();
@@ -190,34 +191,6 @@ function GoogleIcon() {
       />
     </svg>
   );
-}
-
-function getAuthErrorMessage(error: unknown): string {
-  if (
-    error &&
-    typeof error === "object" &&
-    "code" in error &&
-    typeof error.code === "string"
-  ) {
-    switch (error.code) {
-      case "auth/invalid-email":
-        return "Invalid email address.";
-      case "auth/user-disabled":
-        return "This account has been disabled.";
-      case "auth/user-not-found":
-      case "auth/wrong-password":
-      case "auth/invalid-credential":
-        return "Invalid email or password.";
-      case "auth/too-many-requests":
-        return "Too many attempts. Try again later.";
-      case "auth/popup-closed-by-user":
-        return "Sign-in popup was closed.";
-      default:
-        break;
-    }
-  }
-
-  return "Authentication failed. Please try again.";
 }
 
 export default function LoginPage() {

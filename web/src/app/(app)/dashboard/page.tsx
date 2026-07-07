@@ -3,8 +3,11 @@
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { Suspense } from "react";
+import { ErrorPanel } from "@/components/ui/ErrorPanel";
+import { DashboardSkeleton } from "@/components/ui/Skeleton";
 import { useAuth } from "@/hooks/useAuth";
 import { useProgress } from "@/hooks/useProgress";
+import { getFirebaseErrorMessage } from "@/lib/errors";
 
 type MenuItem = {
   href: string;
@@ -14,22 +17,11 @@ type MenuItem = {
   prefix?: string;
 };
 
-function LoadingState() {
-  return (
-    <div className="flex min-h-[40vh] items-center justify-center">
-      <div className="flex flex-col items-center gap-4">
-        <div className="h-8 w-8 animate-spin rounded-full border-2 border-emerald-500/30 border-t-emerald-400" />
-        <p className="font-mono text-sm text-zinc-500">Loading dashboard...</p>
-      </div>
-    </div>
-  );
-}
-
 function MenuLink({ item }: { item: MenuItem }) {
   return (
     <Link
       href={item.href}
-      className={`group block rounded-lg border bg-[#0d0d0d] px-4 py-4 transition-colors ${
+      className={`group block min-h-11 rounded-lg border bg-[#0d0d0d] px-4 py-4 transition-colors ${
         item.highlight
           ? "border-amber-500/40 hover:border-amber-500/60 hover:bg-amber-500/5"
           : "border-zinc-800 hover:border-zinc-700 hover:bg-zinc-900/60"
@@ -55,13 +47,21 @@ function MenuLink({ item }: { item: MenuItem }) {
 function DashboardContent() {
   const { user } = useAuth();
   const searchParams = useSearchParams();
-  const { progressManager, loading } = useProgress();
+  const { progressManager, loading, error } = useProgress();
   const resetSuccess = searchParams.get("reset") === "success";
 
   if (loading) {
+    return <DashboardSkeleton />;
+  }
+
+  if (error) {
     return (
       <div className="mx-auto max-w-3xl px-4 py-12 sm:px-6">
-        <LoadingState />
+        <ErrorPanel
+          title="Could not load your progress"
+          message={getFirebaseErrorMessage(error)}
+          onRetry={() => window.location.reload()}
+        />
       </div>
     );
   }
@@ -162,13 +162,7 @@ function DashboardContent() {
 
 export default function DashboardPage() {
   return (
-    <Suspense
-      fallback={
-        <div className="mx-auto max-w-3xl px-4 py-12 sm:px-6">
-          <LoadingState />
-        </div>
-      }
-    >
+    <Suspense fallback={<DashboardSkeleton />}>
       <DashboardContent />
     </Suspense>
   );

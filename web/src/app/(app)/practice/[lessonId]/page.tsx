@@ -7,9 +7,13 @@ import {
   PracticeTerminal,
   type SessionStats,
 } from "@/components/terminal/PracticeTerminal";
+import { ErrorPanel } from "@/components/ui/ErrorPanel";
+import { LessonPageSkeleton } from "@/components/ui/Skeleton";
+import { useToast } from "@/components/ui/Toast";
 import { useAuth } from "@/hooks/useAuth";
 import { useProgress } from "@/hooks/useProgress";
 import { getMissingPrerequisites } from "@/lib/engine/curriculum";
+import { getFirebaseErrorMessage, getLessonLoadErrorMessage } from "@/lib/errors";
 import type { Lesson, LessonIndexEntry, Task } from "@/lib/engine/types";
 import { loadAllLessonEntries, loadLesson } from "@/lib/lessons/loader";
 
@@ -23,17 +27,6 @@ type PagePhase =
   | "practice";
 
 type StartChoice = "resume" | "restart" | "pick";
-
-function LoadingState() {
-  return (
-    <div className="flex min-h-[40vh] items-center justify-center">
-      <div className="flex flex-col items-center gap-4">
-        <div className="h-8 w-8 animate-spin rounded-full border-2 border-emerald-500/30 border-t-emerald-400" />
-        <p className="font-mono text-sm text-zinc-500">Loading lesson...</p>
-      </div>
-    </div>
-  );
-}
 
 function ChoiceButton({
   title,
@@ -56,7 +49,7 @@ function ChoiceButton({
     <button
       type="button"
       onClick={onClick}
-      className={`w-full rounded-lg border border-zinc-800 bg-[#0d0d0d] px-4 py-4 text-left transition-colors ${accentClasses[accent]}`}
+      className={`min-h-11 w-full rounded-lg border border-zinc-800 bg-[#0d0d0d] px-4 py-4 text-left transition-colors ${accentClasses[accent]}`}
     >
       <p className="font-mono text-sm font-medium text-zinc-100">{title}</p>
       <p className="mt-1 font-mono text-xs leading-relaxed text-zinc-500">
@@ -123,10 +116,12 @@ export default function PracticeLessonPage() {
   const lessonId = params.lessonId;
   const router = useRouter();
   const { user } = useAuth();
+  const { toast } = useToast();
 
   const {
     progressManager,
     loading: progressLoading,
+    error: progressError,
     revision,
     recordAttempt,
     markLessonAttempted,
@@ -138,13 +133,15 @@ export default function PracticeLessonPage() {
   const [lesson, setLesson] = useState<Lesson | null>(null);
   const [lessonsIndex, setLessonsIndex] = useState<LessonIndexEntry[]>([]);
   const [lessonLoading, setLessonLoading] = useState(true);
+  const [lessonLoadError, setLessonLoadError] = useState<string | null>(null);
   const [phase, setPhase] = useState<PagePhase>("loading");
   const [tasksToRun, setTasksToRun] = useState<Task[]>([]);
   const [prereqAcknowledged, setPrereqAcknowledged] = useState(false);
 
-  useEffect(() => {
+  const loadLessonData = useCallback(() => {
     let cancelled = false;
     setLessonLoading(true);
+    setLessonLoadError(null);
 
     Promise.all([
       loadLesson(lessonId, user?.uid),
@@ -160,6 +157,14 @@ export default function PracticeLessonPage() {
           setPhase("not-found");
         }
       })
+      .catch((err) => {
+        if (!cancelled) {
+          const message = getLessonLoadErrorMessage(err);
+          setLessonLoadError(message);
+          setPhase("not-found");
+          toast({ message, variant: "error", durationMs: 7000 });
+        }
+      })
       .finally(() => {
         if (!cancelled) {
           setLessonLoading(false);
@@ -169,7 +174,12 @@ export default function PracticeLessonPage() {
     return () => {
       cancelled = true;
     };
-  }, [lessonId, user?.uid]);
+  }, [lessonId, user?.uid, toast]);
+
+  useEffect(() => {
+    const cleanup = loadLessonData();
+    return cleanup;
+  }, [loadLessonData]);
 
   const lessonMap = useMemo(
     () => new Map(lessonsIndex.map((entry) => [entry.id, entry])),
@@ -333,9 +343,33 @@ export default function PracticeLessonPage() {
   );
 
   if (phase === "loading" || lessonLoading || progressLoading) {
+    return <LessonPageSkeleton />;
+  }
+
+  if (progressError) {
     return (
       <div className="mx-auto max-w-3xl px-4 py-12 sm:px-6">
-        <LoadingState />
+        <ErrorPanel
+          title="Could not load progress"
+          message={getFirebaseErrorMessage(progressError)}
+          onRetry={() => window.location.reload()}
+          backHref="/practice"
+          backLabel="← Back to practice"
+        />
+      </div>
+    );
+  }
+
+  if (lessonLoadError) {
+    return (
+      <div className="mx-auto max-w-3xl px-4 py-12 sm:px-6">
+        <ErrorPanel
+          title="Could not load lesson"
+          message={lessonLoadError}
+          onRetry={loadLessonData}
+          backHref="/practice"
+          backLabel="← Back to practice"
+        />
       </div>
     );
   }
@@ -408,7 +442,7 @@ export default function PracticeLessonPage() {
             <button
               type="button"
               onClick={() => router.push("/practice")}
-              className="rounded-lg border border-zinc-800 px-4 py-4 font-mono text-sm text-zinc-400 transition-colors hover:border-zinc-700 hover:text-zinc-200"
+              className="min-h-11 rounded-lg border border-zinc-800 px-4 py-4 font-mono text-sm text-zinc-400 transition-colors hover:border-zinc-700 hover:text-zinc-200"
             >
               Back to practice
             </button>
@@ -431,7 +465,7 @@ export default function PracticeLessonPage() {
             <button
               type="button"
               onClick={() => handlePracticeAgain(false)}
-              className="rounded-lg border border-zinc-800 px-4 py-4 font-mono text-sm text-zinc-400 transition-colors hover:border-zinc-700 hover:text-zinc-200"
+              className="min-h-11 rounded-lg border border-zinc-800 px-4 py-4 font-mono text-sm text-zinc-400 transition-colors hover:border-zinc-700 hover:text-zinc-200"
             >
               Cancel
             </button>
@@ -492,7 +526,7 @@ export default function PracticeLessonPage() {
                   key={task.id}
                   type="button"
                   onClick={() => handlePickTask(index)}
-                  className="flex w-full items-start gap-3 rounded-lg border border-zinc-800 bg-[#0d0d0d] px-4 py-3 text-left transition-colors hover:border-zinc-700"
+                  className="flex min-h-11 w-full items-start gap-3 rounded-lg border border-zinc-800 bg-[#0d0d0d] px-4 py-4 text-left transition-colors hover:border-zinc-700"
                 >
                   <span
                     className={`mt-0.5 font-mono text-sm ${passed ? "text-emerald-400" : "text-zinc-600"}`}

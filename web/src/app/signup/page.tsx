@@ -8,6 +8,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { setAuthCookie } from "@/lib/auth/constants";
 import { signUpWithEmail } from "@/lib/firebase/auth";
 import { createUserDocument } from "@/lib/firebase/progress";
+import { getAuthErrorMessage } from "@/lib/errors";
 
 function SignupForm() {
   const router = useRouter();
@@ -154,30 +155,6 @@ function SignupForm() {
       </form>
     </AuthShell>
   );
-}
-
-function getAuthErrorMessage(error: unknown): string {
-  if (
-    error &&
-    typeof error === "object" &&
-    "code" in error &&
-    typeof error.code === "string"
-  ) {
-    switch (error.code) {
-      case "auth/email-already-in-use":
-        return "An account with this email already exists.";
-      case "auth/invalid-email":
-        return "Invalid email address.";
-      case "auth/weak-password":
-        return "Password is too weak. Use at least 6 characters.";
-      case "auth/too-many-requests":
-        return "Too many attempts. Try again later.";
-      default:
-        break;
-    }
-  }
-
-  return "Registration failed. Please try again.";
 }
 
 export default function SignupPage() {

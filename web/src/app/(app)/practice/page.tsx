@@ -2,7 +2,11 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { LessonBrowser } from "@/components/curriculum/LessonBrowser";
+import { ErrorPanel } from "@/components/ui/ErrorPanel";
+import { PracticePageSkeleton } from "@/components/ui/Skeleton";
+import { useToast } from "@/components/ui/Toast";
 import { useAuth } from "@/hooks/useAuth";
+import { getLessonLoadErrorMessage } from "@/lib/errors";
 import {
   collectAllTags,
   filterLessonsByTags,
@@ -50,34 +54,33 @@ const DEFAULT_PLATFORM_STYLE = {
   badge: "bg-emerald-500/10 text-emerald-300",
 };
 
-function LoadingState() {
-  return (
-    <div className="flex min-h-[40vh] items-center justify-center">
-      <div className="flex flex-col items-center gap-4">
-        <div className="h-8 w-8 animate-spin rounded-full border-2 border-emerald-500/30 border-t-emerald-400" />
-        <p className="font-mono text-sm text-zinc-500">Loading curriculum...</p>
-      </div>
-    </div>
-  );
-}
-
 export default function PracticePage() {
   const { user } = useAuth();
+  const { toast } = useToast();
   const [allLessons, setAllLessons] = useState<LessonIndexEntry[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
   const [step, setStep] = useState<BrowseStep>("platform");
   const [selectedPlatform, setSelectedPlatform] = useState<string | null>(null);
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
   const [customTagsInput, setCustomTagsInput] = useState("");
 
-  useEffect(() => {
+  const loadLessons = useCallback(() => {
     let cancelled = false;
     setLoading(true);
+    setLoadError(null);
 
     loadAllLessonEntries(user?.uid)
       .then((entries) => {
         if (!cancelled) {
           setAllLessons(entries);
+        }
+      })
+      .catch((err) => {
+        if (!cancelled) {
+          const message = getLessonLoadErrorMessage(err);
+          setLoadError(message);
+          toast({ message, variant: "error", durationMs: 7000 });
         }
       })
       .finally(() => {
@@ -89,7 +92,12 @@ export default function PracticePage() {
     return () => {
       cancelled = true;
     };
-  }, [user?.uid]);
+  }, [user?.uid, toast]);
+
+  useEffect(() => {
+    const cleanup = loadLessons();
+    return cleanup;
+  }, [loadLessons]);
 
   const lessonMap = useMemo(
     () => new Map(allLessons.map((entry) => [entry.id, entry])),
@@ -173,9 +181,17 @@ export default function PracticePage() {
   };
 
   if (loading) {
+    return <PracticePageSkeleton />;
+  }
+
+  if (loadError) {
     return (
       <div className="mx-auto max-w-3xl px-4 py-12 sm:px-6">
-        <LoadingState />
+        <ErrorPanel
+          title="Could not load curriculum"
+          message={loadError}
+          onRetry={loadLessons}
+        />
       </div>
     );
   }
@@ -209,7 +225,7 @@ export default function PracticePage() {
       {step === "platform" ? (
         <div className="space-y-4">
           <p className="font-mono text-sm text-zinc-400">Choose a platform:</p>
-          <div className="grid gap-3 sm:grid-cols-2">
+          <div className="grid gap-3 md:grid-cols-2">
             {platforms.map(([platform, count]) => {
               const styles =
                 PLATFORM_STYLES[platform] ?? DEFAULT_PLATFORM_STYLE;
@@ -218,7 +234,7 @@ export default function PracticePage() {
                   key={platform}
                   type="button"
                   onClick={() => handlePlatformSelect(platform)}
-                  className={`rounded-lg border bg-[#0d0d0d] px-4 py-4 text-left transition-colors hover:bg-zinc-900/60 ${styles.border}`}
+                  className={`min-h-11 rounded-lg border bg-[#0d0d0d] px-4 py-4 text-left transition-colors hover:bg-zinc-900/60 ${styles.border}`}
                 >
                   <span
                     className={`inline-block rounded px-2 py-0.5 font-mono text-xs ${styles.badge}`}
@@ -262,7 +278,7 @@ export default function PracticePage() {
                     key={tag}
                     type="button"
                     onClick={() => toggleTag(tag)}
-                    className={`rounded-full border px-3 py-1.5 font-mono text-xs transition-colors ${
+                    className={`min-h-11 rounded-full border px-4 py-2.5 font-mono text-xs transition-colors ${
                       active
                         ? "border-emerald-500/50 bg-emerald-500/10 text-emerald-300"
                         : "border-zinc-700 bg-[#0d0d0d] text-zinc-400 hover:border-zinc-600"
@@ -291,22 +307,22 @@ export default function PracticePage() {
                 setSelectedTags([]);
               }}
               placeholder="vlan, routing, ccna"
-              className="mt-2 w-full rounded border border-zinc-700 bg-black px-3 py-2.5 font-mono text-sm text-zinc-100 outline-none transition-colors focus:border-emerald-500/50"
+              className="mt-2 min-h-11 w-full rounded border border-zinc-700 bg-black px-3 py-3 font-mono text-base text-zinc-100 outline-none transition-colors focus:border-emerald-500/50 md:text-sm"
             />
           </div>
 
-          <div className="flex flex-col gap-3 sm:flex-row">
+          <div className="flex flex-col gap-3 md:flex-row">
             <button
               type="button"
               onClick={handleTagsContinue}
-              className="rounded-lg border border-emerald-500/40 bg-emerald-500/10 px-4 py-3 font-mono text-sm text-emerald-400 transition-colors hover:bg-emerald-500/20"
+              className="min-h-11 rounded-lg border border-emerald-500/40 bg-emerald-500/10 px-4 py-3 font-mono text-sm text-emerald-400 transition-colors hover:bg-emerald-500/20"
             >
               Continue
             </button>
             <button
               type="button"
               onClick={handleTagsSkip}
-              className="rounded-lg border border-zinc-800 px-4 py-3 font-mono text-sm text-zinc-400 transition-colors hover:border-zinc-700 hover:text-zinc-200"
+              className="min-h-11 rounded-lg border border-zinc-800 px-4 py-3 font-mono text-sm text-zinc-400 transition-colors hover:border-zinc-700 hover:text-zinc-200"
             >
               All topics
             </button>

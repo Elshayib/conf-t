@@ -1,20 +1,51 @@
 # Conf T 🖥️
 
-> A professional CLI training tool for practicing command-line skills across multiple platforms.
+> A professional training tool for practicing command-line skills across multiple platforms — in your browser or from the terminal.
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 [![CI](https://github.com/Elshayib/conf-t/actions/workflows/ci.yml/badge.svg)](https://github.com/Elshayib/conf-t/actions/workflows/ci.yml)
+[![Web App](https://img.shields.io/badge/Web%20App-conf--t.vercel.app-emerald)](https://conf-t.vercel.app)
 [![Python](https://img.shields.io/badge/Python-3.10%2B-blue?logo=python)](https://www.python.org/)
 [![Platforms](https://img.shields.io/badge/Platforms-Cisco%20%7C%20Linux%20%7C%20PowerShell%20%7C%20Git%20%7C%20Docker-informational)]()
 [![PyPI](https://img.shields.io/pypi/v/conf-t?logo=pypi)](https://pypi.org/project/conf-t/)
 
 ---
 
+## 🌐 Web App (Recommended)
+
+**Try Conf T in your browser:** [**https://conf-t.vercel.app**](https://conf-t.vercel.app)
+
+No install required — sign up, pick a lesson, and start typing real commands in an interactive terminal. Progress syncs to your account via Firebase so you can practice from any device.
+
+| Feature | Description |
+|---|---|
+| 🖥️ **Browser terminal** | Realistic prompts per platform (`Router#`, `user@ubuntu:~$`, `PS C:\>`) |
+| 🔐 **Account & sync** | Firebase Auth + Firestore — progress follows you across sessions |
+| 🗺️ **Public catalog** | Browse lessons by platform before signing up; shareable lesson URLs |
+| 📊 **Dashboard & stats** | Daily review, continue where you left off, accuracy tracking |
+| 🔄 **Full CLI parity** | Practice, review, spaced repetition, custom lessons, and curriculum browser |
+| ☁️ **Deploy anywhere** | Next.js app in `web/` — one-click deploy to Vercel or self-host |
+
+### Self-hosting the web app
+
+The web app lives in [`web/`](web/). To run or deploy your own instance:
+
+1. **Firebase project** — create a project in the [Firebase Console](https://console.firebase.google.com/), enable **Authentication** (email/password) and **Cloud Firestore**, and deploy the rules in [`web/firestore.rules`](web/firestore.rules).
+2. **Environment variables** — copy [`web/.env.local.example`](web/.env.local.example) to `web/.env.local` and fill in your Firebase config (`NEXT_PUBLIC_FIREBASE_*` keys from Project settings → Your apps).
+3. **Run locally** — `cd web && npm install && npm run dev` (opens [http://localhost:3000](http://localhost:3000)).
+4. **Deploy** — push `web/` to Vercel (or your host); set the same `NEXT_PUBLIC_FIREBASE_*` env vars in the deployment dashboard.
+
+> **No URL yet?** Deploy the `web/` directory to Vercel to get a live URL, or use the placeholder above once the production deployment is live.
+
+---
+
 ## What is Conf T?
 
-**Conf T** is an interactive, terminal-based learning tool that helps you practice real command-line commands across multiple environments — without needing access to live hardware or cloud instances.
+**Conf T** is an interactive learning tool that helps you practice real command-line commands across multiple environments — without needing access to live hardware or cloud instances.
 
 You get a simulated shell prompt, type the command, and receive instant feedback. Missed it? Get a hint. Stuck? Skip and review later. Conf T tracks your progress so every session builds on the last.
+
+The **web app** is the primary experience; the **CLI** (PyPI) remains available for offline use and power users.
 
 ---
 
@@ -34,13 +65,15 @@ You get a simulated shell prompt, type the command, and receive instant feedback
 
 ---
 
-## 🚀 Quick Start
+## 🖥️ Legacy / Power Users (CLI)
+
+> The original terminal-based Conf T is still available via PyPI — ideal for offline practice, scripting, and users who prefer a native shell workflow.
 
 ### Requirements
 
 - Python 3.10+
 
-### Install (recommended)
+### Install
 
 ```bash
 # Easiest — isolated global install (recommended)
@@ -198,15 +231,22 @@ Create a `.json` file in `conf_t/lessons/` using this schema:
 ## 🏗️ Architecture
 
 ```
-conf_t/
-├── main.py        # Entry point — bootstraps the app
-├── cli.py         # All UI/terminal rendering and menus
-├── engine.py      # Business logic (pure Python, no UI)
-├── models.py      # Data classes: Task, Lesson, SessionStats
-└── lessons/       # JSON lesson files (one per lesson)
+conf_t/                  # Python CLI + shared lesson engine
+├── main.py              # CLI entry point
+├── cli.py               # Terminal UI and menus
+├── engine.py            # Business logic (pure Python, no UI)
+├── models.py            # Data classes: Task, Lesson, SessionStats
+└── lessons/             # JSON lesson files (source of truth)
+
+web/                     # Next.js web app (primary experience)
+├── src/app/             # Routes: marketing, practice, dashboard, review
+├── src/components/      # Terminal UI, curriculum browser, auth shell
+├── src/lib/             # Lesson loader, Firebase, progress sync
+├── public/lessons/      # Synced from conf_t/lessons/ at build time
+└── firestore.rules      # Per-user progress security rules
 ```
 
-> **Design principle:** `engine.py` is completely UI-agnostic — making it trivial to expose the engine via a REST API (FastAPI) or port it to a mobile/web frontend in the future.
+> **Design principle:** `engine.py` is UI-agnostic; the web app ports the same validation and curriculum logic to TypeScript while lessons stay in shared JSON under `conf_t/lessons/`.
 
 ---
 

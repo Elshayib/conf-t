@@ -1,16 +1,17 @@
 "use client";
 
 import Link from "next/link";
-import { useRouter } from "next/navigation";
-import { FormEvent, useEffect, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
+import { FormEvent, Suspense, useEffect, useState } from "react";
 import { AuthShell } from "@/components/auth/AuthShell";
 import { useAuth } from "@/hooks/useAuth";
 import { setAuthCookie } from "@/lib/auth/constants";
 import { signUpWithEmail } from "@/lib/firebase/auth";
 import { createUserDocument } from "@/lib/firebase/progress";
 
-export default function SignupPage() {
+function SignupForm() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const { user, loading } = useAuth();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -18,11 +19,14 @@ export default function SignupPage() {
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
 
+  const lessonId = searchParams.get("lesson");
+  const redirectTo = lessonId ? `/practice/${lessonId}` : "/onboarding";
+
   useEffect(() => {
     if (!loading && user) {
-      router.replace("/onboarding");
+      router.replace(redirectTo);
     }
-  }, [loading, user, router]);
+  }, [loading, user, router, redirectTo]);
 
   async function handleSignUp(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -44,7 +48,7 @@ export default function SignupPage() {
       const result = await signUpWithEmail(email, password);
       await createUserDocument(result.user.uid, email, result.user.displayName);
       setAuthCookie(true);
-      router.replace("/onboarding");
+      router.replace(redirectTo);
     } catch (err) {
       setError(getAuthErrorMessage(err));
     } finally {
@@ -67,7 +71,10 @@ export default function SignupPage() {
       footer={
         <>
           Already have an account?{" "}
-          <Link href="/login" className="text-emerald-400 hover:text-emerald-300">
+          <Link
+            href={lessonId ? `/login?redirect=/practice/${lessonId}` : "/login"}
+            className="text-emerald-400 hover:text-emerald-300"
+          >
             Sign in
           </Link>
         </>
@@ -171,4 +178,18 @@ function getAuthErrorMessage(error: unknown): string {
   }
 
   return "Registration failed. Please try again.";
+}
+
+export default function SignupPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="flex min-h-screen items-center justify-center bg-[#0a0a0a]">
+          <div className="h-8 w-8 animate-spin rounded-full border-2 border-emerald-500/30 border-t-emerald-400" />
+        </div>
+      }
+    >
+      <SignupForm />
+    </Suspense>
+  );
 }

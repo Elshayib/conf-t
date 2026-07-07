@@ -37,3 +37,10 @@ htmlcov/
 # Build tools
 *.manifest
 *.spec
+
+# Next.js web app
+web/.env.local
+web/node_modules/
+web/.next/
+web/public/lessons/
+web/public/lessons-index.json

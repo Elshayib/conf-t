@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect } from "react";
 import { useAuth } from "@/hooks/useAuth";
+import { ProgressProvider } from "@/hooks/useProgress";
 import { logOut } from "@/lib/firebase/auth";
 
 const navLinks = [
@@ -51,7 +52,8 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   }
 
   return (
-    <div className="flex min-h-screen flex-col bg-[#0a0a0a] text-zinc-100">
+    <ProgressProvider>
+      <div className="flex min-h-screen flex-col bg-[#0a0a0a] text-zinc-100">
       <header className="border-b border-zinc-800 bg-[#0d0d0d]">
         <div className="mx-auto flex h-14 max-w-6xl items-center justify-between px-4 sm:px-6">
           <div className="flex items-center gap-6">
@@ -96,6 +98,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         </div>
       </header>
       <main className="flex-1">{children}</main>
-    </div>
+      </div>
+    </ProgressProvider>
   );
 }

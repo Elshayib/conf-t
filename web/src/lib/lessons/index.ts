@@ -8,6 +8,32 @@ export function getLessonsIndex(): LessonIndexEntry[] {
   return JSON.parse(raw) as LessonIndexEntry[];
 }
 
+export function getLessonIndexEntry(id: string): LessonIndexEntry | undefined {
+  return getLessonsIndex().find((entry) => entry.id === id);
+}
+
+export function getLessonsByPlatformSlug(slug: string): LessonIndexEntry[] {
+  const normalized = slug.toLowerCase();
+  return getLessonsIndex().filter(
+    (entry) => entry.platform.toLowerCase() === normalized
+  );
+}
+
+export function getPlatformSlugs(): string[] {
+  const slugs = new Set<string>();
+  for (const entry of getLessonsIndex()) {
+    slugs.add(entry.platform.toLowerCase());
+  }
+  return [...slugs].sort();
+}
+
+export function getPlatformNameFromSlug(slug: string): string | null {
+  const match = getLessonsIndex().find(
+    (entry) => entry.platform.toLowerCase() === slug.toLowerCase()
+  );
+  return match?.platform ?? null;
+}
+
 export function getLandingStats() {
   const lessons = getLessonsIndex();
   const taskCount = lessons.reduce((sum, entry) => sum + entry.task_count, 0);

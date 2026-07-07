@@ -30,6 +30,9 @@ export type ProgressContextValue = {
     isFirstTry: boolean,
     isSkipped: boolean
   ) => void;
+  markLessonAttempted: (lessonId: string) => void;
+  resetLessonProgress: (lessonId: string, taskIds: string[]) => void;
+  markLessonCompleted: (lessonId: string) => void;
   resetProgress: () => void;
 };
 
@@ -193,6 +196,48 @@ function useProgressState(): ProgressContextValue {
     [markDirty, bumpRevision]
   );
 
+  const markLessonAttempted = useCallback(
+    (lessonId: string) => {
+      const manager = progressManagerRef.current;
+      if (!manager) {
+        return;
+      }
+
+      manager.markLessonAttempted(lessonId);
+      markDirty();
+      bumpRevision();
+    },
+    [markDirty, bumpRevision]
+  );
+
+  const resetLessonProgress = useCallback(
+    (lessonId: string, taskIds: string[]) => {
+      const manager = progressManagerRef.current;
+      if (!manager) {
+        return;
+      }
+
+      manager.resetLessonProgress(lessonId, taskIds);
+      markDirty();
+      bumpRevision();
+    },
+    [markDirty, bumpRevision]
+  );
+
+  const markLessonCompleted = useCallback(
+    (lessonId: string) => {
+      const manager = progressManagerRef.current;
+      if (!manager) {
+        return;
+      }
+
+      manager.markLessonCompleted(lessonId);
+      markDirty();
+      bumpRevision();
+    },
+    [markDirty, bumpRevision]
+  );
+
   const resetProgress = useCallback(() => {
     const manager = progressManagerRef.current;
     if (!manager) {
@@ -211,6 +256,9 @@ function useProgressState(): ProgressContextValue {
     revision,
     saveNow,
     recordAttempt,
+    markLessonAttempted,
+    resetLessonProgress,
+    markLessonCompleted,
     resetProgress,
   };
 }

@@ -23,6 +23,14 @@ export async function loadCustomLessons(
   return [];
 }
 
+export async function loadLessonsByIds(
+  ids: string[]
+): Promise<Lesson[]> {
+  const uniqueIds = [...new Set(ids)];
+  const loaded = await Promise.all(uniqueIds.map((id) => loadLesson(id)));
+  return loaded.filter((lesson): lesson is Lesson => lesson !== null);
+}
+
 export async function loadAllLessonEntries(
   uid?: string
 ): Promise<LessonIndexEntry[]> {

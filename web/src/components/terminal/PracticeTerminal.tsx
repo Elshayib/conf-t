@@ -2,6 +2,7 @@
 
 import { FormEvent, useCallback, useEffect, useRef, useState } from "react";
 import type { Lesson, Task } from "@/lib/engine/types";
+import type { ReviewItem } from "@/lib/engine/review";
 import type { ProgressManager } from "@/lib/engine/progress";
 import { formatDisplayAnswer, validateInput } from "@/lib/engine/validate";
 
@@ -13,9 +14,7 @@ export interface SessionStats {
   aborted?: boolean;
 }
 
-interface PracticeTerminalProps {
-  lesson: Lesson;
-  tasks: Task[];
+interface PracticeTerminalBaseProps {
   progressManager: ProgressManager;
   recordAttempt: (
     lessonId: string,
@@ -25,15 +24,32 @@ interface PracticeTerminalProps {
     isFirstTry: boolean,
     isSkipped: boolean
   ) => void;
-  markLessonCompleted: (lessonId: string) => void;
   markLessonAttempted: (lessonId: string) => void;
   onSessionEnd: (stats: SessionStats) => void;
 }
 
+interface LessonPracticeTerminalProps extends PracticeTerminalBaseProps {
+  mode?: "lesson";
+  lesson: Lesson;
+  tasks: Task[];
+  markLessonCompleted: (lessonId: string) => void;
+}
+
+interface ReviewPracticeTerminalProps extends PracticeTerminalBaseProps {
+  mode: "review";
+  reviewItems: ReviewItem[];
+  reviewTitle: string;
+  reviewDescription: string;
+}
+
+type PracticeTerminalProps =
+  | LessonPracticeTerminalProps
+  | ReviewPracticeTerminalProps;
+
 type FeedbackState =
   | { kind: "hint"; text: string }
   | { kind: "incorrect"; text: string }
-  | { kind: "correct"; explanation: string }
+  | { kind: "correct"; explanation: string; cleared?: boolean }
   | { kind: "skipped"; explanation: string; answer: string };
 
 const PLATFORM_STYLES: Record<
@@ -83,18 +99,26 @@ function getPlatformStyle(platform: string) {
   return PLATFORM_STYLES[platform] ?? DEFAULT_PLATFORM_STYLE;
 }
 
-export function PracticeTerminal({
-  lesson,
-  tasks,
-  progressManager,
-  recordAttempt,
-  markLessonCompleted,
-  markLessonAttempted,
-  onSessionEnd,
-}: PracticeTerminalProps) {
-  const styles = getPlatformStyle(lesson.platform);
-  const inputRef = useRef<HTMLInputElement>(null);
+function isReviewProps(
+  props: PracticeTerminalProps
+): props is ReviewPracticeTerminalProps {
+  return props.mode === "review";
+}
 
+export function PracticeTerminal(props: PracticeTerminalProps) {
+  const {
+    progressManager,
+    recordAttempt,
+    markLessonAttempted,
+    onSessionEnd,
+  } = props;
+
+  const isReview = isReviewProps(props);
+  const sessionItems: ReviewItem[] = isReview
+    ? props.reviewItems
+    : props.tasks.map((task) => ({ lesson: props.lesson, task }));
+
+  const inputRef = useRef<HTMLInputElement>(null);
   const [taskIndex, setTaskIndex] = useState(0);
   const [input, setInput] = useState("");
   const [isFirstTry, setIsFirstTry] = useState(true);
@@ -103,23 +127,31 @@ export function PracticeTerminal({
   const [showExitConfirm, setShowExitConfirm] = useState(false);
   const [sessionComplete, setSessionComplete] = useState(false);
   const [stats, setStats] = useState<SessionStats>({
-    totalQuestions: tasks.length,
+    totalQuestions: sessionItems.length,
     totalAttempts: 0,
     correctFirstTry: 0,
     skippedCount: 0,
   });
   const statsRef = useRef(stats);
 
+  const currentItem = sessionItems[taskIndex];
+  const currentLesson = currentItem?.lesson;
+  const currentTask = currentItem?.task;
+  const styles = getPlatformStyle(currentLesson?.platform ?? "Cisco");
+
   useEffect(() => {
     statsRef.current = stats;
   }, [stats]);
 
-  const currentTask = tasks[taskIndex];
   const taskNumber = taskIndex + 1;
 
+  const lessonId = isReviewProps(props) ? null : props.lesson.id;
+
   useEffect(() => {
-    markLessonAttempted(lesson.id);
-  }, [lesson.id, markLessonAttempted]);
+    if (lessonId) {
+      markLessonAttempted(lessonId);
+    }
+  }, [lessonId, markLessonAttempted]);
 
   useEffect(() => {
     if (!awaitingAdvance && !sessionComplete && !showExitConfirm) {
@@ -131,14 +163,15 @@ export function PracticeTerminal({
     (finalStats: SessionStats) => {
       if (
         !finalStats.aborted &&
-        progressManager.isLessonFullyPassed(lesson)
+        !isReviewProps(props) &&
+        progressManager.isLessonFullyPassed(props.lesson)
       ) {
-        markLessonCompleted(lesson.id);
+        props.markLessonCompleted(props.lesson.id);
       }
       setSessionComplete(true);
       onSessionEnd(finalStats);
     },
-    [lesson, progressManager, markLessonCompleted, onSessionEnd]
+    [onSessionEnd, progressManager, props]
   );
 
   const advanceToNextTask = useCallback(() => {
@@ -148,19 +181,19 @@ export function PracticeTerminal({
     setIsFirstTry(true);
     setShowExitConfirm(false);
 
-    if (taskIndex + 1 >= tasks.length) {
+    if (taskIndex + 1 >= sessionItems.length) {
       finishSession(statsRef.current);
       return;
     }
 
     setTaskIndex((index) => index + 1);
-  }, [taskIndex, tasks.length, finishSession]);
+  }, [taskIndex, sessionItems.length, finishSession]);
 
   const handleSubmit = useCallback(
     (event: FormEvent<HTMLFormElement>) => {
       event.preventDefault();
 
-      if (awaitingAdvance || sessionComplete || !currentTask) {
+      if (awaitingAdvance || sessionComplete || !currentTask || !currentLesson) {
         return;
       }
 
@@ -171,7 +204,7 @@ export function PracticeTerminal({
 
       const isFlowExit = ["exit", "quit"].includes(cleaned.toLowerCase());
       const isExpectedExit = isFlowExit
-        ? validateInput(cleaned, currentTask, lesson.platform)
+        ? validateInput(cleaned, currentTask, currentLesson.platform)
         : false;
 
       if (isFlowExit && !isExpectedExit) {
@@ -194,8 +227,8 @@ export function PracticeTerminal({
 
       if (cleaned.toLowerCase() === "skip") {
         recordAttempt(
-          lesson.id,
-          lesson.platform,
+          currentLesson.id,
+          currentLesson.platform,
           currentTask.id,
           false,
           isFirstTry,
@@ -211,19 +244,23 @@ export function PracticeTerminal({
         setFeedback({
           kind: "skipped",
           explanation: currentTask.explanation,
-          answer: formatDisplayAnswer(currentTask, lesson.platform),
+          answer: formatDisplayAnswer(currentTask, currentLesson.platform),
         });
         setAwaitingAdvance(true);
         setInput("");
         return;
       }
 
-      const isCorrect = validateInput(cleaned, currentTask, lesson.platform);
+      const isCorrect = validateInput(
+        cleaned,
+        currentTask,
+        currentLesson.platform
+      );
 
       if (isCorrect) {
         recordAttempt(
-          lesson.id,
-          lesson.platform,
+          currentLesson.id,
+          currentLesson.platform,
           currentTask.id,
           true,
           isFirstTry,
@@ -241,6 +278,7 @@ export function PracticeTerminal({
         setFeedback({
           kind: "correct",
           explanation: currentTask.explanation,
+          cleared: isReview ? isFirstTry : undefined,
         });
         setAwaitingAdvance(true);
         setInput("");
@@ -248,8 +286,8 @@ export function PracticeTerminal({
       }
 
       recordAttempt(
-        lesson.id,
-        lesson.platform,
+        currentLesson.id,
+        currentLesson.platform,
         currentTask.id,
         false,
         isFirstTry,
@@ -271,9 +309,10 @@ export function PracticeTerminal({
       awaitingAdvance,
       sessionComplete,
       currentTask,
+      currentLesson,
       input,
-      lesson,
       isFirstTry,
+      isReview,
       recordAttempt,
     ]
   );
@@ -305,34 +344,54 @@ export function PracticeTerminal({
       : 0;
 
   const titleSuffix =
-    tasks.length < lesson.tasks.length
-      ? `${tasks.length} of ${lesson.tasks.length} tasks`
+    !isReview && !isReviewProps(props) && props.tasks.length < props.lesson.tasks.length
+      ? `${props.tasks.length} of ${props.lesson.tasks.length} tasks`
       : undefined;
+
+  const headerBorder = isReview
+    ? "border-yellow-500/30"
+    : styles.border;
 
   return (
     <div
-      className={`rounded-lg border bg-[#0a0a0a] shadow-xl shadow-black/40 ${styles.border}`}
+      className={`rounded-lg border bg-[#0a0a0a] shadow-xl shadow-black/40 ${headerBorder}`}
     >
       <div className="border-b border-zinc-800 px-4 py-4 sm:px-6">
-        <div className="flex flex-wrap items-center gap-2">
-          <span
-            className={`rounded px-2 py-0.5 font-mono text-xs ${styles.badge}`}
-          >
-            {lesson.platform}
-          </span>
-          <span className="font-mono text-xs text-zinc-500">
-            {lesson.difficulty}
-          </span>
-        </div>
-        <h2 className={`mt-2 font-mono text-lg font-semibold ${styles.accent}`}>
-          {lesson.title}
-          {titleSuffix ? (
-            <span className="text-zinc-500"> — {titleSuffix}</span>
-          ) : null}
-        </h2>
-        <p className="mt-1 font-mono text-sm leading-relaxed text-zinc-400">
-          {lesson.description}
-        </p>
+        {isReview ? (
+          <>
+            <p className="font-mono text-xs text-yellow-500/80">
+              $ conf-t review
+            </p>
+            <h2 className="mt-2 font-mono text-lg font-semibold text-yellow-300">
+              {props.reviewTitle}
+            </h2>
+            <p className="mt-2 font-mono text-sm leading-relaxed text-zinc-400">
+              {props.reviewDescription}
+            </p>
+          </>
+        ) : (
+          <>
+            <div className="flex flex-wrap items-center gap-2">
+              <span
+                className={`rounded px-2 py-0.5 font-mono text-xs ${styles.badge}`}
+              >
+                {props.lesson.platform}
+              </span>
+              <span className="font-mono text-xs text-zinc-500">
+                {props.lesson.difficulty}
+              </span>
+            </div>
+            <h2 className={`mt-2 font-mono text-lg font-semibold ${styles.accent}`}>
+              {props.lesson.title}
+              {titleSuffix ? (
+                <span className="text-zinc-500"> — {titleSuffix}</span>
+              ) : null}
+            </h2>
+            <p className="mt-1 font-mono text-sm leading-relaxed text-zinc-400">
+              {props.lesson.description}
+            </p>
+          </>
+        )}
         <p className="mt-3 font-mono text-xs text-zinc-600">
           Type <span className="text-zinc-400">hint</span>,{" "}
           <span className="text-zinc-400">skip</span>, or{" "}
@@ -344,8 +403,12 @@ export function PracticeTerminal({
         <div className="space-y-4 px-4 py-6 sm:px-6">
           <p className="font-mono text-sm text-emerald-400">
             {stats.aborted
-              ? "Practice session ended."
-              : "Practice session completed!"}
+              ? isReview
+                ? "Review session ended."
+                : "Practice session ended."
+              : isReview
+                ? "Review session completed!"
+                : "Practice session completed!"}
           </p>
           <div className="rounded border border-zinc-800 bg-[#0d0d0d] p-4">
             <p className="font-mono text-xs uppercase tracking-wide text-zinc-500">
@@ -380,10 +443,13 @@ export function PracticeTerminal({
       ) : (
         <div className="px-4 py-5 sm:px-6">
           <p className="font-mono text-xs text-zinc-500">
-            Task {taskNumber}/{tasks.length}
+            Task {taskNumber}/{sessionItems.length}
+            {isReview && currentLesson ? (
+              <span className="text-zinc-400"> [{currentLesson.platform}]</span>
+            ) : null}
           </p>
           <p className="mt-2 font-mono text-sm font-medium text-zinc-100">
-            {currentTask.prompt}
+            {currentTask?.prompt}
           </p>
 
           <form onSubmit={handleSubmit} className="mt-4">
@@ -392,7 +458,7 @@ export function PracticeTerminal({
                 htmlFor="practice-input"
                 className={`shrink-0 font-mono text-sm ${styles.prompt}`}
               >
-                {currentTask.prefix}
+                {currentTask?.prefix}
               </label>
               <input
                 ref={inputRef}
@@ -422,7 +488,9 @@ export function PracticeTerminal({
           {showExitConfirm ? (
             <div className="mt-4 rounded border border-yellow-500/30 bg-yellow-500/5 p-4">
               <p className="font-mono text-sm text-yellow-300">
-                Exit this lesson?
+                {isReview
+                  ? "Exit review mode?"
+                  : "Exit this lesson?"}
               </p>
               <div className="mt-3 flex flex-wrap gap-2">
                 <button
@@ -465,7 +533,11 @@ export function PracticeTerminal({
               {feedback.kind === "correct" ? (
                 <div className="rounded border border-emerald-500/30 bg-emerald-500/5 p-4">
                   <p className="font-mono text-sm text-emerald-400">
-                    ✓ Correct!
+                    {isReview
+                      ? feedback.cleared
+                        ? "✓ Correct! (Removed from review queue)"
+                        : "✓ Correct, but not first-try — rescheduled for later review"
+                      : "✓ Correct!"}
                   </p>
                   <p className="mt-2 font-mono text-sm text-zinc-300">
                     <span className="text-zinc-500">Explanation: </span>
@@ -496,7 +568,9 @@ export function PracticeTerminal({
               onClick={advanceToNextTask}
               className="mt-4 w-full rounded border border-zinc-700 px-4 py-2.5 font-mono text-sm text-zinc-300 transition-colors hover:border-zinc-600 hover:text-zinc-100 sm:w-auto"
             >
-              {taskIndex + 1 >= tasks.length ? "View summary" : "Next task →"}
+              {taskIndex + 1 >= sessionItems.length
+                ? "View summary"
+                : "Next task →"}
             </button>
           ) : null}
         </div>

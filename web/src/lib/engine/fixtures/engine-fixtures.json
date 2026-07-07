@@ -1,0 +1,219 @@
+[
+  {
+    "fn": "validate_input",
+    "task": {
+      "id": "test_task",
+      "prompt": "Enter config mode",
+      "prefix": "Router#",
+      "expected": "^configure\\s+terminal$",
+      "aliases": [
+        "conf t",
+        "config t"
+      ],
+      "hint": "",
+      "explanation": ""
+    },
+    "platform": "Cisco",
+    "input": "configure terminal",
+    "python_result": true
+  },
+  {
+    "fn": "validate_input",
+    "task": {
+      "id": "test_task",
+      "prompt": "Enter config mode",
+      "prefix": "Router#",
+      "expected": "^configure\\s+terminal$",
+      "aliases": [
+        "conf t",
+        "config t"
+      ],
+      "hint": "",
+      "explanation": ""
+    },
+    "platform": "Cisco",
+    "input": "CONFIGURE TERMINAL",
+    "python_result": true
+  },
+  {
+    "fn": "validate_input",
+    "task": {
+      "id": "test_task",
+      "prompt": "Enter config mode",
+      "prefix": "Router#",
+      "expected": "^configure\\s+terminal$",
+      "aliases": [
+        "conf t",
+        "config t"
+      ],
+      "hint": "",
+      "explanation": ""
+    },
+    "platform": "Cisco",
+    "input": "conf t",
+    "python_result": true
+  },
+  {
+    "fn": "validate_input",
+    "task": {
+      "id": "test_task",
+      "prompt": "Enter config mode",
+      "prefix": "Router#",
+      "expected": "^configure\\s+terminal$",
+      "aliases": [
+        "conf t",
+        "config t"
+      ],
+      "hint": "",
+      "explanation": ""
+    },
+    "platform": "Cisco",
+    "input": "CONF T",
+    "python_result": true
+  },
+  {
+    "fn": "validate_input",
+    "task": {
+      "id": "test_task",
+      "prompt": "Enter config mode",
+      "prefix": "Router#",
+      "expected": "^configure\\s+terminal$",
+      "aliases": [
+        "conf t",
+        "config t"
+      ],
+      "hint": "",
+      "explanation": ""
+    },
+    "platform": "Cisco",
+    "input": "wrong command",
+    "python_result": false
+  },
+  {
+    "fn": "validate_input",
+    "task": {
+      "id": "test_task",
+      "prompt": "Print directory",
+      "prefix": "$",
+      "expected": "^pwd$",
+      "aliases": [],
+      "hint": "",
+      "explanation": ""
+    },
+    "platform": "Linux",
+    "input": "pwd",
+    "python_result": true
+  },
+  {
+    "fn": "validate_input",
+    "task": {
+      "id": "test_task",
+      "prompt": "Print directory",
+      "prefix": "$",
+      "expected": "^pwd$",
+      "aliases": [],
+      "hint": "",
+      "explanation": ""
+    },
+    "platform": "Linux",
+    "input": "PWD",
+    "python_result": false
+  },
+  {
+    "fn": "validate_input",
+    "task": {
+      "id": "test_task",
+      "prompt": "Print directory",
+      "prefix": "$",
+      "expected": "^pwd$",
+      "aliases": [],
+      "hint": "",
+      "explanation": ""
+    },
+    "platform": "Linux",
+    "input": " pwd ",
+    "python_result": true
+  },
+  {
+    "fn": "validate_input",
+    "task": {
+      "id": "test_task",
+      "prompt": "Get services",
+      "prefix": "PS C:\\>",
+      "expected": "^Get-Service$",
+      "aliases": [
+        "gsv"
+      ],
+      "hint": "",
+      "explanation": ""
+    },
+    "platform": "PowerShell",
+    "input": "get-service",
+    "python_result": true
+  },
+  {
+    "fn": "validate_input",
+    "task": {
+      "id": "test_task",
+      "prompt": "Get services",
+      "prefix": "PS C:\\>",
+      "expected": "^Get-Service$",
+      "aliases": [
+        "gsv"
+      ],
+      "hint": "",
+      "explanation": ""
+    },
+    "platform": "PowerShell",
+    "input": "GSV",
+    "python_result": true
+  },
+  {
+    "fn": "validate_input",
+    "task": {
+      "id": "test_task",
+      "prompt": "Command with bad regex",
+      "prefix": "$",
+      "expected": "[invalid-regex",
+      "aliases": [
+        "exact_cmd"
+      ],
+      "hint": "",
+      "explanation": ""
+    },
+    "platform": "Linux",
+    "input": "exact_cmd",
+    "python_result": true
+  },
+  {
+    "fn": "format_display_answer",
+    "task": {
+      "id": "t1",
+      "prompt": "Enter config mode",
+      "prefix": "Router#",
+      "expected": "^configure\\s+terminal$",
+      "aliases": [
+        "conf t",
+        "config t"
+      ],
+      "hint": "",
+      "explanation": ""
+    },
+    "platform": "Cisco",
+    "python_result": "conf t"
+  },
+  {
+    "fn": "format_display_answer",
+    "task": {
+      "id": "t1",
+      "prompt": "Print directory",
+      "prefix": "$",
+      "expected": "^pwd$",
+      "aliases": [],
+      "hint": "",
+      "explanation": ""
+    },
+    "platform": "Linux",
+    "python_result": "pwd"
+  }
+]

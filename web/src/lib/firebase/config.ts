@@ -1,8 +1,8 @@
 "use client";
 
-import { initializeApp, getApps } from "firebase/app";
-import { getAuth } from "firebase/auth";
-import { getFirestore } from "firebase/firestore";
+import { initializeApp, getApps, type FirebaseApp } from "firebase/app";
+import { getAuth, type Auth } from "firebase/auth";
+import { getFirestore, type Firestore } from "firebase/firestore";
 
 const firebaseConfig = {
   apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY!,
@@ -13,6 +13,34 @@ const firebaseConfig = {
   appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID!,
 };
 
-const app = getApps().length ? getApps()[0] : initializeApp(firebaseConfig);
-export const auth = getAuth(app);
-export const db = getFirestore(app);
+let firebaseApp: FirebaseApp | undefined;
+let firebaseAuth: Auth | undefined;
+let firebaseDb: Firestore | undefined;
+
+function getApp(): FirebaseApp {
+  if (typeof window === "undefined") {
+    throw new Error("Firebase can only be initialized in the browser");
+  }
+
+  if (!firebaseApp) {
+    firebaseApp = getApps().length
+      ? getApps()[0]!
+      : initializeApp(firebaseConfig);
+  }
+
+  return firebaseApp;
+}
+
+export function getClientAuth(): Auth {
+  if (!firebaseAuth) {
+    firebaseAuth = getAuth(getApp());
+  }
+  return firebaseAuth;
+}
+
+export function getClientDb(): Firestore {
+  if (!firebaseDb) {
+    firebaseDb = getFirestore(getApp());
+  }
+  return firebaseDb;
+}

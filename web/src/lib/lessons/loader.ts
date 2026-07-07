@@ -15,3 +15,29 @@ export async function loadLessonsIndex(): Promise<LessonIndexEntry[]> {
   }
   return res.json() as Promise<LessonIndexEntry[]>;
 }
+
+/** Stub for Firestore custom lessons (Task 16). Returns [] until wired. */
+export async function loadCustomLessons(
+  _uid: string
+): Promise<LessonIndexEntry[]> {
+  return [];
+}
+
+export async function loadAllLessonEntries(
+  uid?: string
+): Promise<LessonIndexEntry[]> {
+  const [index, custom] = await Promise.all([
+    loadLessonsIndex(),
+    uid ? loadCustomLessons(uid) : Promise.resolve([]),
+  ]);
+
+  const seen = new Set(index.map((entry) => entry.id));
+  const merged = [...index];
+  for (const entry of custom) {
+    if (!seen.has(entry.id)) {
+      merged.push(entry);
+      seen.add(entry.id);
+    }
+  }
+  return merged;
+}

@@ -18,27 +18,26 @@ from conf_t.engine import (
     LESSON_STATUS_IN_PROGRESS,
     LESSON_STATUS_NOT_STARTED,
     LessonLoader,
-    ProgressManager,
     are_prerequisites_met,
     collect_all_tags,
     filter_lessons_by_tags,
     format_display_answer,
     get_continue_target,
-    get_failed_lesson_ids,
-    get_lesson_status,
     get_missing_prerequisites,
     get_recommended_lesson,
     parse_tags_csv,
     sort_lessons_by_curriculum,
     validate_input,
 )
+from conf_t.session import Session
 
 console = Console()
 
 class ConfTCLI:
     def __init__(self):
         self.loader = LessonLoader()
-        self.progress = ProgressManager()
+        self.session = Session()
+        self.progress = self.session.progress
 
     def _main_menu_choices(self) -> list[str]:
         due_count = self.progress.get_due_review_count()
@@ -98,11 +97,10 @@ class ConfTCLI:
         table.add_column("Progress", style="green")
 
         for lesson in sorted_lessons:
-            task_ids = [task.id for task in lesson.tasks]
-            summary = self.progress.get_lesson_task_summary(lesson.id, task_ids)
+            standing = self.session.lesson_standing(lesson)
             tags_display = ", ".join(lesson.tags) if lesson.tags else "—"
-            total = summary["total"]
-            passed = summary["passed"]
+            total = standing.total
+            passed = standing.passed
             progress = (
                 f"{passed}/{total} ({int((passed / total) * 100)}%)"
                 if total
@@ -353,14 +351,14 @@ class ConfTCLI:
 
     def _choose_lesson_tasks(self, lesson: Lesson) -> list[Task] | None:
         task_ids = [task.id for task in lesson.tasks]
-        summary = self.progress.get_lesson_task_summary(lesson.id, task_ids)
+        standing = self.session.lesson_standing(lesson)
 
-        if summary["total"] == 0:
+        if standing.total == 0:
             return []
 
-        if summary["passed"] == summary["total"]:
+        if standing.status == LESSON_STATUS_COMPLETED:
             practice_again = questionary.confirm(
-                f"All {summary['total']} tasks passed. Practice this lesson again from the start?",
+                f"All {standing.total} tasks passed. Practice this lesson again from the start?",
                 default=True,
             ).ask()
             if not practice_again:
@@ -372,7 +370,7 @@ class ConfTCLI:
             return list(lesson.tasks)
 
         choice = questionary.select(
-            f"Progress: {summary['passed']}/{summary['total']} tasks passed. How do you want to continue?",
+            f"Progress: {standing.passed}/{standing.total} tasks passed. How do you want to continue?",
             choices=[
                 questionary.Choice("Resume at first incomplete task", value="resume"),
                 questionary.Choice("Start over (reset lesson progress)", value="restart"),
@@ -425,13 +423,12 @@ class ConfTCLI:
         lesson_map = {item.id: item for item in all_lessons}
 
         console.print("\n")
-        task_ids = [task.id for task in lesson.tasks]
-        summary = self.progress.get_lesson_task_summary(lesson.id, task_ids)
+        standing = self.session.lesson_standing(lesson)
         detail_lines = [
             f"[bold white]{lesson.description}[/]",
             "",
             f"[cyan]Difficulty:[/] {lesson.difficulty.title()}",
-            f"[cyan]Progress:[/] {summary['passed']}/{summary['total']} tasks passed",
+            f"[cyan]Progress:[/] {standing.passed}/{standing.total} tasks passed",
         ]
         if lesson.estimated_minutes:
             detail_lines.append(f"[cyan]Estimated time:[/] ~{lesson.estimated_minutes} minutes")
@@ -495,9 +492,7 @@ class ConfTCLI:
 
         sorted_lessons = sort_lessons_by_curriculum(filtered_lessons)
         completed = self.progress.data.get("completed_lessons", [])
-        attempted = self.progress.data.get("attempted_lessons", [])
         failed_entries = self.progress.get_failed_task_entries()
-        failed_lesson_ids = get_failed_lesson_ids(failed_entries)
         failed_counts: dict[str, int] = {}
         for entry in failed_entries:
             lesson_id = entry["lesson_id"]
@@ -532,20 +527,11 @@ class ConfTCLI:
                 )
             )
             for lesson in group:
-                task_ids = [task.id for task in lesson.tasks]
-                lesson_summary = self.progress.get_lesson_task_summary(lesson.id, task_ids)
-                status = get_lesson_status(
-                    lesson.id, completed, attempted, failed_lesson_ids
-                )
-                if (
-                    lesson_summary["total"] > 0
-                    and lesson_summary["passed"] == lesson_summary["total"]
-                ):
-                    status = LESSON_STATUS_COMPLETED
+                standing = self.session.lesson_standing(lesson)
                 label = self._format_lesson_choice_label(
                     lesson,
-                    status,
-                    lesson_summary["passed"],
+                    standing.status,
+                    standing.passed,
                     failed_counts.get(lesson.id, 0),
                     are_prerequisites_met(lesson, completed),
                 )
@@ -598,7 +584,7 @@ class ConfTCLI:
             return
 
         if not review_mode:
-            self.progress.mark_lesson_attempted(lesson.id)
+            self.session.mark_practice_opened(lesson)
 
         title_text = f"Reviewing {len(tasks_to_run)} Failed Commands" if review_mode else f"Lesson: {lesson.title}"
         if not review_mode and len(tasks_to_run) < len(lesson.tasks):
@@ -667,13 +653,12 @@ class ConfTCLI:
                     stats.total_attempts += 1
                     
                     # Record progress
-                    self.progress.record_attempt(
-                        lesson_id=lesson.id,
-                        platform=lesson.platform,
-                        task_id=task.id,
-                        is_correct=False,
-                        is_first_try=is_first_try,
-                        is_skipped=True
+                    self.session.record_attempt(
+                        lesson,
+                        task,
+                        correct=False,
+                        first_try=is_first_try,
+                        skipped=True,
                     )
 
                     console.print(Panel(
@@ -693,13 +678,12 @@ class ConfTCLI:
                         stats.correct_first_try += 1
 
                     # Record progress
-                    self.progress.record_attempt(
-                        lesson_id=lesson.id,
-                        platform=lesson.platform,
-                        task_id=task.id,
-                        is_correct=True,
-                        is_first_try=is_first_try,
-                        is_skipped=False
+                    self.session.record_attempt(
+                        lesson,
+                        task,
+                        correct=True,
+                        first_try=is_first_try,
+                        skipped=False,
                     )
 
                     console.print(Panel(
@@ -714,19 +698,15 @@ class ConfTCLI:
                     is_first_try = False
                     
                     # Record progress
-                    self.progress.record_attempt(
-                        lesson_id=lesson.id,
-                        platform=lesson.platform,
-                        task_id=task.id,
-                        is_correct=False,
-                        is_first_try=is_first_try,
-                        is_skipped=False
+                    self.session.record_attempt(
+                        lesson,
+                        task,
+                        correct=False,
+                        first_try=is_first_try,
+                        skipped=False,
                     )
                     
                     console.print("[bold red]✗ Incorrect command. Try again, or type 'hint' / 'skip' / 'exit'.[/]")
-
-        if not review_mode and self.progress.is_lesson_fully_passed(lesson):
-            self.progress.mark_lesson_completed(lesson.id)
 
         # Display session stats
         accuracy = (stats.correct_first_try / stats.total_questions) * 100 if stats.total_questions > 0 else 0
@@ -823,13 +803,12 @@ class ConfTCLI:
                     continue
 
                 if cleaned_input.lower() == "skip":
-                    self.progress.record_attempt(
-                        lesson_id=lesson.id,
-                        platform=lesson.platform,
-                        task_id=task.id,
-                        is_correct=False,
-                        is_first_try=is_first_try,
-                        is_skipped=True,
+                    self.session.record_attempt(
+                        lesson,
+                        task,
+                        correct=False,
+                        first_try=is_first_try,
+                        skipped=True,
                     )
                     console.print(Panel(
                         f"[bold red]Skipped.[/]\n\n"
@@ -842,13 +821,12 @@ class ConfTCLI:
 
                 is_correct = validate_input(cleaned_input, task, lesson.platform)
                 if is_correct:
-                    self.progress.record_attempt(
-                        lesson_id=lesson.id,
-                        platform=lesson.platform,
-                        task_id=task.id,
-                        is_correct=True,
-                        is_first_try=is_first_try,
-                        is_skipped=False,
+                    self.session.record_attempt(
+                        lesson,
+                        task,
+                        correct=True,
+                        first_try=is_first_try,
+                        skipped=False,
                     )
                     cleared = is_first_try
                     status_msg = (
@@ -865,13 +843,12 @@ class ConfTCLI:
                     break
 
                 is_first_try = False
-                self.progress.record_attempt(
-                    lesson_id=lesson.id,
-                    platform=lesson.platform,
-                    task_id=task.id,
-                    is_correct=False,
-                    is_first_try=is_first_try,
-                    is_skipped=False,
+                self.session.record_attempt(
+                    lesson,
+                    task,
+                    correct=False,
+                    first_try=is_first_try,
+                    skipped=False,
                 )
                 console.print("[bold red]✗ Incorrect command. Try again, or type 'hint' / 'skip' / 'exit'.[/]")
 

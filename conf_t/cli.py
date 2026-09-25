@@ -29,7 +29,7 @@ from conf_t.engine import (
     sort_lessons_by_curriculum,
     validate_input,
 )
-from conf_t.session import Session
+from conf_t.session import ReviewEntry, Session
 
 console = Console()
 
@@ -40,7 +40,7 @@ class ConfTCLI:
         self.progress = self.session.progress
 
     def _main_menu_choices(self) -> list[str]:
-        due_count = self.progress.get_due_review_count()
+        due_count = len(self.session.due_review())
         choices = []
         if due_count > 0:
             choices.append(f"★ Daily Review ({due_count} due)")
@@ -187,9 +187,7 @@ class ConfTCLI:
             return
 
     def show_first_run_welcome(self) -> None:
-        if self.progress.data.get("onboarding_complete"):
-            return
-        if self.progress.data.get("total_attempts", 0) > 0:
+        if not self.session.should_show_welcome():
             return
 
         console.print(Panel(
@@ -203,8 +201,7 @@ class ConfTCLI:
             border_style="green",
             box=box.ROUNDED,
         ))
-        self.progress.data["onboarding_complete"] = True
-        self.progress.save()
+        self.session.dismiss_welcome()
 
     def run_continue(self, interactive: bool = True) -> None:
         lessons = self.loader.load_all_lessons()
@@ -212,11 +209,12 @@ class ConfTCLI:
             console.print("[bold red]No lessons found.[/]")
             return
 
+        due_count = len(self.session.due_review())
         target = get_continue_target(
             lessons=lessons,
             completed_lessons=self.progress.data.get("completed_lessons", []),
             attempted_lessons=self.progress.data.get("attempted_lessons", []),
-            due_review_count=self.progress.get_due_review_count(),
+            due_review_count=due_count,
             lesson_has_resume_state_fn=self.progress.lesson_has_resume_state,
             is_lesson_fully_passed_fn=self.progress.is_lesson_fully_passed,
         )
@@ -226,10 +224,9 @@ class ConfTCLI:
             return
 
         if target["action"] == "daily_review":
-            due = self.progress.get_due_review_count()
             console.print(
                 f"\n[bold yellow]Continuing:[/] [white]Daily Review[/] "
-                f"[dim]({due} task(s) due)[/]\n"
+                f"[dim]({due_count} task(s) due)[/]\n"
             )
             self.daily_review_menu(interactive=interactive)
             return
@@ -256,7 +253,7 @@ class ConfTCLI:
         
         while True:
             try:
-                due_count = self.progress.get_due_review_count()
+                due_count = len(self.session.due_review())
                 prompt = "Select an option:"
                 if due_count > 0:
                     prompt = f"[bold yellow]{due_count} task(s) due for review.[/] Select an option:"
@@ -492,10 +489,10 @@ class ConfTCLI:
 
         sorted_lessons = sort_lessons_by_curriculum(filtered_lessons)
         completed = self.progress.data.get("completed_lessons", [])
-        failed_entries = self.progress.get_failed_task_entries()
+        failed_entries = self.session.failed_queue()
         failed_counts: dict[str, int] = {}
         for entry in failed_entries:
-            lesson_id = entry["lesson_id"]
+            lesson_id = entry.lesson_id
             failed_counts[lesson_id] = failed_counts.get(lesson_id, 0) + 1
 
         recommended = get_recommended_lesson(sorted_lessons, completed)
@@ -726,17 +723,15 @@ class ConfTCLI:
         questionary.press_any_key_to_continue().ask()
 
     def _resolve_review_entries(
-        self, entries: list[dict[str, str]]
+        self, entries: list[ReviewEntry]
     ) -> list[tuple[Lesson, Task]]:
         all_lessons = self.loader.load_all_lessons()
         tasks_to_review: list[tuple[Lesson, Task]] = []
         for entry in entries:
-            lesson_id = entry["lesson_id"]
-            task_id = entry["task_id"]
-            lesson = next((item for item in all_lessons if item.id == lesson_id), None)
+            lesson = next((item for item in all_lessons if item.id == entry.lesson_id), None)
             if not lesson:
                 continue
-            task = next((item for item in lesson.tasks if item.id == task_id), None)
+            task = next((item for item in lesson.tasks if item.id == entry.task_id), None)
             if task:
                 tasks_to_review.append((lesson, task))
         return tasks_to_review
@@ -857,7 +852,7 @@ class ConfTCLI:
             questionary.press_any_key_to_continue().ask()
 
     def daily_review_menu(self, interactive: bool = True) -> None:
-        due_entries = self.progress.get_due_review_entries()
+        due_entries = self.session.due_review()
         if not due_entries:
             console.print("\n[bold green]★ No tasks due for review right now. Check back later![/]\n")
             if interactive:
@@ -877,7 +872,7 @@ class ConfTCLI:
 
     def review_failed_menu(self, interactive: bool = True) -> None:
         """Loads all failed tasks and allows practicing them."""
-        failed_entries = self.progress.get_failed_task_entries()
+        failed_entries = self.session.failed_queue()
         if not failed_entries:
             console.print("\n[bold green]★ Nice job! You have no failed commands to review.[/]\n")
             if interactive:
@@ -904,40 +899,35 @@ class ConfTCLI:
 
     def view_stats(self, interactive: bool = True) -> None:
         """Displays user stats and accuracy summary."""
-        data = self.progress.data
+        stats = self.session.stats()
         console.print("\n")
         
         overview = Table(title="[bold cyan]Global Performance Overview[/]", box=box.ROUNDED, border_style="cyan")
         overview.add_column("Metric", style="cyan")
         overview.add_column("Value", style="magenta")
 
-        completed_count = len(data.get("completed_lessons", []))
-        failed_count = len(data.get("failed_tasks", []))
-        due_count = self.progress.get_due_review_count()
-        
-        overview.add_row("Completed Lessons", str(completed_count))
-        overview.add_row("Due for Review", str(due_count))
-        overview.add_row("Failed Commands Queue Size", str(failed_count))
-        overview.add_row("Total Attempts Registered", str(data.get("total_attempts", 0)))
-        overview.add_row("First-Try Correct Commands", str(data.get("correct_first_try", 0)))
-        overview.add_row("Skipped Commands", str(data.get("skipped_count", 0)))
+        overview.add_row("Completed Lessons", str(stats.completed_lessons))
+        overview.add_row("Due for Review", str(stats.due_count))
+        overview.add_row("Failed Commands Queue Size", str(stats.failed_queue_size))
+        overview.add_row("Total Attempts Registered", str(stats.total_attempts))
+        overview.add_row("First-Try Correct Commands", str(stats.correct_first_try))
+        overview.add_row("Skipped Commands", str(stats.skipped))
         
         console.print(overview)
 
-        p_stats = data.get("platform_stats", {})
-        if p_stats:
+        if stats.by_platform:
             p_table = Table(title="[bold yellow]Breakdown by Platform[/]", box=box.ROUNDED, border_style="yellow")
             p_table.add_column("Platform", style="cyan")
             p_table.add_column("Attempts", style="magenta")
             p_table.add_column("First-Try Correct", style="green")
             p_table.add_column("Skipped", style="red")
 
-            for platform, stats in p_stats.items():
+            for platform, totals in stats.by_platform.items():
                 p_table.add_row(
                     platform,
-                    str(stats.get("attempts", 0)),
-                    str(stats.get("correct_first_try", 0)),
-                    str(stats.get("skipped", 0))
+                    str(totals.attempts),
+                    str(totals.correct_first_try),
+                    str(totals.skipped),
                 )
             console.print("\n")
             console.print(p_table)
@@ -955,7 +945,7 @@ class ConfTCLI:
         ).ask()
         
         if confirm:
-            self.progress.reset_progress()
+            self.session.reset_all()
             console.print("[bold green]✔ All progress and statistics have been reset successfully.[/]\n")
         else:
             console.print("[yellow]Reset cancelled.[/]\n")

@@ -19,6 +19,9 @@ __all__ = [
     "LESSON_STATUS_IN_PROGRESS",
     "LESSON_STATUS_NOT_STARTED",
     "LessonStanding",
+    "LearnerStats",
+    "PlatformTotals",
+    "ReviewEntry",
     "Session",
 ]
 
@@ -28,6 +31,30 @@ class LessonStanding:
     status: str
     passed: int
     total: int
+
+
+@dataclass(frozen=True)
+class ReviewEntry:
+    lesson_id: str
+    task_id: str
+
+
+@dataclass(frozen=True)
+class PlatformTotals:
+    attempts: int
+    correct_first_try: int
+    skipped: int
+
+
+@dataclass(frozen=True)
+class LearnerStats:
+    completed_lessons: int
+    due_count: int
+    failed_queue_size: int
+    total_attempts: int
+    correct_first_try: int
+    skipped: int
+    by_platform: dict[str, PlatformTotals]
 
 
 class Session:
@@ -62,6 +89,51 @@ class Session:
             is_skipped=skipped,
         )
         self._sync_completion(lesson)
+
+    def due_review(self) -> list[ReviewEntry]:
+        return [
+            ReviewEntry(lesson_id=entry["lesson_id"], task_id=entry["task_id"])
+            for entry in self._progress.get_due_review_entries()
+        ]
+
+    def failed_queue(self) -> list[ReviewEntry]:
+        return [
+            ReviewEntry(lesson_id=entry["lesson_id"], task_id=entry["task_id"])
+            for entry in self._progress.get_failed_task_entries()
+        ]
+
+    def stats(self) -> LearnerStats:
+        data = self._progress.data
+        by_platform = {
+            platform: PlatformTotals(
+                attempts=int(totals.get("attempts", 0)),
+                correct_first_try=int(totals.get("correct_first_try", 0)),
+                skipped=int(totals.get("skipped", 0)),
+            )
+            for platform, totals in data.get("platform_stats", {}).items()
+        }
+        return LearnerStats(
+            completed_lessons=len(data.get("completed_lessons", [])),
+            due_count=len(self.due_review()),
+            failed_queue_size=len(self.failed_queue()),
+            total_attempts=int(data.get("total_attempts", 0)),
+            correct_first_try=int(data.get("correct_first_try", 0)),
+            skipped=int(data.get("skipped_count", 0)),
+            by_platform=by_platform,
+        )
+
+    def reset_all(self) -> None:
+        self._progress.reset_progress()
+
+    def should_show_welcome(self) -> bool:
+        data = self._progress.data
+        if data.get("onboarding_complete"):
+            return False
+        return int(data.get("total_attempts", 0)) == 0
+
+    def dismiss_welcome(self) -> None:
+        self._progress.data["onboarding_complete"] = True
+        self._progress.save()
 
     def lesson_standing(self, lesson: Lesson) -> LessonStanding:
         task_ids = [task.id for task in lesson.tasks]

@@ -313,6 +313,35 @@ class Session:
 
         return LessonStanding(status=status, passed=passed, total=total)
 
+    def resume_tasks(self, lesson: Lesson) -> list[Task]:
+        """Tasks that are not first-try passes, in Lesson order."""
+        return [
+            task for task in lesson.tasks if not self._progress.is_task_passed(task.id)
+        ]
+
+    def start_over(self, lesson: Lesson) -> None:
+        """Clear this Lesson's Task records, failed-queue entries, and completion."""
+        task_ids = [task.id for task in lesson.tasks]
+        self._progress.reset_lesson_progress(lesson.id, task_ids)
+
+    def missing_prerequisite_titles(
+        self, lesson: Lesson, lessons: Sequence[Lesson]
+    ) -> list[str]:
+        """Titles of prerequisites that are not yet completed."""
+        by_id = {item.id: item for item in lessons}
+        completed_ids = {
+            item.id
+            for item in lessons
+            if self.lesson_standing(item).status == LESSON_STATUS_COMPLETED
+        }
+        titles: list[str] = []
+        for prereq_id in lesson.prerequisites:
+            if prereq_id in completed_ids:
+                continue
+            prereq = by_id.get(prereq_id)
+            titles.append(prereq.title if prereq is not None else prereq_id)
+        return titles
+
     def _has_progress(self, lesson: Lesson, task_ids: list[str]) -> bool:
         if lesson.id in self._progress.data.get("attempted_lessons", []):
             return True

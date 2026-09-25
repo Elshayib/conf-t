@@ -18,10 +18,8 @@ from conf_t.engine import (
     LESSON_STATUS_IN_PROGRESS,
     LESSON_STATUS_NOT_STARTED,
     LessonLoader,
-    are_prerequisites_met,
     collect_all_tags,
     filter_lessons_by_tags,
-    get_missing_prerequisites,
     get_recommended_lesson,
     parse_tags_csv,
     sort_lessons_by_curriculum,
@@ -343,7 +341,6 @@ class ConfTCLI:
         return label
 
     def _choose_lesson_tasks(self, lesson: Lesson) -> list[Task] | None:
-        task_ids = [task.id for task in lesson.tasks]
         standing = self.session.lesson_standing(lesson)
 
         if standing.total == 0:
@@ -356,10 +353,14 @@ class ConfTCLI:
             ).ask()
             if not practice_again:
                 return None
-            self.progress.reset_lesson_progress(lesson.id, task_ids)
+            self.session.start_over(lesson)
             return list(lesson.tasks)
 
-        if not self.progress.lesson_has_resume_state(lesson):
+        can_resume = (
+            standing.status == LESSON_STATUS_IN_PROGRESS
+            and standing.passed < standing.total
+        )
+        if not can_resume:
             return list(lesson.tasks)
 
         choice = questionary.select(
@@ -375,10 +376,10 @@ class ConfTCLI:
         if not choice or choice == "cancel":
             return None
         if choice == "restart":
-            self.progress.reset_lesson_progress(lesson.id, task_ids)
+            self.session.start_over(lesson)
             return list(lesson.tasks)
         if choice == "resume":
-            incomplete = self.progress.get_incomplete_tasks(lesson.tasks)
+            incomplete = self.session.resume_tasks(lesson)
             if not incomplete:
                 console.print("[yellow]No incomplete tasks found.[/]")
                 return None
@@ -389,9 +390,10 @@ class ConfTCLI:
         return None
 
     def _pick_lesson_start_task(self, lesson: Lesson) -> list[Task] | None:
+        resume_ids = {task.id for task in self.session.resume_tasks(lesson)}
         task_choices = []
         for index, task in enumerate(lesson.tasks):
-            status = "✓" if self.progress.is_task_passed(task.id) else "○"
+            status = "○" if task.id in resume_ids else "✓"
             prompt_preview = task.prompt if len(task.prompt) <= 60 else f"{task.prompt[:57]}..."
             task_choices.append(
                 questionary.Choice(
@@ -411,9 +413,8 @@ class ConfTCLI:
         return lesson.tasks[selected_index:]
 
     def _confirm_lesson_start(self, lesson: Lesson, all_lessons: list[Lesson]) -> bool:
-        completed = self.progress.data.get("completed_lessons", [])
-        missing_ids = get_missing_prerequisites(lesson, completed)
         lesson_map = {item.id: item for item in all_lessons}
+        missing_titles = self.session.missing_prerequisite_titles(lesson, all_lessons)
 
         console.print("\n")
         standing = self.session.lesson_standing(lesson)
@@ -443,13 +444,8 @@ class ConfTCLI:
             box=box.ROUNDED,
         ))
 
-        if missing_ids:
-            missing_titles = [
-                lesson_map[prereq_id].title
-                for prereq_id in missing_ids
-                if prereq_id in lesson_map
-            ]
-            missing_text = ", ".join(missing_titles) if missing_titles else ", ".join(missing_ids)
+        if missing_titles:
+            missing_text = ", ".join(missing_titles)
             return questionary.confirm(
                 f"Prerequisites not completed: {missing_text}. Start anyway?",
                 default=True,
@@ -484,13 +480,17 @@ class ConfTCLI:
             return
 
         sorted_lessons = sort_lessons_by_curriculum(filtered_lessons)
-        completed = self.progress.data.get("completed_lessons", [])
         failed_entries = self.session.failed_queue()
         failed_counts: dict[str, int] = {}
         for entry in failed_entries:
             lesson_id = entry.lesson_id
             failed_counts[lesson_id] = failed_counts.get(lesson_id, 0) + 1
 
+        completed = [
+            lesson.id
+            for lesson in lessons
+            if self.session.lesson_standing(lesson).status == LESSON_STATUS_COMPLETED
+        ]
         recommended = get_recommended_lesson(sorted_lessons, completed)
         if recommended:
             console.print(
@@ -521,12 +521,13 @@ class ConfTCLI:
             )
             for lesson in group:
                 standing = self.session.lesson_standing(lesson)
+                missing = self.session.missing_prerequisite_titles(lesson, lessons)
                 label = self._format_lesson_choice_label(
                     lesson,
                     standing.status,
                     standing.passed,
                     failed_counts.get(lesson.id, 0),
-                    are_prerequisites_met(lesson, completed),
+                    not missing,
                 )
                 lesson_choices.append(questionary.Choice(title=label, value=lesson.id))
 

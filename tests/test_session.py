@@ -1,4 +1,4 @@
-"""Session-module seam tests for standing, Review queues, stats, submit, and continue (#17–#21)."""
+"""Session-module seam tests for standing, Review queues, stats, submit, continue, resume (#17–#22)."""
 
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
@@ -887,3 +887,154 @@ def test_continue_skips_empty_opened_lesson_when_resuming(tmp_path: Path) -> Non
 
     target = session.continue_target([empty, real])
     assert target == ContinueTarget(action="lesson", lesson_id="real")
+
+
+# --- resume, start over, prerequisites (#22) ---
+
+
+def test_resume_offers_only_non_first_try_pass_tasks_in_lesson_order(
+    tmp_path: Path,
+) -> None:
+    session = _session(tmp_path)
+    lesson = _lesson(
+        tasks=[_task("l1__a"), _task("l1__b"), _task("l1__c"), _task("l1__d")]
+    )
+    session.record_attempt(
+        lesson, lesson.tasks[0], correct=True, first_try=True, skipped=False
+    )
+    session.record_attempt(
+        lesson, lesson.tasks[1], correct=False, first_try=True, skipped=False
+    )
+    session.record_attempt(
+        lesson, lesson.tasks[1], correct=True, first_try=False, skipped=False
+    )
+    # tasks[2] and tasks[3] untouched — neither is a first-try pass
+
+    resume = session.resume_tasks(lesson)
+
+    assert [task.id for task in resume] == ["l1__b", "l1__c", "l1__d"]
+
+
+def test_start_over_clears_lesson_records_failed_queue_and_completion(
+    tmp_path: Path,
+) -> None:
+    session = _session(tmp_path)
+    lesson = _lesson(tasks=[_task("l1__a"), _task("l1__b")])
+    session.record_attempt(
+        lesson, lesson.tasks[0], correct=True, first_try=True, skipped=False
+    )
+    session.record_attempt(
+        lesson, lesson.tasks[1], correct=False, first_try=True, skipped=False
+    )
+    assert session.failed_queue() == [ReviewEntry(lesson_id="l1", task_id="l1__b")]
+    session.record_attempt(
+        lesson, lesson.tasks[1], correct=True, first_try=True, skipped=False
+    )
+    assert session.lesson_standing(lesson).status == LESSON_STATUS_COMPLETED
+
+    session.start_over(lesson)
+
+    standing = session.lesson_standing(lesson)
+    assert standing.status != LESSON_STATUS_COMPLETED
+    assert standing.passed == 0
+    assert session.resume_tasks(lesson) == list(lesson.tasks)
+    assert session.failed_queue() == []
+    assert session.due_review() == []
+    assert session.stats().completed_lessons == 0
+
+
+def test_start_over_leaves_other_lessons_drills_and_completion(
+    tmp_path: Path,
+) -> None:
+    session = _session(tmp_path)
+    target = _lesson("target", tasks=[_task("target__a"), _task("target__b")])
+    keeper = _lesson("keeper", tasks=[_task("keeper__a"), _task("keeper__b")])
+    drill = _lesson("drill", tasks=[_task("drill__a")])
+
+    session.record_attempt(
+        target, target.tasks[0], correct=True, first_try=True, skipped=False
+    )
+    session.record_attempt(
+        target, target.tasks[1], correct=False, first_try=True, skipped=False
+    )
+    session.record_attempt(
+        keeper, keeper.tasks[0], correct=True, first_try=True, skipped=False
+    )
+    session.record_attempt(
+        keeper, keeper.tasks[1], correct=True, first_try=True, skipped=False
+    )
+    session.record_attempt(
+        drill, drill.tasks[0], correct=False, first_try=True, skipped=False
+    )
+    assert session.lesson_standing(keeper).status == LESSON_STATUS_COMPLETED
+    assert ReviewEntry(lesson_id="drill", task_id="drill__a") in session.failed_queue()
+
+    session.start_over(target)
+
+    assert session.lesson_standing(keeper).status == LESSON_STATUS_COMPLETED
+    assert session.lesson_standing(keeper).passed == 2
+    assert session.failed_queue() == [
+        ReviewEntry(lesson_id="drill", task_id="drill__a")
+    ]
+    assert session.due_review() == [
+        ReviewEntry(lesson_id="drill", task_id="drill__a")
+    ]
+    assert session.stats().completed_lessons == 1
+    assert session.lesson_standing(target).passed == 0
+    assert (
+        ReviewEntry(lesson_id="target", task_id="target__b")
+        not in session.failed_queue()
+    )
+
+
+def test_missing_prerequisites_named_by_lesson_title(tmp_path: Path) -> None:
+    session = _session(tmp_path)
+    basics = _lesson("basics", title="Networking Basics")
+    vlan = _lesson("vlan", title="VLAN Fundamentals", prerequisites=["basics"])
+    routing = _lesson(
+        "routing",
+        title="Static Routing",
+        prerequisites=["basics", "vlan"],
+    )
+    catalog = [basics, vlan, routing]
+
+    assert session.missing_prerequisite_titles(routing, catalog) == [
+        "Networking Basics",
+        "VLAN Fundamentals",
+    ]
+
+    session.record_attempt(
+        basics, basics.tasks[0], correct=True, first_try=True, skipped=False
+    )
+    session.record_attempt(
+        basics, basics.tasks[1], correct=True, first_try=True, skipped=False
+    )
+    assert session.missing_prerequisite_titles(routing, catalog) == [
+        "VLAN Fundamentals",
+    ]
+    assert session.missing_prerequisite_titles(vlan, catalog) == []
+
+
+def test_learner_can_start_when_prerequisites_are_missing(tmp_path: Path) -> None:
+    """Missing prerequisites are a warning only; Practice may still begin."""
+    session = _session(tmp_path)
+    basics = _lesson("basics", title="Networking Basics")
+    advanced = _lesson(
+        "advanced",
+        title="Advanced",
+        prerequisites=["basics"],
+    )
+    catalog = [basics, advanced]
+
+    assert session.missing_prerequisite_titles(advanced, catalog) == [
+        "Networking Basics",
+    ]
+
+    session.mark_practice_opened(advanced)
+    result = session.submit(advanced, advanced.tasks[0], "ok")
+
+    assert result.kind == TURN_CORRECT
+    assert result.first_try is True
+    assert session.lesson_standing(advanced).status == LESSON_STATUS_IN_PROGRESS
+    assert session.lesson_standing(advanced).passed == 1
+

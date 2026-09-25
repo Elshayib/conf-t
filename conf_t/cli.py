@@ -11,7 +11,7 @@ from rich.align import Align
 from rich import box
 
 from conf_t import __version__
-from conf_t.models import Lesson, Task, SessionStats
+from conf_t.models import Lesson, Task
 from conf_t.engine import (
     DIFFICULTY_ORDER,
     LESSON_STATUS_COMPLETED,
@@ -21,15 +21,23 @@ from conf_t.engine import (
     are_prerequisites_met,
     collect_all_tags,
     filter_lessons_by_tags,
-    format_display_answer,
     get_continue_target,
     get_missing_prerequisites,
     get_recommended_lesson,
     parse_tags_csv,
     sort_lessons_by_curriculum,
-    validate_input,
 )
-from conf_t.session import ReviewEntry, Session
+from conf_t.session import (
+    ReviewEntry,
+    Session,
+    TURN_CORRECT,
+    TURN_HINT,
+    TURN_IGNORE,
+    TURN_INCORRECT,
+    TURN_LEAVE,
+    TURN_SKIPPED,
+    practice_summary,
+)
 
 console = Console()
 
@@ -597,16 +605,13 @@ class ConfTCLI:
             box=box.ROUNDED
         ))
 
-        stats = SessionStats(total_questions=len(tasks_to_run))
+        stats_results = []
 
         for idx, task in enumerate(tasks_to_run, 1):
             console.print(f"\n[bold cyan]Task {idx}/{len(tasks_to_run)}:[/] [bold white]{task.prompt}[/]")
-            
-            is_first_try = True
-            is_skipped = False
-            
+            self.session.begin_task(task)
+
             while True:
-                # Prompt the user
                 try:
                     prompt_str = f"{task.prefix} "
                     user_input = console.input(prompt_str)
@@ -614,29 +619,22 @@ class ConfTCLI:
                     console.print("\n[yellow]Practice aborted.[/]")
                     return
 
-                cleaned_input = user_input.strip()
+                result = self.session.submit(lesson, task, user_input)
 
-                if not cleaned_input:
+                if result.kind == TURN_IGNORE:
                     continue
 
-                # If the user typed an exit command, check if it's the expected correct answer first
-                is_flow_exit = cleaned_input.lower() in ["exit", "quit"]
-                is_expected_exit = False
-                if is_flow_exit:
-                    is_expected_exit = validate_input(cleaned_input, task, lesson.platform)
-
-                if is_flow_exit and not is_expected_exit:
+                if result.kind == TURN_LEAVE:
                     confirm = questionary.confirm("Are you sure you want to exit this lesson?").ask()
                     if confirm:
                         console.print("[bold yellow]Exited practice session.[/]")
                         return
-                    else:
-                        continue
+                    continue
 
-                if cleaned_input.lower() == "hint":
-                    if task.hint:
+                if result.kind == TURN_HINT:
+                    if result.hint:
                         console.print(Panel(
-                            f"[bold yellow]Hint:[/] {task.hint}",
+                            f"[bold yellow]Hint:[/] {result.hint}",
                             border_style="yellow",
                             box=box.MINIMAL
                         ))
@@ -644,68 +642,30 @@ class ConfTCLI:
                         console.print("[dim yellow]No hint available for this task.[/]")
                     continue
 
-                if cleaned_input.lower() == "skip":
-                    is_skipped = True
-                    stats.skipped_count += 1
-                    stats.total_attempts += 1
-                    
-                    # Record progress
-                    self.session.record_attempt(
-                        lesson,
-                        task,
-                        correct=False,
-                        first_try=is_first_try,
-                        skipped=True,
-                    )
+                stats_results.append(result)
 
+                if result.kind == TURN_SKIPPED:
                     console.print(Panel(
-                        f"[bold red]Skipped.[/]\n\n[bold white]Correct Command:[/] [bold cyan]{format_display_answer(task, lesson.platform)}[/]\n\n"
-                        f"[bold white]Explanation:[/] {task.explanation}",
+                        f"[bold red]Skipped.[/]\n\n[bold white]Correct Command:[/] [bold cyan]{result.readable_command}[/]\n\n"
+                        f"[bold white]Explanation:[/] {result.explanation}",
                         border_style="red",
                         title="[bold red]Task Explanation[/]"
                     ))
                     break
 
-                # Validate command
-                is_correct = validate_input(cleaned_input, task, lesson.platform)
-                
-                if is_correct:
-                    stats.total_attempts += 1
-                    if is_first_try:
-                        stats.correct_first_try += 1
-
-                    # Record progress
-                    self.session.record_attempt(
-                        lesson,
-                        task,
-                        correct=True,
-                        first_try=is_first_try,
-                        skipped=False,
-                    )
-
+                if result.kind == TURN_CORRECT:
                     console.print(Panel(
                         f"[bold green]✓ Correct![/]\n\n"
-                        f"[bold white]Explanation:[/] {task.explanation}",
+                        f"[bold white]Explanation:[/] {result.explanation}",
                         border_style="green",
                         box=box.ROUNDED
                     ))
                     break
-                else:
-                    stats.total_attempts += 1
-                    is_first_try = False
-                    
-                    # Record progress
-                    self.session.record_attempt(
-                        lesson,
-                        task,
-                        correct=False,
-                        first_try=is_first_try,
-                        skipped=False,
-                    )
-                    
+
+                if result.kind == TURN_INCORRECT:
                     console.print("[bold red]✗ Incorrect command. Try again, or type 'hint' / 'skip' / 'exit'.[/]")
 
-        # Display session stats
+        stats = practice_summary(stats_results, total_tasks=len(tasks_to_run))
         accuracy = (stats.correct_first_try / stats.total_questions) * 100 if stats.total_questions > 0 else 0
         summary_table = Table(title="[bold yellow]Session Summary[/]", box=box.ROUNDED, border_style="cyan")
         summary_table.add_column("Metric", style="cyan")
@@ -761,7 +721,7 @@ class ConfTCLI:
                 f"\n[bold cyan]Task {idx}/{len(tasks_to_review)} [{lesson.platform}]:[/] "
                 f"[bold white]{task.prompt}[/]"
             )
-            is_first_try = True
+            self.session.begin_task(task)
 
             while True:
                 try:
@@ -771,25 +731,21 @@ class ConfTCLI:
                     console.print("\n[yellow]Practice aborted.[/]")
                     return
 
-                cleaned_input = user_input.strip()
-                if not cleaned_input:
+                result = self.session.submit(lesson, task, user_input)
+
+                if result.kind == TURN_IGNORE:
                     continue
 
-                is_flow_exit = cleaned_input.lower() in ["exit", "quit"]
-                is_expected_exit = False
-                if is_flow_exit:
-                    is_expected_exit = validate_input(cleaned_input, task, lesson.platform)
-
-                if is_flow_exit and not is_expected_exit:
+                if result.kind == TURN_LEAVE:
                     confirm = questionary.confirm("Are you sure you want to exit review mode?").ask()
                     if confirm:
                         return
                     continue
 
-                if cleaned_input.lower() == "hint":
-                    if task.hint:
+                if result.kind == TURN_HINT:
+                    if result.hint:
                         console.print(Panel(
-                            f"[bold yellow]Hint:[/] {task.hint}",
+                            f"[bold yellow]Hint:[/] {result.hint}",
                             border_style="yellow",
                             box=box.MINIMAL,
                         ))
@@ -797,55 +753,32 @@ class ConfTCLI:
                         console.print("[dim yellow]No hint available.[/]")
                     continue
 
-                if cleaned_input.lower() == "skip":
-                    self.session.record_attempt(
-                        lesson,
-                        task,
-                        correct=False,
-                        first_try=is_first_try,
-                        skipped=True,
-                    )
+                if result.kind == TURN_SKIPPED:
                     console.print(Panel(
                         f"[bold red]Skipped.[/]\n\n"
-                        f"[bold white]Correct Command:[/] [bold cyan]{format_display_answer(task, lesson.platform)}[/]\n\n"
-                        f"[bold white]Explanation:[/] {task.explanation}",
+                        f"[bold white]Correct Command:[/] [bold cyan]{result.readable_command}[/]\n\n"
+                        f"[bold white]Explanation:[/] {result.explanation}",
                         border_style="red",
                         title="[bold red]Task Explanation[/]",
                     ))
                     break
 
-                is_correct = validate_input(cleaned_input, task, lesson.platform)
-                if is_correct:
-                    self.session.record_attempt(
-                        lesson,
-                        task,
-                        correct=True,
-                        first_try=is_first_try,
-                        skipped=False,
-                    )
-                    cleared = is_first_try
+                if result.kind == TURN_CORRECT:
                     status_msg = (
                         "✓ Correct! (Removed from review queue)"
-                        if cleared
+                        if result.first_try
                         else "✓ Correct, but not first-try — rescheduled for later review"
                     )
                     console.print(Panel(
                         f"[bold green]{status_msg}[/]\n\n"
-                        f"[bold white]Explanation:[/] {task.explanation}",
+                        f"[bold white]Explanation:[/] {result.explanation}",
                         border_style="green",
                         box=box.ROUNDED,
                     ))
                     break
 
-                is_first_try = False
-                self.session.record_attempt(
-                    lesson,
-                    task,
-                    correct=False,
-                    first_try=is_first_try,
-                    skipped=False,
-                )
-                console.print("[bold red]✗ Incorrect command. Try again, or type 'hint' / 'skip' / 'exit'.[/]")
+                if result.kind == TURN_INCORRECT:
+                    console.print("[bold red]✗ Incorrect command. Try again, or type 'hint' / 'skip' / 'exit'.[/]")
 
         console.print("\n[bold green]Review Session Completed![/]\n")
         if interactive:

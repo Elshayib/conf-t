@@ -1,4 +1,4 @@
-"""Session-module seam tests for standing, Review queues, and stats (#17, #18)."""
+"""Session-module seam tests for standing, Review queues, stats, and submit (#17–#19)."""
 
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
@@ -13,18 +13,33 @@ from conf_t.session import (
     LESSON_STATUS_NOT_STARTED,
     ReviewEntry,
     Session,
+    TURN_CORRECT,
+    TURN_HINT,
+    TURN_IGNORE,
+    TURN_INCORRECT,
+    TURN_LEAVE,
+    TURN_SKIPPED,
+    TurnResult,
+    practice_summary,
 )
 
 
-def _task(task_id: str, expected: str = "^ok$") -> Task:
+def _task(
+    task_id: str,
+    expected: str = "^ok$",
+    *,
+    aliases: list[str] | None = None,
+    hint: str = "h",
+    explanation: str = "e",
+) -> Task:
     return Task(
         id=task_id,
         prompt=f"Do {task_id}",
         prefix="$",
         expected=expected,
-        aliases=[],
-        hint="h",
-        explanation="e",
+        aliases=aliases if aliases is not None else [],
+        hint=hint,
+        explanation=explanation,
     )
 
 
@@ -398,3 +413,253 @@ def test_older_progress_file_yields_same_passed_due_and_failed(tmp_path: Path) -
     assert session.stats().total_attempts == 4
     assert session.stats().completed_lessons == 1
     assert "done_l" not in {entry.lesson_id for entry in session.failed_queue()}
+
+
+# --- submit turn (#19) ---
+
+
+def test_blank_line_is_ignored_and_does_not_record(tmp_path: Path) -> None:
+    session = _session(tmp_path)
+    lesson = _lesson(tasks=[_task("l1__a")])
+    task = lesson.tasks[0]
+
+    result = session.submit(lesson, task, "   ")
+
+    assert result == TurnResult(kind=TURN_IGNORE)
+    assert session.stats().total_attempts == 0
+    assert session.failed_queue() == []
+
+
+def test_hint_shows_text_without_recording_or_ending_first_try(tmp_path: Path) -> None:
+    session = _session(tmp_path)
+    lesson = _lesson(tasks=[_task("l1__a", hint="try ok")])
+    task = lesson.tasks[0]
+
+    hinted = session.submit(lesson, task, "hint")
+    assert hinted == TurnResult(kind=TURN_HINT, hint="try ok")
+    assert session.stats().total_attempts == 0
+
+    passed = session.submit(lesson, task, "ok")
+    assert passed.kind == TURN_CORRECT
+    assert passed.first_try is True
+    assert passed.explanation == "e"
+
+
+def test_hint_with_none_available_still_does_not_record(tmp_path: Path) -> None:
+    session = _session(tmp_path)
+    lesson = _lesson(tasks=[_task("l1__a", hint="")])
+    task = lesson.tasks[0]
+
+    result = session.submit(lesson, task, "HINT")
+    assert result == TurnResult(kind=TURN_HINT, hint=None)
+    assert session.stats().total_attempts == 0
+
+
+def test_skip_records_reveals_readable_command_and_explanation(tmp_path: Path) -> None:
+    session = _session(tmp_path)
+    lesson = _lesson(
+        tasks=[
+            _task(
+                "l1__a",
+                expected=r"^show\s+ip\s+interface\s+brief$",
+                aliases=["sh ip int br"],
+                explanation="brief interfaces",
+            )
+        ]
+    )
+    task = lesson.tasks[0]
+
+    result = session.submit(lesson, task, "skip")
+
+    assert result.kind == TURN_SKIPPED
+    assert result.readable_command == "sh ip int br"
+    assert result.explanation == "brief interfaces"
+    assert session.failed_queue() == [ReviewEntry(lesson_id="l1", task_id="l1__a")]
+    assert session.stats().skipped == 1
+    assert session.stats().total_attempts == 1
+
+
+def test_miss_stays_on_task_and_later_correct_is_not_first_try(tmp_path: Path) -> None:
+    session = _session(tmp_path)
+    lesson = _lesson(tasks=[_task("l1__a")])
+    task = lesson.tasks[0]
+
+    missed = session.submit(lesson, task, "nope")
+    assert missed.kind == TURN_INCORRECT
+    assert session.failed_queue() == [ReviewEntry(lesson_id="l1", task_id="l1__a")]
+
+    blank = session.submit(lesson, task, "")
+    assert blank.kind == TURN_IGNORE
+
+    hinted = session.submit(lesson, task, "hint")
+    assert hinted.kind == TURN_HINT
+
+    late = session.submit(lesson, task, "ok")
+    assert late.kind == TURN_CORRECT
+    assert late.first_try is False
+    assert late.explanation == "e"
+    assert session.lesson_standing(lesson).passed == 0
+
+
+def test_first_graded_correct_passes_and_shows_explanation(tmp_path: Path) -> None:
+    session = _session(tmp_path)
+    lesson = _lesson(tasks=[_task("l1__a", explanation="because ok")])
+    task = lesson.tasks[0]
+
+    result = session.submit(lesson, task, "ok")
+
+    assert result == TurnResult(
+        kind=TURN_CORRECT,
+        explanation="because ok",
+        first_try=True,
+    )
+    assert session.lesson_standing(lesson).passed == 1
+    assert session.failed_queue() == []
+
+
+def test_exit_leave_request_records_nothing_when_not_the_answer(tmp_path: Path) -> None:
+    session = _session(tmp_path)
+    lesson = _lesson(tasks=[_task("l1__a")])
+    task = lesson.tasks[0]
+    session.submit(lesson, task, "nope")
+
+    leave = session.submit(lesson, task, "exit")
+    assert leave == TurnResult(kind=TURN_LEAVE)
+    assert session.stats().total_attempts == 1
+
+    # Leave is only a request; cancelling keeps the same confrontation.
+    late = session.submit(lesson, task, "ok")
+    assert late.kind == TURN_CORRECT
+    assert late.first_try is False
+
+
+def test_begin_task_restores_first_try_for_a_new_sitting(tmp_path: Path) -> None:
+    session = _session(tmp_path)
+    lesson = _lesson(tasks=[_task("l1__a")])
+    task = lesson.tasks[0]
+    session.submit(lesson, task, "nope")
+    session.submit(lesson, task, "exit")
+
+    session.begin_task(task)
+    result = session.submit(lesson, task, "ok")
+    assert result.kind == TURN_CORRECT
+    assert result.first_try is True
+
+
+def test_quit_that_task_accepts_is_graded_not_leave(tmp_path: Path) -> None:
+    session = _session(tmp_path)
+    lesson = _lesson(tasks=[_task("l1__a", expected="^quit$")])
+    task = lesson.tasks[0]
+
+    result = session.submit(lesson, task, "quit")
+    assert result.kind == TURN_CORRECT
+    assert result.first_try is True
+    assert session.lesson_standing(lesson).passed == 1
+
+
+def test_exit_that_task_accepts_is_graded_not_leave(tmp_path: Path) -> None:
+    session = _session(tmp_path)
+    lesson = _lesson(tasks=[_task("l1__a", expected="^exit$")])
+    task = lesson.tasks[0]
+
+    result = session.submit(lesson, task, "exit")
+    assert result.kind == TURN_CORRECT
+    assert result.first_try is True
+    assert session.failed_queue() == []
+
+
+def test_case_rules_and_aliases_follow_platform(tmp_path: Path) -> None:
+    session = _session(tmp_path)
+    cisco = Lesson(
+        id="cisco_l",
+        title="Cisco",
+        platform="Cisco",
+        description="d",
+        tasks=[
+            _task("cisco_l__a", expected="^configure terminal$"),
+            _task("cisco_l__b", expected="^unused$", aliases=["CONF T"]),
+        ],
+    )
+    powershell = Lesson(
+        id="ps_l",
+        title="PS",
+        platform="PowerShell",
+        description="d",
+        tasks=[_task("ps_l__a", expected="^Get-Service$", aliases=["GSV"])],
+    )
+    linux = Lesson(
+        id="linux_l",
+        title="Linux",
+        platform="Linux",
+        description="d",
+        tasks=[_task("linux_l__a", expected="^pwd$")],
+    )
+    git = Lesson(
+        id="git_l",
+        title="Git",
+        platform="Git",
+        description="d",
+        tasks=[_task("git_l__a", expected="^git status$")],
+    )
+
+    assert session.submit(cisco, cisco.tasks[0], "CONFIGURE TERMINAL").kind == TURN_CORRECT
+    assert session.submit(cisco, cisco.tasks[1], "conf t").kind == TURN_CORRECT
+    assert session.submit(powershell, powershell.tasks[0], "get-service").kind == TURN_CORRECT
+    session.begin_task(powershell.tasks[0])
+    assert session.submit(powershell, powershell.tasks[0], "gsv").kind == TURN_CORRECT
+
+    assert session.submit(linux, linux.tasks[0], "PWD").kind == TURN_INCORRECT
+    assert session.submit(linux, linux.tasks[0], "pwd").kind == TURN_CORRECT
+    assert session.submit(git, git.tasks[0], "GIT STATUS").kind == TURN_INCORRECT
+    assert session.submit(git, git.tasks[0], "git status").kind == TURN_CORRECT
+
+
+def test_broken_pattern_falls_through_to_aliases(tmp_path: Path) -> None:
+    session = _session(tmp_path)
+    lesson = _lesson(
+        tasks=[
+            _task(
+                "l1__a",
+                expected="[unterminated",
+                aliases=["safe alias"],
+            )
+        ]
+    )
+    task = lesson.tasks[0]
+
+    result = session.submit(lesson, task, "safe alias")
+    assert result.kind == TURN_CORRECT
+    assert result.first_try is True
+
+
+def test_practice_summary_comes_from_sitting_turn_results(tmp_path: Path) -> None:
+    session = _session(tmp_path)
+    lesson = _lesson(
+        tasks=[
+            _task("l1__a"),
+            _task("l1__b"),
+            _task("l1__c"),
+        ]
+    )
+    results = [
+        session.submit(lesson, lesson.tasks[0], "ok"),
+        session.submit(lesson, lesson.tasks[1], "nope"),
+        session.submit(lesson, lesson.tasks[1], "ok"),
+        session.submit(lesson, lesson.tasks[2], "skip"),
+    ]
+
+    summary = practice_summary(results, total_tasks=3)
+    assert summary.total_questions == 3
+    assert summary.correct_first_try == 1
+    assert summary.skipped_count == 1
+    assert summary.total_attempts == 4
+
+
+def test_opening_practice_via_submit_path_still_marks_in_progress(tmp_path: Path) -> None:
+    session = _session(tmp_path)
+    lesson = _lesson()
+    session.mark_practice_opened(lesson)
+    assert session.lesson_standing(lesson).status == LESSON_STATUS_IN_PROGRESS
+    leave = session.submit(lesson, lesson.tasks[0], "quit")
+    assert leave.kind == TURN_LEAVE
+    assert session.lesson_standing(lesson).status == LESSON_STATUS_IN_PROGRESS

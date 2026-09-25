@@ -1,4 +1,4 @@
-"""Session-module seam tests for standing, Review queues, stats, and submit (#17–#19)."""
+"""Session-module seam tests for standing, Review queues, stats, and submit (#17–#20)."""
 
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
@@ -663,3 +663,90 @@ def test_opening_practice_via_submit_path_still_marks_in_progress(tmp_path: Path
     leave = session.submit(lesson, lesson.tasks[0], "quit")
     assert leave.kind == TURN_LEAVE
     assert session.lesson_standing(lesson).status == LESSON_STATUS_IN_PROGRESS
+
+
+# --- Review sitting on the same submit (#20) ---
+
+
+def test_review_path_does_not_mark_in_progress_until_a_line_is_recorded(
+    tmp_path: Path,
+) -> None:
+    """Review opens without mark_practice_opened; only a recorded line starts the Lesson."""
+    session = _session(tmp_path)
+    lesson = _lesson(tasks=[_task("l1__a")])
+    task = lesson.tasks[0]
+
+    assert session.lesson_standing(lesson).status == LESSON_STATUS_NOT_STARTED
+
+    session.begin_task(task)
+    assert session.submit(lesson, task, "   ").kind == TURN_IGNORE
+    assert session.submit(lesson, task, "hint").kind == TURN_HINT
+    assert session.submit(lesson, task, "exit").kind == TURN_LEAVE
+    assert session.lesson_standing(lesson).status == LESSON_STATUS_NOT_STARTED
+    assert session.stats().total_attempts == 0
+
+    assert session.submit(lesson, task, "nope").kind == TURN_INCORRECT
+    assert session.lesson_standing(lesson).status == LESSON_STATUS_IN_PROGRESS
+
+
+def test_review_first_try_pass_leaves_due_and_failed_queues(tmp_path: Path) -> None:
+    """A clean Review pass (new sitting) clears the Task from both drills."""
+    session = _session(tmp_path)
+    lesson = _lesson(tasks=[_task("l1__a")])
+    task = lesson.tasks[0]
+    entry = ReviewEntry(lesson_id="l1", task_id="l1__a")
+
+    session.submit(lesson, task, "nope")
+    assert session.due_review() == [entry]
+    assert session.failed_queue() == [entry]
+
+    session.begin_task(task)
+    result = session.submit(lesson, task, "ok")
+
+    assert result.kind == TURN_CORRECT
+    assert result.first_try is True
+    assert result.explanation == "e"
+    assert session.due_review() == []
+    assert session.failed_queue() == []
+
+
+def test_review_late_pass_stays_in_failed_queue_and_is_not_due(tmp_path: Path) -> None:
+    """A late Review pass reschedules; the Task stays in the failed queue."""
+    session = _session(tmp_path)
+    lesson = _lesson(tasks=[_task("l1__a")])
+    task = lesson.tasks[0]
+    entry = ReviewEntry(lesson_id="l1", task_id="l1__a")
+
+    session.begin_task(task)
+    assert session.submit(lesson, task, "nope").kind == TURN_INCORRECT
+    late = session.submit(lesson, task, "ok")
+
+    assert late.kind == TURN_CORRECT
+    assert late.first_try is False
+    assert late.explanation == "e"
+    assert session.due_review() == []
+    assert session.failed_queue() == [entry]
+
+
+def test_review_attempts_count_in_platform_lifetime_stats(tmp_path: Path) -> None:
+    """Review recordings attribute attempts to the Task's Lesson Platform."""
+    session = _session(tmp_path)
+    cisco = Lesson(
+        id="cisco_l",
+        title="Cisco",
+        platform="Cisco",
+        description="d",
+        tasks=[_task("cisco_l__a")],
+    )
+    task = cisco.tasks[0]
+
+    session.begin_task(task)
+    session.submit(cisco, task, "nope")
+    session.submit(cisco, task, "skip")
+
+    stats = session.stats()
+    assert stats.total_attempts == 2
+    assert stats.skipped == 1
+    assert stats.by_platform["Cisco"].attempts == 2
+    assert stats.by_platform["Cisco"].skipped == 1
+    assert stats.by_platform["Cisco"].correct_first_try == 0

@@ -55,12 +55,12 @@
         },
         {
             "id": "git_staging__commit_verbose",
-            "prompt": "Commit staged changes with message 'fix login bug' and show the diffstat.",
+            "prompt": "Commit staged changes with message 'fix login bug'.",
             "prefix": "user@ubuntu:~/project$",
-            "expected": "^git\\s+commit\\s+-v\\s+-m\\s+[\"']fix login bug[\"']$",
+            "expected": "^git\\s+commit\\s+-m\\s+[\"']fix login bug[\"']$",
             "aliases": [],
-            "hint": "Use git commit -v -m with your message.",
-            "explanation": "The -v flag displays the staged diff in the commit editor/output."
+            "hint": "Use git commit -m \"fix login bug\".",
+            "explanation": "git commit -m records the staged snapshot with a short message that describes why the change exists."
         },
         {
             "id": "git_staging__commit_amend",

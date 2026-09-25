@@ -25,10 +25,10 @@ You get a simulated shell prompt, type the command, and receive instant feedback
 | 🖥️ **Simulated Prompts** | Realistic shell prompts per platform (`Router#`, `user@ubuntu:~$`, `PS C:\>`) |
 | ✅ **Smart Validation** | Regex-based matching with alias support (e.g. `conf t` → `configure terminal`) |
 | 🔄 **Review Mode** | Automatically re-queues skipped/failed commands for targeted practice |
-| 💡 **Hints & Explanations** | Type `hint` for a nudge; get a full explanation after each answer |
+| 💡 **Hints & Explanations** | Type `hint` for help (may include the command); get a full explanation after each answer |
 | 📊 **Progress Tracking** | Accuracy stats, completed lessons, and history saved locally |
 | 🧩 **Extensible** | Add new lessons by dropping a JSON file into `conf_t/lessons/` |
-| 🎫 **Multiple Platforms** | 640+ tasks across Cisco IOS, Linux, PowerShell, Git, and Docker |
+| 🎫 **Multiple Platforms** | 643+ tasks across Cisco IOS, Linux, PowerShell, Git, and Docker |
 | 📚 **Structured Curriculum** | Beginner → advanced learning paths with prerequisites and capstone labs |
 | 🗺️ **Curriculum Browser** | Difficulty grouping, progress icons, recommended next lesson, soft prerequisite warnings |
 
@@ -125,14 +125,14 @@ During a practice session:
 
 ## 📦 Lesson Library
 
-Conf T ships with **68 lessons** and **640 practice tasks** across five platforms.
+Conf T ships with **68 lessons** and **643 practice tasks** across five platforms.
 
 | Platform | Lessons | Tasks | Focus |
 |---|---|---|---|
 | Cisco IOS | 21 | 231 | CCNA-aligned switching, routing, security, services |
 | Linux | 15 | 144 | Shell, systemd, networking, scripting, troubleshooting |
 | PowerShell | 12 | 102 | Cmdlets, pipeline, scripting, remoting, automation |
-| Git | 10 | 80 | Workflow, branching, merging, recovery |
+| Git | 10 | 83 | Workflow, branching, merging, recovery |
 | Docker | 10 | 83 | Images, containers, compose, networking, volumes |
 
 ### Cisco IOS Curriculum (CCNA-aligned)
@@ -154,6 +154,8 @@ Conf T ships with **68 lessons** and **640 practice tasks** across five platform
 ### PowerShell, Git & Docker
 
 Each platform follows a **beginner → intermediate → advanced → capstone** path. Capstone labs (`*_troubleshooting_lab`) mix scenarios from prior lessons. Use the in-app lesson browser to explore the full list.
+
+**Start the Git path** at the beginner lesson `git_basic` (Git Version Control Basics), then continue through staging, branching, merging, remotes, stash, tags, rebasing, recovery, and the troubleshooting lab.
 
 > **Progress migration:** v0.3.0 adds per-task progress (`task_progress`) and migrates existing `failed_tasks` automatically. Task IDs use the format `lesson_id__action`. Legacy v0.1.x progress should still be reset from the main menu if task IDs no longer match.
 

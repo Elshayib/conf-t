@@ -14,7 +14,31 @@
             "expected": "^git\\s+init$",
             "aliases": [],
             "hint": "Use: 'git init'",
-            "explanation": "'git init' sets up a hidden '.git' directory inside your directory, enabling tracking."
+            "explanation": "'git init' creates a hidden '.git' directory so this folder can track history."
+        },
+        {
+            "id": "git_basic__config_user_name",
+            "prompt": "Set the local user name for this repository to 'Ada Lovelace'.",
+            "prefix": "user@ubuntu:~/project$",
+            "expected": "^git\\s+config\\s+(--local\\s+)?user\\.name\\s+[\"']Ada Lovelace[\"']$",
+            "aliases": [
+                "git config user.name \"Ada Lovelace\"",
+                "git config --local user.name \"Ada Lovelace\""
+            ],
+            "hint": "Use: git config user.name \"Ada Lovelace\" (or git config --local user.name \"Ada Lovelace\")",
+            "explanation": "Repository-local user.name stamps commits in this repo with an author name without changing your machine-wide Git identity."
+        },
+        {
+            "id": "git_basic__config_user_email",
+            "prompt": "Set the local user email for this repository to 'ada@example.com'.",
+            "prefix": "user@ubuntu:~/project$",
+            "expected": "^git\\s+config\\s+(--local\\s+)?user\\.email\\s+[\"']ada@example\\.com[\"']$",
+            "aliases": [
+                "git config user.email \"ada@example.com\"",
+                "git config --local user.email \"ada@example.com\""
+            ],
+            "hint": "Use: git config user.email \"ada@example.com\" (or git config --local user.email \"ada@example.com\")",
+            "explanation": "Repository-local user.email completes the author identity for commits in this repo without a --global machine-wide change."
         },
         {
             "id": "git_basic__clone",
@@ -23,7 +47,7 @@
             "expected": "^git\\s+clone\\s+https://github\\.com/user/repo\\.git$",
             "aliases": [],
             "hint": "Use git clone followed by the URL: 'git clone https://github.com/user/repo.git'",
-            "explanation": "'git clone' downloads a full copy of a remote Git repository along with all its version logs."
+            "explanation": "'git clone' downloads a full copy of a remote repository, including its history, into a new local directory."
         },
         {
             "id": "git_basic__status",
@@ -32,7 +56,19 @@
             "expected": "^git\\s+status$",
             "aliases": [],
             "hint": "Use: 'git status'",
-            "explanation": "'git status' displays untracked, modified, or staged files compared to the last commit."
+            "explanation": "'git status' shows untracked, modified, and staged files relative to the last commit so you know what would be committed."
+        },
+        {
+            "id": "git_basic__gitignore_log",
+            "prompt": "Append a line containing '*.log' to the '.gitignore' file so Git ignores log files.",
+            "prefix": "user@ubuntu:~/project$",
+            "expected": "^echo\\s+[\"']\\*\\.log[\"']\\s+>>\\s+\\.gitignore$",
+            "aliases": [
+                "echo \"*.log\" >> .gitignore",
+                "echo '*.log' >> .gitignore"
+            ],
+            "hint": "Use: echo \"*.log\" >> .gitignore",
+            "explanation": "Appending '*.log' to .gitignore tells Git to skip matching files so they are not staged by accident; >> keeps any existing ignore rules."
         },
         {
             "id": "git_basic__add_all",
@@ -50,7 +86,7 @@
             "expected": "^git\\s+commit\\s+-m\\s+[\"']initial commit[\"']$",
             "aliases": [],
             "hint": "Use commit command with message flag: 'git commit -m \"initial commit\"'",
-            "explanation": "'git commit -m' records the staged snapshot to history with a descriptive logs message."
+            "explanation": "'git commit -m' records the staged snapshot in history with a short message describing the change."
         },
         {
             "id": "git_basic__checkout_branch",
@@ -59,7 +95,7 @@
             "expected": "^(git\\s+checkout\\s+-b\\s+feature|git\\s+switch\\s+-c\\s+feature)$",
             "aliases": ["git checkout -b feature", "git switch -c feature"],
             "hint": "Use git checkout with -b, or git switch with -c: 'git checkout -b feature'",
-            "explanation": "Creates a new branch pointer and updates the HEAD directory pointer to the new branch."
+            "explanation": "Creating with -b/-c makes a new branch pointer and moves HEAD there so your next commits land on 'feature'."
         }
     ]
 }

@@ -61,7 +61,7 @@ Before opening a PR with new lessons, verify:
 - [ ] One distinct concept per task — no duplicate prompts or regex within a lesson
 - [ ] `prefix` reflects the real shell/IOS mode for that step
 - [ ] Cisco tasks include common abbreviations in `aliases` (`conf t`, `no shut`, etc.)
-- [ ] `hint` nudges without giving away the answer; `explanation` teaches the why
+- [ ] `hint` may include the command so a stuck learner can continue; `explanation` teaches the why
 - [ ] `difficulty` and `prerequisites` form a sensible learning path
 - [ ] `pytest tests/` passes
 

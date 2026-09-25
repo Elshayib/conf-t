@@ -46,12 +46,12 @@
         },
         {
             "id": "git_merging__show_merge",
-            "prompt": "Show details of the most recent merge commit.",
+            "prompt": "Show the most recent merge commit in the log.",
             "prefix": "user@ubuntu:~/project$",
-            "expected": "^git\\s+show\\s+--merge$",
-            "aliases": [],
-            "hint": "Use git show --merge.",
-            "explanation": "git show --merge highlights changes introduced by a merge."
+            "expected": "^git\\s+log\\s+(-1\\s+--merges|--merges\\s+-1)$",
+            "aliases": ["git log -1 --merges", "git log --merges -1"],
+            "hint": "Use git log -1 --merges.",
+            "explanation": "git log -1 --merges surfaces the newest merge commit so you can see how branches were integrated."
         },
         {
             "id": "git_merging__diff_conflicts",

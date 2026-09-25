@@ -12,6 +12,7 @@ from conf_t.engine import (
     LESSON_STATUS_NOT_STARTED,
     ProgressManager,
     format_display_answer,
+    sort_lessons_by_curriculum,
     validate_input,
 )
 from conf_t.models import Lesson, SessionStats, Task
@@ -33,6 +34,7 @@ __all__ = [
     "TURN_INCORRECT",
     "TURN_LEAVE",
     "TURN_SKIPPED",
+    "ContinueTarget",
     "LessonStanding",
     "LearnerStats",
     "PlatformTotals",
@@ -48,6 +50,12 @@ class LessonStanding:
     status: str
     passed: int
     total: int
+
+
+@dataclass(frozen=True)
+class ContinueTarget:
+    action: str
+    lesson_id: str | None = None
 
 
 @dataclass(frozen=True)
@@ -201,6 +209,49 @@ class Session:
             is_skipped=skipped,
         )
         self._sync_completion(lesson)
+
+    def continue_target(self, lessons: Sequence[Lesson]) -> ContinueTarget | None:
+        """Choose where continue / the menu continue entry should send the Learner."""
+        if not lessons:
+            return None
+        if self.due_review():
+            return ContinueTarget(action="daily_review")
+
+        by_id = {lesson.id: lesson for lesson in lessons}
+        for lesson_id in reversed(self._progress.data.get("attempted_lessons", [])):
+            lesson = by_id.get(lesson_id)
+            if lesson is None:
+                continue
+            if self._can_resume(lesson):
+                return ContinueTarget(action="lesson", lesson_id=lesson.id)
+
+        recommended = self._recommended_lesson(lessons)
+        if recommended is not None:
+            return ContinueTarget(action="lesson", lesson_id=recommended.id)
+
+        first = sort_lessons_by_curriculum(list(lessons))[0]
+        return ContinueTarget(action="lesson", lesson_id=first.id)
+
+    def _can_resume(self, lesson: Lesson) -> bool:
+        standing = self.lesson_standing(lesson)
+        return (
+            standing.status != LESSON_STATUS_COMPLETED
+            and standing.total > 0
+            and standing.passed < standing.total
+        )
+
+    def _recommended_lesson(self, lessons: Sequence[Lesson]) -> Lesson | None:
+        completed_ids = {
+            lesson.id
+            for lesson in lessons
+            if self.lesson_standing(lesson).status == LESSON_STATUS_COMPLETED
+        }
+        for lesson in sort_lessons_by_curriculum(list(lessons)):
+            if lesson.id in completed_ids:
+                continue
+            if all(prereq in completed_ids for prereq in lesson.prerequisites):
+                return lesson
+        return None
 
     def due_review(self) -> list[ReviewEntry]:
         return [

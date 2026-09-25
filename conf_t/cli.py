@@ -21,7 +21,6 @@ from conf_t.engine import (
     are_prerequisites_met,
     collect_all_tags,
     filter_lessons_by_tags,
-    get_continue_target,
     get_missing_prerequisites,
     get_recommended_lesson,
     parse_tags_csv,
@@ -213,25 +212,14 @@ class ConfTCLI:
 
     def run_continue(self, interactive: bool = True) -> None:
         lessons = self.loader.load_all_lessons()
-        if not lessons:
+        target = self.session.continue_target(lessons)
+
+        if not target:
             console.print("[bold red]No lessons found.[/]")
             return
 
-        due_count = len(self.session.due_review())
-        target = get_continue_target(
-            lessons=lessons,
-            completed_lessons=self.progress.data.get("completed_lessons", []),
-            attempted_lessons=self.progress.data.get("attempted_lessons", []),
-            due_review_count=due_count,
-            lesson_has_resume_state_fn=self.progress.lesson_has_resume_state,
-            is_lesson_fully_passed_fn=self.progress.is_lesson_fully_passed,
-        )
-
-        if not target:
-            console.print("[yellow]Nothing to continue yet. Try --list to pick a lesson.[/]")
-            return
-
-        if target["action"] == "daily_review":
+        if target.action == "daily_review":
+            due_count = len(self.session.due_review())
             console.print(
                 f"\n[bold yellow]Continuing:[/] [white]Daily Review[/] "
                 f"[dim]({due_count} task(s) due)[/]\n"
@@ -239,7 +227,7 @@ class ConfTCLI:
             self.daily_review_menu(interactive=interactive)
             return
 
-        lesson_id = target["lesson_id"]
+        lesson_id = target.lesson_id
         lesson = next((item for item in lessons if item.id == lesson_id), None)
         if not lesson:
             console.print(f"[red]Lesson not found: {lesson_id}[/]")

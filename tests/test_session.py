@@ -1,4 +1,4 @@
-"""Session-module seam tests for standing, Review queues, stats, and submit (#17–#20)."""
+"""Session-module seam tests for standing, Review queues, stats, submit, and continue (#17–#21)."""
 
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
@@ -11,6 +11,7 @@ from conf_t.session import (
     LESSON_STATUS_COMPLETED,
     LESSON_STATUS_IN_PROGRESS,
     LESSON_STATUS_NOT_STARTED,
+    ContinueTarget,
     ReviewEntry,
     Session,
     TURN_CORRECT,
@@ -46,13 +47,19 @@ def _task(
 def _lesson(
     lesson_id: str = "l1",
     tasks: list[Task] | None = None,
+    *,
+    title: str | None = None,
+    difficulty: str = "beginner",
+    prerequisites: list[str] | None = None,
 ) -> Lesson:
     return Lesson(
         id=lesson_id,
-        title="Lesson One",
+        title=title if title is not None else "Lesson One",
         platform="Linux",
         description="desc",
         tasks=tasks if tasks is not None else [_task(f"{lesson_id}__a"), _task(f"{lesson_id}__b")],
+        difficulty=difficulty,
+        prerequisites=prerequisites if prerequisites is not None else [],
     )
 
 
@@ -750,3 +757,133 @@ def test_review_attempts_count_in_platform_lifetime_stats(tmp_path: Path) -> Non
     assert stats.by_platform["Cisco"].attempts == 2
     assert stats.by_platform["Cisco"].skipped == 1
     assert stats.by_platform["Cisco"].correct_first_try == 0
+
+
+# --- continue choice (#21) ---
+
+
+def test_continue_nowhere_when_no_lessons(tmp_path: Path) -> None:
+    session = _session(tmp_path)
+    assert session.continue_target([]) is None
+
+
+def test_continue_sends_due_review_before_any_lesson(tmp_path: Path) -> None:
+    session = _session(tmp_path)
+    open_lesson = _lesson("open")
+    session.mark_practice_opened(open_lesson)
+    session.record_attempt(
+        open_lesson, open_lesson.tasks[0], correct=False, first_try=True, skipped=False
+    )
+
+    target = session.continue_target([open_lesson])
+    assert target == ContinueTarget(action="daily_review")
+    assert session.due_review()  # due exists; continue must prefer it
+
+
+def test_continue_resumes_last_unfinished_resumable_lesson(tmp_path: Path) -> None:
+    session = _session(tmp_path)
+    older = _lesson("older")
+    newer = _lesson("newer")
+    session.mark_practice_opened(older)
+    session.mark_practice_opened(newer)
+
+    target = session.continue_target([older, newer])
+    assert target == ContinueTarget(action="lesson", lesson_id="newer")
+
+
+def test_continue_skips_completed_lesson_when_resuming(tmp_path: Path) -> None:
+    session = _session(tmp_path)
+    done = _lesson("done")
+    open_lesson = _lesson("open")
+    session.record_attempt(done, done.tasks[0], correct=True, first_try=True, skipped=False)
+    session.record_attempt(done, done.tasks[1], correct=True, first_try=True, skipped=False)
+    session.mark_practice_opened(open_lesson)
+    assert session.lesson_standing(done).status == LESSON_STATUS_COMPLETED
+
+    target = session.continue_target([done, open_lesson])
+    assert target == ContinueTarget(action="lesson", lesson_id="open")
+
+
+def test_continue_opens_recommended_when_nothing_unfinished(tmp_path: Path) -> None:
+    session = _session(tmp_path)
+    basic = _lesson("basic", title="Basic", difficulty="beginner")
+    advanced = _lesson(
+        "advanced",
+        title="Advanced",
+        difficulty="advanced",
+        prerequisites=["basic"],
+    )
+    session.record_attempt(basic, basic.tasks[0], correct=True, first_try=True, skipped=False)
+    session.record_attempt(basic, basic.tasks[1], correct=True, first_try=True, skipped=False)
+
+    target = session.continue_target([advanced, basic])
+    assert target == ContinueTarget(action="lesson", lesson_id="advanced")
+
+
+def test_continue_recommended_skips_completed_and_unmet_prereqs(tmp_path: Path) -> None:
+    session = _session(tmp_path)
+    alpha = _lesson("alpha", title="Alpha", difficulty="beginner")
+    bravo = _lesson(
+        "bravo",
+        title="Bravo",
+        difficulty="intermediate",
+        prerequisites=["alpha"],
+    )
+    charlie = _lesson("charlie", title="Charlie", difficulty="beginner")
+    session.record_attempt(alpha, alpha.tasks[0], correct=True, first_try=True, skipped=False)
+    session.record_attempt(alpha, alpha.tasks[1], correct=True, first_try=True, skipped=False)
+
+    # alpha completed → skip; bravo prereqs met but intermediate; charlie beginner unfinished
+    target = session.continue_target([bravo, charlie, alpha])
+    assert target == ContinueTarget(action="lesson", lesson_id="charlie")
+
+
+def test_continue_recommended_follows_path_order_by_title(tmp_path: Path) -> None:
+    session = _session(tmp_path)
+    zebra = _lesson("zebra", title="Zebra", difficulty="beginner")
+    apple = _lesson("apple", title="Apple", difficulty="beginner")
+
+    target = session.continue_target([zebra, apple])
+    assert target == ContinueTarget(action="lesson", lesson_id="apple")
+
+
+def test_continue_opens_first_lesson_when_nothing_recommended(tmp_path: Path) -> None:
+    session = _session(tmp_path)
+    locked = _lesson(
+        "locked",
+        title="Locked",
+        difficulty="beginner",
+        prerequisites=["missing"],
+    )
+    later = _lesson(
+        "later",
+        title="Later",
+        difficulty="advanced",
+        prerequisites=["missing"],
+    )
+
+    target = session.continue_target([later, locked])
+    assert target == ContinueTarget(action="lesson", lesson_id="locked")
+
+
+def test_continue_does_not_recommend_a_completed_lesson(tmp_path: Path) -> None:
+    session = _session(tmp_path)
+    done = _lesson("done", title="Done", difficulty="beginner")
+    next_lesson = _lesson("next", title="Next", difficulty="intermediate")
+    session.record_attempt(done, done.tasks[0], correct=True, first_try=True, skipped=False)
+    session.record_attempt(done, done.tasks[1], correct=True, first_try=True, skipped=False)
+
+    target = session.continue_target([done, next_lesson])
+    assert target == ContinueTarget(action="lesson", lesson_id="next")
+
+
+def test_continue_skips_empty_opened_lesson_when_resuming(tmp_path: Path) -> None:
+    """Opened empty Lessons are unfinished standing but have nothing to resume."""
+    session = _session(tmp_path)
+    empty = _lesson("empty", tasks=[])
+    real = _lesson("real", title="Real")
+    session.mark_practice_opened(real)
+    session.mark_practice_opened(empty)
+
+    target = session.continue_target([empty, real])
+    assert target == ContinueTarget(action="lesson", lesson_id="real")

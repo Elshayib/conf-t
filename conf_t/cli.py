@@ -20,7 +20,6 @@ from conf_t.engine import (
     LessonLoader,
     collect_all_tags,
     filter_lessons_by_tags,
-    get_recommended_lesson,
     parse_tags_csv,
     sort_lessons_by_curriculum,
 )
@@ -42,7 +41,6 @@ class ConfTCLI:
     def __init__(self):
         self.loader = LessonLoader()
         self.session = Session()
-        self.progress = self.session.progress
 
     def _main_menu_choices(self) -> list[str]:
         due_count = len(self.session.due_review())
@@ -486,12 +484,7 @@ class ConfTCLI:
             lesson_id = entry.lesson_id
             failed_counts[lesson_id] = failed_counts.get(lesson_id, 0) + 1
 
-        completed = [
-            lesson.id
-            for lesson in lessons
-            if self.session.lesson_standing(lesson).status == LESSON_STATUS_COMPLETED
-        ]
-        recommended = get_recommended_lesson(sorted_lessons, completed)
+        recommended = self.session.recommended_lesson(sorted_lessons, catalog=lessons)
         if recommended:
             console.print(
                 f"\n[bold green]★ Recommended next:[/] [white]{recommended.title}[/] "
@@ -561,29 +554,24 @@ class ConfTCLI:
     def run_practice_session(
         self,
         lesson: Lesson,
-        review_mode: bool = False,
-        review_tasks: list | None = None,
         tasks_to_run: list[Task] | None = None,
     ):
         """
-        Runs the interactive prompt loop for a lesson or a custom set of review tasks.
+        Runs the interactive prompt loop for a Practice sitting.
         """
-        if review_mode:
-            tasks_to_run = review_tasks or []
-        elif tasks_to_run is None:
+        if tasks_to_run is None:
             tasks_to_run = list(lesson.tasks)
 
         if not tasks_to_run:
             console.print("[yellow]No tasks to practice in this session.[/]")
             return
 
-        if not review_mode:
-            self.session.mark_practice_opened(lesson)
+        self.session.mark_practice_opened(lesson)
 
-        title_text = f"Reviewing {len(tasks_to_run)} Failed Commands" if review_mode else f"Lesson: {lesson.title}"
-        if not review_mode and len(tasks_to_run) < len(lesson.tasks):
+        title_text = f"Lesson: {lesson.title}"
+        if len(tasks_to_run) < len(lesson.tasks):
             title_text = f"{lesson.title} — {len(tasks_to_run)} of {len(lesson.tasks)} tasks"
-        desc_text = "Retrying commands you previously missed." if review_mode else lesson.description
+        desc_text = lesson.description
 
         console.print("\n")
         console.print(Panel(

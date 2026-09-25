@@ -121,11 +121,6 @@ class Session:
         self._progress = ProgressManager(filepath=progress_path)
         self._lost_first_try: set[str] = set()
 
-    @property
-    def progress(self) -> ProgressManager:
-        """Temporary bridge for callers not yet moved onto session queries."""
-        return self._progress
-
     def mark_practice_opened(self, lesson: Lesson) -> None:
         self._progress.mark_lesson_attempted(lesson.id)
 
@@ -225,7 +220,7 @@ class Session:
             if self._can_resume(lesson):
                 return ContinueTarget(action="lesson", lesson_id=lesson.id)
 
-        recommended = self._recommended_lesson(lessons)
+        recommended = self.recommended_lesson(lessons)
         if recommended is not None:
             return ContinueTarget(action="lesson", lesson_id=recommended.id)
 
@@ -240,10 +235,17 @@ class Session:
             and standing.passed < standing.total
         )
 
-    def _recommended_lesson(self, lessons: Sequence[Lesson]) -> Lesson | None:
+    def recommended_lesson(
+        self,
+        lessons: Sequence[Lesson],
+        *,
+        catalog: Sequence[Lesson] | None = None,
+    ) -> Lesson | None:
+        """Next Lesson among `lessons` whose prerequisites are completed in `catalog`."""
+        standing_source = list(catalog) if catalog is not None else list(lessons)
         completed_ids = {
             lesson.id
-            for lesson in lessons
+            for lesson in standing_source
             if self.lesson_standing(lesson).status == LESSON_STATUS_COMPLETED
         }
         for lesson in sort_lessons_by_curriculum(list(lessons)):

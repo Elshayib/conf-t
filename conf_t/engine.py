@@ -93,80 +93,6 @@ def sort_lessons_by_curriculum(lessons: List[Lesson]) -> List[Lesson]:
     )
 
 
-def get_missing_prerequisites(
-    lesson: Lesson, completed_lessons: List[str]
-) -> List[str]:
-    completed = set(completed_lessons)
-    return [prereq for prereq in lesson.prerequisites if prereq not in completed]
-
-
-def are_prerequisites_met(lesson: Lesson, completed_lessons: List[str]) -> bool:
-    return not get_missing_prerequisites(lesson, completed_lessons)
-
-
-def get_lesson_status(
-    lesson_id: str,
-    completed_lessons: List[str],
-    attempted_lessons: List[str],
-    failed_lesson_ids: List[str],
-) -> str:
-    if lesson_id in completed_lessons:
-        return LESSON_STATUS_COMPLETED
-    if lesson_id in attempted_lessons or lesson_id in failed_lesson_ids:
-        return LESSON_STATUS_IN_PROGRESS
-    return LESSON_STATUS_NOT_STARTED
-
-
-def get_recommended_lesson(
-    lessons: List[Lesson], completed_lessons: List[str]
-) -> Optional[Lesson]:
-    for lesson in sort_lessons_by_curriculum(lessons):
-        if lesson.id in completed_lessons:
-            continue
-        if are_prerequisites_met(lesson, completed_lessons):
-            return lesson
-    return None
-
-
-def get_continue_target(
-    lessons: List[Lesson],
-    completed_lessons: List[str],
-    attempted_lessons: List[str],
-    due_review_count: int,
-    lesson_has_resume_state_fn,
-    is_lesson_fully_passed_fn,
-) -> Optional[Dict[str, str]]:
-    """
-    Pick the best continue action for --continue / quick start.
-    Returns {"action": "daily_review"} or {"action": "lesson", "lesson_id": "..."}.
-    """
-    if due_review_count > 0:
-        return {"action": "daily_review"}
-
-    for lesson_id in reversed(attempted_lessons):
-        lesson = next((item for item in lessons if item.id == lesson_id), None)
-        if not lesson:
-            continue
-        if is_lesson_fully_passed_fn(lesson):
-            continue
-        if lesson_has_resume_state_fn(lesson):
-            return {"action": "lesson", "lesson_id": lesson.id}
-
-    recommended = get_recommended_lesson(lessons, completed_lessons)
-    if recommended:
-        return {"action": "lesson", "lesson_id": recommended.id}
-
-    if lessons:
-        first = sort_lessons_by_curriculum(lessons)[0]
-        return {"action": "lesson", "lesson_id": first.id}
-
-    return None
-
-
-def get_failed_lesson_ids(failed_tasks: List[Dict[str, str]]) -> List[str]:
-    return sorted({entry["lesson_id"] for entry in failed_tasks if "lesson_id" in entry})
-
-
 def parse_tags_csv(tags: Optional[str]) -> List[str]:
     if not tags:
         return []
@@ -212,7 +138,7 @@ class LessonLoader:
             self.lessons_dir = Path(lessons_dir)
 
     def load_all_lessons(self) -> List[Lesson]:
-        lessons = []
+        lessons: List[Lesson] = []
         if not self.lessons_dir.exists() or not self.lessons_dir.is_dir():
             return lessons
 
@@ -442,9 +368,6 @@ class ProgressManager:
         )
         return due_entries
 
-    def get_due_review_count(self) -> int:
-        return len(self.get_due_review_entries())
-
     def get_task_progress_entry(self, task_id: str) -> Optional[Dict[str, Any]]:
         return self.data.get("task_progress", {}).get(task_id)
 
@@ -461,25 +384,6 @@ class ProgressManager:
             "total": total,
             "incomplete": total - passed,
         }
-
-    def lesson_has_resume_state(self, lesson: Lesson) -> bool:
-        task_ids = [task.id for task in lesson.tasks]
-        summary = self.get_lesson_task_summary(lesson.id, task_ids)
-        if summary["total"] == 0:
-            return False
-        if summary["passed"] == summary["total"]:
-            return False
-        if lesson.id in self.data.get("attempted_lessons", []):
-            return True
-        return any(task_id in self.data.get("task_progress", {}) for task_id in task_ids)
-
-    def get_incomplete_tasks(self, tasks: List[Task]) -> List[Task]:
-        return [task for task in tasks if not self.is_task_passed(task.id)]
-
-    def is_lesson_fully_passed(self, lesson: Lesson) -> bool:
-        task_ids = [task.id for task in lesson.tasks]
-        summary = self.get_lesson_task_summary(lesson.id, task_ids)
-        return summary["total"] > 0 and summary["passed"] == summary["total"]
 
     def reset_lesson_progress(self, lesson_id: str, task_ids: List[str]) -> None:
         task_id_set = set(task_ids)

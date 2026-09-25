@@ -1,4 +1,4 @@
-"""Session-module seam tests for standing, Review queues, stats, submit, continue, resume (#17–#22)."""
+"""Session-module seam tests for standing, Review queues, stats, submit, continue, resume (#17–#23)."""
 
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
@@ -51,11 +51,12 @@ def _lesson(
     title: str | None = None,
     difficulty: str = "beginner",
     prerequisites: list[str] | None = None,
+    platform: str = "Linux",
 ) -> Lesson:
     return Lesson(
         id=lesson_id,
         title=title if title is not None else "Lesson One",
-        platform="Linux",
+        platform=platform,
         description="desc",
         tasks=tasks if tasks is not None else [_task(f"{lesson_id}__a"), _task(f"{lesson_id}__b")],
         difficulty=difficulty,
@@ -818,6 +819,40 @@ def test_continue_opens_recommended_when_nothing_unfinished(tmp_path: Path) -> N
 
     target = session.continue_target([advanced, basic])
     assert target == ContinueTarget(action="lesson", lesson_id="advanced")
+
+
+def test_recommended_within_platform_uses_full_catalog_for_prereqs(
+    tmp_path: Path,
+) -> None:
+    """Practice menu walks one Platform but prereqs may live on another."""
+    session = _session(tmp_path)
+    linux_basic = _lesson(
+        "linux_basic",
+        title="Linux Basic",
+        difficulty="beginner",
+        platform="Linux",
+    )
+    cisco_next = _lesson(
+        "cisco_next",
+        title="Cisco Next",
+        difficulty="beginner",
+        platform="Cisco",
+        prerequisites=["linux_basic"],
+    )
+    session.record_attempt(
+        linux_basic, linux_basic.tasks[0], correct=True, first_try=True, skipped=False
+    )
+    session.record_attempt(
+        linux_basic, linux_basic.tasks[1], correct=True, first_try=True, skipped=False
+    )
+
+    # Candidates are Cisco-only; completed standing comes from the full catalog.
+    assert session.recommended_lesson([cisco_next]) is None
+    recommended = session.recommended_lesson(
+        [cisco_next], catalog=[linux_basic, cisco_next]
+    )
+    assert recommended is not None
+    assert recommended.id == "cisco_next"
 
 
 def test_continue_recommended_skips_completed_and_unmet_prereqs(tmp_path: Path) -> None:

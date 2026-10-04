@@ -27,7 +27,7 @@ An ordered set of tasks on one topic, belonging to one platform.
 _Avoid_: chapter, lab, module
 
 **Task**:
-One command the learner is asked to produce, with a prompt and an accepted answer.
+One complete command the learner is asked to produce, with a prompt and an accepted answer; a complete shell compound command also counts. Each task supplies its own scenario so it can be answered independently in Practice or Review.
 _Avoid_: question, exercise, step
 
 **Hint**:

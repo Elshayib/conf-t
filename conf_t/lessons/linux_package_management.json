@@ -2,7 +2,7 @@
     "id": "linux_package_management",
     "title": "Linux Package Management (APT)",
     "platform": "Linux",
-    "description": "Install, update, search, and remove software packages on Debian/Ubuntu systems using apt and dpkg.",
+    "description": "Install, update, search, and remove packages on Ubuntu using apt, distinguishing read-only queries from administration with sudo.",
     "difficulty": "beginner",
     "tags": ["packages", "apt", "dpkg"],
     "prerequisites": ["linux_basic"],
@@ -10,75 +10,75 @@
     "tasks": [
         {
             "id": "linux_package_management__apt_update",
-            "prompt": "Refresh the local package index from configured repositories.",
+            "prompt": "On Ubuntu, apt is available and you are an ordinary account authorized to run it as root through sudo. Configured repositories are reachable. Use apt to refresh the local package index without upgrading installed packages.",
             "prefix": "user@ubuntu:~$",
-            "expected": "^sudo\\s+apt\\s+update$",
-            "aliases": ["apt update"],
-            "hint": "Use apt update: 'sudo apt update'",
-            "explanation": "'apt update' downloads the latest package lists from repositories without upgrading installed packages."
+            "expected": "^sudo\\s+(?:(?:-u\\s+root|--user(?:=|\\s+)root)\\s+)?(?:--\\s+)?apt\\s+(?:(?:-y|--yes|--assume-yes|-q|--quiet)\\s+)*update(?:\\s+(?:-y|--yes|--assume-yes|-q|--quiet))*$",
+            "aliases": ["sudo apt update"],
+            "hint": "Elevate the package-index update: sudo apt update",
+            "explanation": "apt update downloads repository package information used for searches and upgrades. It does not install upgrades. sudo supplies the privileges needed to update the system package index."
         },
         {
             "id": "linux_package_management__apt_upgrade",
-            "prompt": "Upgrade all installed packages to their latest available versions.",
+            "prompt": "On Ubuntu, apt is available and you are an ordinary account authorized to run it as root through sudo. The package index is current, packages are not held, and upgrades are available. Use apt to install available upgrades for installed packages without removing any installed package; new dependencies may be installed.",
             "prefix": "user@ubuntu:~$",
-            "expected": "^sudo\\s+apt\\s+upgrade$",
-            "aliases": ["apt upgrade"],
-            "hint": "Use apt upgrade: 'sudo apt upgrade'",
-            "explanation": "'apt upgrade' installs newer versions of currently installed packages, prompting before changes."
+            "expected": "^sudo\\s+(?:(?:-u\\s+root|--user(?:=|\\s+)root)\\s+)?(?:--\\s+)?apt\\s+(?:(?:-y|--yes|--assume-yes|-q|--quiet)\\s+)*upgrade(?:\\s+(?:-y|--yes|--assume-yes|-q|--quiet))*$",
+            "aliases": ["sudo apt upgrade"],
+            "hint": "Use the upgrade action with elevation: sudo apt upgrade",
+            "explanation": "apt upgrade installs upgrades and may add dependencies, but holds back an upgrade requiring package removal. full-upgrade can remove packages and does not fit this goal. sudo is required for system package changes; -y can answer confirmation prompts automatically."
         },
         {
             "id": "linux_package_management__apt_install",
-            "prompt": "Install the package 'htop' from the repositories.",
+            "prompt": "On Ubuntu, apt is available and you are an ordinary account authorized to run it as root through sudo. The current index contains htop, repositories are reachable, and htop is not installed. Use apt to install htop and any required dependencies.",
             "prefix": "user@ubuntu:~$",
-            "expected": "^sudo\\s+apt\\s+install\\s+htop$",
-            "aliases": ["apt install htop"],
-            "hint": "Use apt install: 'sudo apt install htop'",
-            "explanation": "'apt install' resolves dependencies and installs the specified package and any required libraries."
+            "expected": "^sudo\\s+(?:(?:-u\\s+root|--user(?:=|\\s+)root)\\s+)?(?:--\\s+)?apt\\s+(?:(?:-y|--yes|--assume-yes|-q|--quiet)\\s+)*install\\s+(?:(?:-y|--yes|--assume-yes|-q|--quiet)\\s+)*(?:htop|'htop'|\"htop\")(?:\\s+(?:-y|--yes|--assume-yes|-q|--quiet))*$",
+            "aliases": ["sudo apt install htop"],
+            "hint": "Elevate the install action: sudo apt install htop",
+            "explanation": "apt install installs the requested package and resolves its dependencies. It needs root privileges to modify system files. download alone would fetch a package without installing it; a simulated install would make no changes."
         },
         {
             "id": "linux_package_management__apt_remove",
-            "prompt": "Remove the package 'apache2' but keep its configuration files.",
+            "prompt": "On Ubuntu, apt is available and you are an ordinary account authorized to run it as root through sudo. apache2 is installed and can be removed without removing other packages. Use apt to uninstall apache2 while retaining its package-managed configuration files.",
             "prefix": "user@ubuntu:~$",
-            "expected": "^sudo\\s+apt\\s+remove\\s+apache2$",
-            "aliases": ["apt remove apache2"],
-            "hint": "Use apt remove: 'sudo apt remove apache2'",
-            "explanation": "'apt remove' uninstalls the package binaries but leaves configuration files in /etc for potential reinstall."
+            "expected": "^sudo\\s+(?:(?:-u\\s+root|--user(?:=|\\s+)root)\\s+)?(?:--\\s+)?apt\\s+(?:(?:-y|--yes|--assume-yes|-q|--quiet)\\s+)*remove\\s+(?:(?:-y|--yes|--assume-yes|-q|--quiet)\\s+)*(?:apache2|'apache2'|\"apache2\")(?:\\s+(?:-y|--yes|--assume-yes|-q|--quiet))*$",
+            "aliases": ["sudo apt remove apache2"],
+            "hint": "Use remove, rather than purge: sudo apt remove apache2",
+            "explanation": "apt remove uninstalls packaged files while retaining package-managed configuration for a possible reinstall. purge would remove that configuration too. The ordinary account needs sudo for this system change."
         },
         {
             "id": "linux_package_management__apt_purge",
-            "prompt": "Completely remove 'apache2' including all configuration files.",
+            "prompt": "On Ubuntu, apt is available and you are an ordinary account authorized to run it as root through sudo. apache2 is installed and can be removed without removing other packages. Use apt to uninstall apache2 and remove its package-managed configuration files.",
             "prefix": "user@ubuntu:~$",
-            "expected": "^sudo\\s+apt\\s+purge\\s+apache2$",
-            "aliases": ["apt purge apache2"],
-            "hint": "Use apt purge: 'sudo apt purge apache2'",
-            "explanation": "'apt purge' removes the package and deletes its configuration files from the system."
+            "expected": "^sudo\\s+(?:(?:-u\\s+root|--user(?:=|\\s+)root)\\s+)?(?:--\\s+)?apt\\s+(?:(?:-y|--yes|--assume-yes|-q|--quiet)\\s+)*purge\\s+(?:(?:-y|--yes|--assume-yes|-q|--quiet)\\s+)*(?:apache2|'apache2'|\"apache2\")(?:\\s+(?:-y|--yes|--assume-yes|-q|--quiet))*$",
+            "aliases": ["sudo apt purge apache2", "sudo apt remove --purge apache2", "sudo apt --purge remove apache2", "sudo apt remove apache2 --purge"],
+            "hint": "Use purge to remove packaged configuration too: sudo apt purge apache2",
+            "explanation": "apt purge removes the package and its package-managed configuration; apt remove --purge is equivalent. Purging does not promise to delete user data or configuration in home directories. sudo is required for this system change."
         },
         {
             "id": "linux_package_management__apt_search",
-            "prompt": "Search the package repository for packages matching 'nginx'.",
+            "prompt": "On Ubuntu, apt and a readable current package index are available. Use apt to search package names and descriptions for nginx, showing matching packages. No installation or index refresh is requested.",
             "prefix": "user@ubuntu:~$",
-            "expected": "^apt\\s+search\\s+nginx$",
-            "aliases": [],
-            "hint": "Use apt search: 'apt search nginx'",
-            "explanation": "'apt search' queries the local package index for packages whose names or descriptions match the keyword."
+            "expected": "^(?:sudo\\s+(?:(?:-u\\s+root|--user(?:=|\\s+)root)\\s+)?(?:--\\s+)?)?apt\\s+search\\s+(?:nginx|'nginx'|\"nginx\")$",
+            "aliases": ["apt search nginx"],
+            "hint": "Read the local package index with search: apt search nginx",
+            "explanation": "apt search searches the package information already downloaded by update. It performs a read-only query and needs no elevation. Restricting the search to names would omit description-only matches."
         },
         {
             "id": "linux_package_management__apt_show",
-            "prompt": "Display detailed information about the 'curl' package.",
+            "prompt": "On Ubuntu, apt and a readable current package index containing curl are available. Use apt to display detailed package metadata for curl, including its dependencies and description, without changing packages.",
             "prefix": "user@ubuntu:~$",
-            "expected": "^apt\\s+show\\s+curl$",
-            "aliases": [],
-            "hint": "Use apt show: 'apt show curl'",
-            "explanation": "'apt show' prints metadata including version, dependencies, description, and installed status."
+            "expected": "^(?:sudo\\s+(?:(?:-u\\s+root|--user(?:=|\\s+)root)\\s+)?(?:--\\s+)?)?apt\\s+show\\s+(?:curl|'curl'|\"curl\")$",
+            "aliases": ["apt show curl"],
+            "hint": "Use the show action: apt show curl",
+            "explanation": "apt show reads package metadata, including versions, dependencies, size, and description. This query does not install curl or require sudo."
         },
         {
             "id": "linux_package_management__apt_autoremove",
-            "prompt": "Remove packages that were automatically installed as dependencies but are no longer needed.",
+            "prompt": "On Ubuntu, apt is available and you are an ordinary account authorized to run it as root through sudo. Some automatically installed dependency packages are no longer needed; their proposed removal has been reviewed. Use apt to remove those unused packages while retaining package-managed configuration.",
             "prefix": "user@ubuntu:~$",
-            "expected": "^sudo\\s+apt\\s+autoremove$",
-            "aliases": ["apt autoremove"],
-            "hint": "Use apt autoremove: 'sudo apt autoremove'",
-            "explanation": "'apt autoremove' cleans up orphaned dependency packages, freeing disk space safely."
+            "expected": "^sudo\\s+(?:(?:-u\\s+root|--user(?:=|\\s+)root)\\s+)?(?:--\\s+)?apt\\s+(?:(?:-y|--yes|--assume-yes|-q|--quiet)\\s+)*autoremove(?:\\s+(?:-y|--yes|--assume-yes|-q|--quiet))*$",
+            "aliases": ["sudo apt autoremove"],
+            "hint": "Use the dependency cleanup action with elevation: sudo apt autoremove",
+            "explanation": "apt autoremove removes packages marked automatically installed that are no longer needed as dependencies. It does not purge their configuration by default. clean clears downloaded package archives instead and would leave the unused packages installed."
         }
     ]
 }

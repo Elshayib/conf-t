@@ -9,57 +9,57 @@
     "tasks": [
         {
             "id": "linux_basic__pwd",
-            "prompt": "Print the absolute path of the current working directory.",
+            "prompt": "Your Ubuntu Bash shell is in /home/user, with no symbolic links in that path. Use pwd to print the absolute path of the current working directory.",
             "prefix": "user@ubuntu:~$",
-            "expected": "^pwd$",
-            "aliases": [],
-            "hint": "Use the command: 'pwd'",
-            "explanation": "The 'pwd' (Print Working Directory) command returns the exact absolute path of the directory you are currently in."
+            "expected": "^pwd(?:\\s+-(?:L|P))?$",
+            "aliases": ["pwd"],
+            "hint": "Run pwd with no arguments: pwd",
+            "explanation": "pwd prints the current working directory. Bash accepts -L for the logical path or -P for the physical path; they agree in this scenario because the path has no symbolic links."
         },
         {
             "id": "linux_basic__ls_la",
-            "prompt": "List all files in the current directory, including hidden files (files starting with a dot) in a long listing format.",
+            "prompt": "In /home/user, you can read and search the current directory. Use GNU ls to list all its entries, including hidden names, . and .., in long format.",
             "prefix": "user@ubuntu:~$",
-            "expected": "^ls\\s+-(la|al|a\\s+-l|l\\s+-a)$",
-            "aliases": ["ls -al", "ls -la", "ls -l -a", "ls -a -l"],
-            "hint": "Use 'ls' with flags to show all (-a) and use long format (-l)",
-            "explanation": "The 'ls' command listing options can be combined. '-la' or '-al' shows permissions, ownership, sizes, and dot-hidden config files."
+            "expected": "^ls\\s+(?:-(?:la|al)|(?:-a|--all)\\s+(?:-l|--format=long)|(?:-l|--format=long)\\s+(?:-a|--all))(?:\\s+\\.)?$",
+            "aliases": ["ls -la", "ls -al", "ls -l -a", "ls -a -l"],
+            "hint": "Combine all entries (-a) and long format (-l): ls -la",
+            "explanation": "ls -a includes all directory entries, including names beginning with a dot. -l displays permissions, ownership, size, and timestamps. The flags can be combined or supplied separately."
         },
         {
             "id": "linux_basic__mkdir",
-            "prompt": "Create a new subdirectory named 'backups' in the current folder.",
+            "prompt": "You are in your writable /home/user directory. The name backups does not exist. Use GNU mkdir to create that subdirectory here.",
             "prefix": "user@ubuntu:~$",
-            "expected": "^mkdir\\s+backups$",
-            "aliases": [],
-            "hint": "Use the make directory command: 'mkdir backups'",
-            "explanation": "The 'mkdir' (Make Directory) command creates one or more new directories."
+            "expected": "^mkdir\\s+(?:(?:-p|--parents)\\s+)?(?:--\\s+)?(?:(?:\\./|/home/user/)?backups|'(?:\\./|/home/user/)?backups'|\"(?:\\./|/home/user/)?backups\")/?$",
+            "aliases": ["mkdir backups"],
+            "hint": "Give mkdir the directory name: mkdir backups",
+            "explanation": "mkdir creates the named directory under the current directory. You own and can write to /home/user, so elevation is unnecessary. -p is also valid here and tolerates existing parent directories."
         },
         {
             "id": "linux_basic__cd_var_log",
-            "prompt": "Change the active working directory to '/var/log'.",
+            "prompt": "Your Bash shell is in /home/user. /var/log exists, has no symbolic links in its path, and is searchable by your account. Use the cd builtin to change this shell to /var/log.",
             "prefix": "user@ubuntu:~$",
-            "expected": "^cd\\s+/var/log$",
-            "aliases": [],
-            "hint": "Use the change directory command: 'cd /var/log'",
-            "explanation": "The 'cd' command switches your session shell context to a different folder. '/var/log' is a common system log path on Linux."
+            "expected": "^cd\\s+(?:(?:-L|-P)\\s+)?(?:--\\s+)?(?:/var/log/?|'/var/log/?'|\"/var/log/?\")$",
+            "aliases": ["cd /var/log"],
+            "hint": "Use the absolute directory path: cd /var/log",
+            "explanation": "cd changes the current shell working directory. The leading slash makes /var/log absolute. A shell builtin needs to run in this shell; sudo is unnecessary for a directory you can search."
         },
         {
             "id": "linux_basic__cat_syslog",
-            "prompt": "Display the text contents of the file named 'syslog' onto the standard output screen.",
+            "prompt": "You are in /var/log on an Ubuntu host with a readable regular file /var/log/syslog. Use GNU cat to print its entire contents unchanged to standard output.",
             "prefix": "user@ubuntu:/var/log$",
-            "expected": "^(cat\\s+syslog|less\\s+syslog|more\\s+syslog)$",
-            "aliases": [],
-            "hint": "Use the concatenate command: 'cat syslog'",
-            "explanation": "The 'cat' (concatenate) command outputs a file's entire content to the terminal window. 'less' is also acceptable for paginated viewing."
+            "expected": "^cat\\s+(?:--\\s+)?(?:(?:\\./|/var/log/)?syslog|'(?:\\./|/var/log/)?syslog'|\"(?:\\./|/var/log/)?syslog\")$",
+            "aliases": ["cat syslog"],
+            "hint": "Supply the readable log file to cat: cat syslog",
+            "explanation": "cat writes the file contents to standard output without pagination. This scenario explicitly provides syslog because not every Ubuntu installation stores logs in that file."
         },
         {
             "id": "linux_basic__rm_rf_temp",
-            "prompt": "Remove the directory named 'temp' and all of its contents (recursively) without asking for confirmation (forcefully).",
+            "prompt": "In /home/user, temp is a disposable directory you own; you can delete all its contents and write to its parent. Use GNU rm to remove temp recursively without confirmation, even if a file is write-protected.",
             "prefix": "user@ubuntu:~$",
-            "expected": "^rm\\s+(-rf|-fr|-r\\s+-f|-f\\s+-r)\\s+temp$",
+            "expected": "^rm\\s+(?:-(?:rf|fr|Rf|fR)|(?:-r|-R|--recursive)\\s+(?:-f|--force)|(?:-f|--force)\\s+(?:-r|-R|--recursive))\\s+(?:--\\s+)?(?:(?:\\./|/home/user/)?temp/?|'(?:\\./|/home/user/)?temp/?'|\"(?:\\./|/home/user/)?temp/?\")$",
             "aliases": ["rm -rf temp", "rm -fr temp", "rm -r -f temp", "rm -f -r temp"],
-            "hint": "Use remove command with recursive (-r) and force (-f) flags: 'rm -rf temp'",
-            "explanation": "The 'rm -rf' command removes directories and files recursively (-r) and forcefully (-f) without prompts. Use with caution!"
+            "hint": "Use recursive and force options: rm -rf temp",
+            "explanation": "rm -r removes a directory and its contents; -f suppresses confirmation and ignores missing files. These options do not bypass filesystem permissions. This deletion is appropriate only because temp is explicitly disposable."
         }
     ]
 }

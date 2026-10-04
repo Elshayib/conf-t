@@ -10,75 +10,75 @@
     "tasks": [
         {
             "id": "linux_text_processing__grep_error",
-            "prompt": "Search the file 'app.log' for lines containing the word 'ERROR' (case-sensitive).",
+            "prompt": "In /home/user, app.log is a readable text file. Use GNU grep to print every line containing the literal substring ERROR, matching case exactly; ERROR may occur inside a longer word.",
             "prefix": "user@ubuntu:~$",
-            "expected": "^grep\\s+ERROR\\s+app\\.log$",
-            "aliases": [],
-            "hint": "Use grep with the pattern and file: 'grep ERROR app.log'",
-            "explanation": "'grep' searches file contents line by line and prints lines matching the given pattern."
+            "expected": "^grep\\s+(?:(?:-F|--fixed-strings|-E|--extended-regexp)\\s+)?(?:(?:-e|--regexp)\\s+|--regexp=)?(?:ERROR|'ERROR'|\"ERROR\")\\s+(?:--\\s+)?(?:(?:\\./|/home/user/)?app\\.log|'(?:\\./|/home/user/)?app\\.log'|\"(?:\\./|/home/user/)?app\\.log\")$",
+            "aliases": ["grep ERROR app.log"],
+            "hint": "Give grep the case-sensitive pattern and file: grep ERROR app.log",
+            "explanation": "grep prints lines matching its pattern. ERROR contains no regex metacharacters, so it also works with -F for literal matching. -i would include other case variants; -w would miss occurrences inside longer words."
         },
         {
             "id": "linux_text_processing__head_tail",
-            "prompt": "Display the first 10 lines and last 5 lines of 'server.log' in one command.",
+            "prompt": "In /home/user, server.log is readable and contains at least 15 lines. Submit one complete Bash command list using GNU head then GNU tail to print its first 10 lines followed by its last 5 lines.",
             "prefix": "user@ubuntu:~$",
-            "expected": "^head\\s+-n\\s+10\\s+server\\.log\\s+;\\s+tail\\s+-n\\s+5\\s+server\\.log$",
-            "aliases": ["head -10 server.log; tail -5 server.log"],
-            "hint": "Use head and tail: 'head -n 10 server.log; tail -n 5 server.log'",
-            "explanation": "'head' shows the beginning of a file and 'tail' shows the end. Both are essential for quick log inspection."
+            "expected": "^(?:head(?:\\s+(?:-n\\s*10|--lines(?:=|\\s+)10|-10))?\\s+(?:(?:\\./|/home/user/)?server\\.log|'(?:\\./|/home/user/)?server\\.log'|\"(?:\\./|/home/user/)?server\\.log\")\\s*;\\s*tail\\s+(?:-n\\s*5|--lines(?:=|\\s+)5|-5)\\s+(?:(?:\\./|/home/user/)?server\\.log|'(?:\\./|/home/user/)?server\\.log'|\"(?:\\./|/home/user/)?server\\.log\")|\\{\\s+head(?:\\s+(?:-n\\s*10|--lines(?:=|\\s+)10|-10))?\\s+(?:(?:\\./|/home/user/)?server\\.log|'(?:\\./|/home/user/)?server\\.log'|\"(?:\\./|/home/user/)?server\\.log\")\\s*;\\s*tail\\s+(?:-n\\s*5|--lines(?:=|\\s+)5|-5)\\s+(?:(?:\\./|/home/user/)?server\\.log|'(?:\\./|/home/user/)?server\\.log'|\"(?:\\./|/home/user/)?server\\.log\")\\s*;\\s*\\})$",
+            "aliases": ["head -n 10 server.log; tail -n 5 server.log", "head -10 server.log; tail -5 server.log"],
+            "hint": "Separate the two commands with a semicolon: head -n 10 server.log; tail -n 5 server.log",
+            "explanation": "head -n 10 prints the first ten lines; tail -n 5 prints the last five. A semicolon runs both on the original file and concatenates their output. A pipe would send only the head output to tail."
         },
         {
             "id": "linux_text_processing__sed_substitute",
-            "prompt": "Replace the first occurrence of 'localhost' with '127.0.0.1' on each line of 'hosts.txt' and print the result to stdout.",
+            "prompt": "In /home/user, hosts.txt is a readable text file; a line may contain localhost multiple times. Use GNU sed to print the file with only the first localhost occurrence on each line replaced by 127.0.0.1. Leave the file unchanged.",
             "prefix": "user@ubuntu:~$",
-            "expected": "^sed\\s+'s/localhost/127\\.0\\.0\\.1/'\\s+hosts\\.txt$",
-            "aliases": ["sed \"s/localhost/127.0.0.1/\" hosts.txt"],
-            "hint": "Use sed substitution syntax: 'sed 's/localhost/127.0.0.1/' hosts.txt'",
-            "explanation": "'sed' is a stream editor. The 's/old/new/' syntax performs a substitution on each line of input."
+            "expected": "^sed\\s+(?:(?:-e|--expression)\\s+|--expression=)?(?P<quote>['\"])s(?P<delimiter>[/#|:])localhost(?P=delimiter)127\\.0\\.0\\.1(?P=delimiter)1?(?P=quote)\\s+(?:(?:\\./|/home/user/)?hosts\\.txt|'(?:\\./|/home/user/)?hosts\\.txt'|\"(?:\\./|/home/user/)?hosts\\.txt\")$",
+            "aliases": ["sed 's/localhost/127.0.0.1/' hosts.txt", "sed \"s/localhost/127.0.0.1/\" hosts.txt"],
+            "hint": "Use a substitution without the global flag: sed 's/localhost/127.0.0.1/' hosts.txt",
+            "explanation": "sed substitutes the first match on each line by default and prints the processed text. A g flag would replace every match; -i would edit the file instead of leaving it unchanged."
         },
         {
             "id": "linux_text_processing__awk_print_column",
-            "prompt": "Print the third column (field) of each line in 'users.csv' using awk.",
+            "prompt": "In /home/user, the readable file users.csv contains comma-separated records with at least three fields, no header, no quoted fields, and no embedded commas. awk is available. Use awk to print only the third field of each record.",
             "prefix": "user@ubuntu:~$",
-            "expected": "^awk\\s+'\\{print\\s+\\$3\\}'\\s+users\\.csv$",
-            "aliases": ["awk \"{print $3}\" users.csv"],
-            "hint": "Use awk to print field 3: 'awk '{print $3}' users.csv'",
-            "explanation": "'awk' processes text by fields (columns). '$3' refers to the third whitespace-delimited field on each line."
+            "expected": "^awk\\s+(?:-F\\s*(?:,|','|\",\")|-v\\s+(?:FS=,|'FS=,'|\"FS=,\"))\\s+(?:'\\{\\s*print\\s+\\$3\\s*;?\\s*\\}'|\"\\{\\s*print\\s+\\\\\\$3\\s*;?\\s*\\}\")\\s+(?:(?:\\./|/home/user/)?users\\.csv|'(?:\\./|/home/user/)?users\\.csv'|\"(?:\\./|/home/user/)?users\\.csv\")$",
+            "aliases": ["awk -F, '{print $3}' users.csv"],
+            "hint": "Set the comma delimiter and protect the awk program from Bash: awk -F, '{print $3}' users.csv",
+            "explanation": "awk -F, splits these simple records on commas; $3 selects the third field. Single quotes pass $3 to awk unchanged. Inside double quotes, escape the dollar sign to prevent Bash from expanding its positional parameter first."
         },
         {
             "id": "linux_text_processing__cut_fields",
-            "prompt": "Extract the first and third colon-delimited fields from '/etc/passwd' using cut.",
+            "prompt": "On Ubuntu, /etc/passwd is readable and each record has colon-separated fields. Use GNU cut to print only fields 1 and 3, retaining the colon separator.",
             "prefix": "user@ubuntu:~$",
-            "expected": "^cut\\s+-d:+-f1,3\\s+/etc/passwd$",
-            "aliases": [],
-            "hint": "Use cut with delimiter (-d) and fields (-f): 'cut -d: -f1,3 /etc/passwd'",
-            "explanation": "'cut' extracts columns from text. '-d:' sets the delimiter and '-f1,3' selects fields 1 and 3."
+            "expected": "^cut\\s+(?:(?:-d\\s*|--delimiter(?:=|\\s+))(?::|':'|\":\")\\s+(?:-f\\s*|--fields(?:=|\\s+))(?:1,3|3,1|'1,3'|\"1,3\")|(?:-f\\s*|--fields(?:=|\\s+))(?:1,3|3,1|'1,3'|\"1,3\")\\s+(?:-d\\s*|--delimiter(?:=|\\s+))(?::|':'|\":\"))\\s+(?:/etc/passwd|\\'/etc/passwd\\'|\"/etc/passwd\")$",
+            "aliases": ["cut -d: -f1,3 /etc/passwd"],
+            "hint": "Use cut with separate delimiter and field options: cut -d: -f1,3 /etc/passwd",
+            "explanation": "cut -d: selects colon-separated fields; -f1,3 prints fields 1 and 3 in input order. The delimiter and field-selection options are separate arguments."
         },
         {
             "id": "linux_text_processing__sort_numeric",
-            "prompt": "Sort the file 'scores.txt' numerically in descending order.",
+            "prompt": "In /home/user, scores.txt is readable and contains one decimal number per line; LC_ALL=C. Use GNU sort to print the numbers in descending numeric order, keeping duplicate values and leaving the file unchanged.",
             "prefix": "user@ubuntu:~$",
-            "expected": "^sort\\s+-rn\\s+scores\\.txt$",
-            "aliases": ["sort -nr scores.txt"],
-            "hint": "Use sort with numeric (-n) and reverse (-r): 'sort -rn scores.txt'",
-            "explanation": "'sort -n' compares values numerically rather than alphabetically. '-r' reverses to descending order."
+            "expected": "^sort\\s+(?:-(?:rn|nr)|(?:-n|--numeric-sort)\\s+(?:-r|--reverse)|(?:-r|--reverse)\\s+(?:-n|--numeric-sort))\\s+(?:--\\s+)?(?:(?:\\./|/home/user/)?scores\\.txt|'(?:\\./|/home/user/)?scores\\.txt'|\"(?:\\./|/home/user/)?scores\\.txt\")$",
+            "aliases": ["sort -rn scores.txt", "sort -nr scores.txt"],
+            "hint": "Combine numeric and reverse ordering: sort -rn scores.txt",
+            "explanation": "sort -n compares numeric values rather than the spelling of each line. -r reverses the order. Sorting writes to standard output by default; without -u, duplicate values remain."
         },
         {
             "id": "linux_text_processing__uniq_count",
-            "prompt": "Count the occurrences of each unique line in 'access.log' (input must be sorted first; assume it is).",
+            "prompt": "In /home/user, access.log is readable text whose identical lines are already adjacent; differences in case matter. Use GNU uniq to print each distinct line once with its occurrence count, without changing the file.",
             "prefix": "user@ubuntu:~$",
-            "expected": "^uniq\\s+-c\\s+access\\.log$",
-            "aliases": [],
-            "hint": "Use uniq with count flag (-c): 'uniq -c access.log'",
-            "explanation": "'uniq -c' prefixes each unique line with the number of consecutive duplicate occurrences."
+            "expected": "^uniq\\s+(?:-c|--count)\\s+(?:(?:--\\s+)?(?:(?:\\./|/home/user/)?access\\.log|'(?:\\./|/home/user/)?access\\.log'|\"(?:\\./|/home/user/)?access\\.log\")|<\\s*(?:(?:\\./|/home/user/)?access\\.log|'(?:\\./|/home/user/)?access\\.log'|\"(?:\\./|/home/user/)?access\\.log\"))$",
+            "aliases": ["uniq -c access.log"],
+            "hint": "Ask uniq to prefix each output line with its count: uniq -c access.log",
+            "explanation": "uniq -c collapses adjacent equal lines and prefixes each with their count. This counts every occurrence here because the input already groups identical lines together. -i would wrongly merge case variants."
         },
         {
             "id": "linux_text_processing__wc_lines",
-            "prompt": "Count the number of lines in the file 'document.txt'.",
+            "prompt": "In /home/user, document.txt is readable text and every line ends with a newline. Use GNU wc to report only the line count (the filename may accompany it), without modifying the file.",
             "prefix": "user@ubuntu:~$",
-            "expected": "^wc\\s+-l\\s+document\\.txt$",
-            "aliases": [],
-            "hint": "Use wc with lines flag (-l): 'wc -l document.txt'",
-            "explanation": "'wc -l' counts newline characters, giving the total line count of a file."
+            "expected": "^wc\\s+(?:-l|--lines)\\s+(?:(?:--\\s+)?(?:(?:\\./|/home/user/)?document\\.txt|'(?:\\./|/home/user/)?document\\.txt'|\"(?:\\./|/home/user/)?document\\.txt\")|<\\s*(?:(?:\\./|/home/user/)?document\\.txt|'(?:\\./|/home/user/)?document\\.txt'|\"(?:\\./|/home/user/)?document\\.txt\"))$",
+            "aliases": ["wc -l document.txt"],
+            "hint": "Select the line-count option: wc -l document.txt",
+            "explanation": "wc -l counts newline characters. Since every line here is newline-terminated, that equals the line count. Passing a filename prints the count and name; redirecting the file to stdin prints only the count."
         }
     ]
 }

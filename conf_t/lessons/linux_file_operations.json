@@ -10,75 +10,75 @@
     "tasks": [
         {
             "id": "linux_file_operations__cp_file",
-            "prompt": "Copy the file 'report.txt' to the directory '/home/user/backups/' (preserve the filename).",
+            "prompt": "In your writable /home/user directory, report.txt is a readable regular file. You own the existing writable directory /home/user/backups, and backups/report.txt does not exist. Use GNU cp to copy report.txt there without changing its filename or moving the original.",
             "prefix": "user@ubuntu:~$",
-            "expected": "^cp\\s+report\\.txt\\s+/home/user/backups/$",
-            "aliases": [],
-            "hint": "Use the copy command: 'cp report.txt /home/user/backups/'",
-            "explanation": "The 'cp' command copies files or directories. The destination path determines where the copy is placed."
+            "expected": "^cp\\s+(?:(?:--\\s+)?(?:(?:\\./|/home/user/)?report\\.txt|'(?:\\./|/home/user/)?report\\.txt'|\"(?:\\./|/home/user/)?report\\.txt\")\\s+(?:(?:/home/user/backups/?|'/home/user/backups/?'|\"/home/user/backups/?\")|(?:/home/user/backups/report\\.txt|'/home/user/backups/report\\.txt'|\"/home/user/backups/report\\.txt\"))|(?:-t\\s+|--target-directory(?:=|\\s+))(?:/home/user/backups/?|'/home/user/backups/?'|\"/home/user/backups/?\")\\s+(?:(?:\\./|/home/user/)?report\\.txt|'(?:\\./|/home/user/)?report\\.txt'|\"(?:\\./|/home/user/)?report\\.txt\"))$",
+            "aliases": ["cp report.txt /home/user/backups/"],
+            "hint": "Pass cp the source file and existing destination directory: cp report.txt /home/user/backups/",
+            "explanation": "cp reads the source and creates a separate copy at the destination. When the destination is an existing directory, it retains the source basename. Both locations are accessible to you, so sudo is unnecessary."
         },
         {
             "id": "linux_file_operations__mv_rename",
-            "prompt": "Rename the file 'draft.txt' to 'final.txt' in the current directory.",
+            "prompt": "In your writable /home/user directory, draft.txt is a regular file you own and final.txt does not exist. Use GNU mv to rename draft.txt to final.txt here.",
             "prefix": "user@ubuntu:~$",
-            "expected": "^mv\\s+draft\\.txt\\s+final\\.txt$",
-            "aliases": [],
-            "hint": "Use the move command: 'mv draft.txt final.txt'",
-            "explanation": "When 'mv' is used within the same directory, it renames the file rather than relocating it."
+            "expected": "^mv\\s+(?:(?:-T|--no-target-directory)\\s+)?(?:--\\s+)?(?:(?:\\./|/home/user/)?draft\\.txt|'(?:\\./|/home/user/)?draft\\.txt'|\"(?:\\./|/home/user/)?draft\\.txt\")\\s+(?:(?:\\./|/home/user/)?final\\.txt|'(?:\\./|/home/user/)?final\\.txt'|\"(?:\\./|/home/user/)?final\\.txt\")$",
+            "aliases": ["mv draft.txt final.txt"],
+            "hint": "Give mv the current name followed by the new name: mv draft.txt final.txt",
+            "explanation": "mv changes the name at the destination. Since both paths are in the same directory, this is a rename. Unlike cp, it leaves no separate draft.txt copy."
         },
         {
             "id": "linux_file_operations__touch_file",
-            "prompt": "Create an empty file named 'notes.txt' (or update its timestamp if it already exists).",
+            "prompt": "In your writable /home/user directory, notes.txt may be absent or may be a regular file you own. Use GNU touch to create an empty file if absent; otherwise update both its access and modification timestamps to the current time without changing its contents.",
             "prefix": "user@ubuntu:~$",
-            "expected": "^touch\\s+notes\\.txt$",
-            "aliases": [],
-            "hint": "Use the touch command: 'touch notes.txt'",
-            "explanation": "The 'touch' command creates a zero-byte file if it does not exist, or updates the modification time if it does."
+            "expected": "^touch\\s+(?:(?:-am|-ma|-a\\s+-m|-m\\s+-a)\\s+)?(?:--\\s+)?(?:(?:\\./|/home/user/)?notes\\.txt|'(?:\\./|/home/user/)?notes\\.txt'|\"(?:\\./|/home/user/)?notes\\.txt\")$",
+            "aliases": ["touch notes.txt"],
+            "hint": "Use touch with no timestamp-selection flags: touch notes.txt",
+            "explanation": "touch creates an empty file if necessary and updates access and modification times by default. It does not truncate existing contents. -c would prevent creation; -a or -m alone would update only one timestamp."
         },
         {
             "id": "linux_file_operations__ln_symlink",
-            "prompt": "Create a symbolic link named 'config_link' pointing to '/etc/nginx/nginx.conf'.",
+            "prompt": "You are in your writable /home/user directory and config_link does not exist. /etc/nginx/nginx.conf is an existing regular file. Use GNU ln to create a symbolic link named config_link here that points to that absolute path.",
             "prefix": "user@ubuntu:~$",
-            "expected": "^ln\\s+-s\\s+/etc/nginx/nginx\\.conf\\s+config_link$",
+            "expected": "^ln\\s+(?:-s|--symbolic)\\s+(?:--\\s+)?(?:/etc/nginx/nginx\\.conf|'/etc/nginx/nginx\\.conf'|\"/etc/nginx/nginx\\.conf\")\\s+(?:(?:\\./|/home/user/)?config_link|'(?:\\./|/home/user/)?config_link'|\"(?:\\./|/home/user/)?config_link\")$",
             "aliases": ["ln -s /etc/nginx/nginx.conf config_link"],
-            "hint": "Use ln with the symbolic flag (-s): 'ln -s /etc/nginx/nginx.conf config_link'",
-            "explanation": "A symbolic link (-s) is a pointer to another file path. It can reference files on different filesystems."
+            "hint": "Put the target before the new link name: ln -s /etc/nginx/nginx.conf config_link",
+            "explanation": "ln -s creates a symbolic link whose contents identify the target path. The new link is created in your writable directory; creating it does not change nginx.conf and does not need sudo. Without -s, ln would attempt a hard link."
         },
         {
             "id": "linux_file_operations__find_name",
-            "prompt": "Search the '/var' directory tree for files named exactly 'error.log'.",
+            "prompt": "On this host, you can read and search the entire /var directory tree. Use GNU find to print the paths of regular files named exactly error.log, matching case; exclude directories with that name.",
             "prefix": "user@ubuntu:~$",
-            "expected": "^find\\s+/var\\s+-name\\s+error\\.log$",
-            "aliases": ["find /var -name 'error.log'"],
-            "hint": "Use find with -name: 'find /var -name error.log'",
-            "explanation": "The 'find' command recursively searches directories. '-name' matches filenames using shell glob patterns."
+            "expected": "^find\\s+(?:/var/?|'/var/?'|\"/var/?\")\\s+(?:-type\\s+f\\s+-name\\s+(?:error\\.log|'error\\.log'|\"error\\.log\")|-name\\s+(?:error\\.log|'error\\.log'|\"error\\.log\")\\s+-type\\s+f)(?:\\s+-print)?$",
+            "aliases": ["find /var -type f -name 'error.log'"],
+            "hint": "Combine the regular-file and exact-name tests: find /var -type f -name 'error.log'",
+            "explanation": "find walks the directory tree. -type f limits matches to regular files; -name checks the basename with case-sensitive shell-pattern matching. The exact error.log pattern contains no wildcard. Matches are printed by default."
         },
         {
             "id": "linux_file_operations__tar_create",
-            "prompt": "Create a gzip-compressed tar archive named 'project.tar.gz' containing the 'project' directory.",
+            "prompt": "In your writable /home/user directory, you own and can read/search project and all its contents. GNU tar and gzip are available; project.tar.gz does not exist. Use tar to create that gzip-compressed archive containing the project directory and its contents, leaving the originals in place.",
             "prefix": "user@ubuntu:~$",
-            "expected": "^tar\\s+-czf\\s+project\\.tar\\.gz\\s+project$",
-            "aliases": [],
-            "hint": "Use tar with create, gzip, and file flags: 'tar -czf project.tar.gz project'",
-            "explanation": "'tar -c' creates an archive, '-z' compresses with gzip, and '-f' specifies the output filename."
+            "expected": "^tar\\s+(?:(?:-?(?:czf|zcf)|-caf|-c\\s+-z\\s+-f|-z\\s+-c\\s+-f)\\s+(?:(?:\\./|/home/user/)?project\\.tar\\.gz|'(?:\\./|/home/user/)?project\\.tar\\.gz'|\"(?:\\./|/home/user/)?project\\.tar\\.gz\")|(?:--create\\s+--gzip|--gzip\\s+--create)\\s+--file(?:=|\\s+)(?:(?:\\./|/home/user/)?project\\.tar\\.gz|'(?:\\./|/home/user/)?project\\.tar\\.gz'|\"(?:\\./|/home/user/)?project\\.tar\\.gz\"))\\s+(?:(?:\\./|/home/user/)?project|'(?:\\./|/home/user/)?project'|\"(?:\\./|/home/user/)?project\")/?$",
+            "aliases": ["tar -czf project.tar.gz project", "tar czf project.tar.gz project", "tar --create --gzip --file=project.tar.gz project"],
+            "hint": "Use create, gzip, and archive-file options: tar -czf project.tar.gz project",
+            "explanation": "tar -c creates an archive, -z compresses it with gzip, and -f names the archive file. The project directory remains intact. Merely choosing a .gz filename without compression does not gzip an archive; -a is also valid here because it selects compression from the .gz suffix."
         },
         {
             "id": "linux_file_operations__gzip_file",
-            "prompt": "Compress the file 'data.csv' using gzip (produces 'data.csv.gz').",
+            "prompt": "In your writable /home/user directory, data.csv is a readable regular file you own, with one hard link; data.csv.gz does not exist. GNU gzip is available. Compress data.csv in place into data.csv.gz, removing the uncompressed original after success.",
             "prefix": "user@ubuntu:~$",
-            "expected": "^gzip\\s+data\\.csv$",
-            "aliases": [],
-            "hint": "Use the gzip command: 'gzip data.csv'",
-            "explanation": "'gzip' compresses a file in place, replacing the original with a .gz version and removing the uncompressed file."
+            "expected": "^gzip\\s+(?:(?:-[1-9]|-v|-q|-f|--fast|--best|--verbose|--quiet|--force)\\s+)*(?:--\\s+)?(?:(?:\\./|/home/user/)?data\\.csv|'(?:\\./|/home/user/)?data\\.csv'|\"(?:\\./|/home/user/)?data\\.csv\")$",
+            "aliases": ["gzip data.csv"],
+            "hint": "gzip replaces the named input file by default: gzip data.csv",
+            "explanation": "gzip normally replaces a regular input file with its compressed .gz form after successful compression. -k keeps the original, contrary to this goal; -c writes compressed bytes to stdout instead of creating data.csv.gz. Compression-level options such as -9 remain valid."
         },
         {
             "id": "linux_file_operations__rsync_copy",
-            "prompt": "Synchronize the local directory 'src/' to 'dest/' recursively, preserving permissions and timestamps.",
+            "prompt": "In /home/user, rsync is installed and src/ and dest/ are existing directories you own. All src contents are readable regular files, directories, or symlinks you own; you can preserve their groups and write to dest. Use rsync in archive mode to copy the contents of src into dest, preserving attributes and symlinks. Keep destination-only files.",
             "prefix": "user@ubuntu:~$",
-            "expected": "^rsync\\s+-a\\s+src/\\s+dest/$",
-            "aliases": ["rsync -a src/ dest/"],
-            "hint": "Use rsync with archive mode (-a): 'rsync -a src/ dest/'",
-            "explanation": "'rsync -a' enables archive mode, which preserves permissions, timestamps, symlinks, and copies recursively."
+            "expected": "^rsync\\s+(?:-a|-av|-va|--archive|-rltpgoD)\\s+(?:--\\s+)?(?:(?:\\./|/home/user/)?src/|'(?:\\./|/home/user/)?src/'|\"(?:\\./|/home/user/)?src/\")\\s+(?:(?:\\./|/home/user/)?dest|'(?:\\./|/home/user/)?dest'|\"(?:\\./|/home/user/)?dest\")/?$",
+            "aliases": ["rsync -a src/ dest/", "rsync --archive src/ dest/"],
+            "hint": "Use archive mode and a trailing slash on the source: rsync -a src/ dest/",
+            "explanation": "rsync -a enables recursive copying with archive attributes, including permissions, timestamps, and symlinks. The source trailing slash copies its contents directly into dest rather than creating dest/src. Archive mode does not delete destination-only files; --delete would change that behavior."
         }
     ]
 }

@@ -5,6 +5,23 @@ All notable changes to Conf T are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Added
+
+- Three beginner Git tasks: set a repository-local name and email, then append an ignore pattern before staging files.
+- Repository workflow docs for GitHub issues, triage labels, and domain language in `AGENTS.md`, `CONTEXT.md`, and `docs/agents/`.
+
+### Changed
+
+- Repaired prompts, accepted commands, aliases, and explanations across the Git lessons so the path can be assigned to learners in Practice and reused in Review.
+- Practice and Review now share command handling through `session.py`, including hints, skips, attempts, explanations, and first-try results.
+- Lesson standing, due Review, the failed queue, stats, continue, resume, start-over, and prerequisite queries now use the session interface. The CLI no longer reads progress file keys to answer them.
+- Removed the superseded progress helpers and duplicate Review command handling, with session tests covering the shared behavior.
+- Updated the README architecture and contributor guidance to describe the session interface and the Hint contract.
+
+---
+
 ## [0.4.0] - 2026-07-04
 
 ### Added

@@ -81,8 +81,10 @@ Before opening a PR with new lessons, verify:
 
 - Follow **PEP 8** for all Python code.
 - Use **type hints** for all function signatures.
-- **No UI code** (`print`, `input`, `questionary`, `rich`) in `engine.py` — it must stay pure.
-- All data models must implement `to_dict()` and `from_dict()` methods.
+- Keep terminal rendering and prompts in `cli.py`; `session.py` and `engine.py` stay UI-agnostic.
+- Use `Session` for submitted commands and Learner progress queries in both Practice and Review. Keep progress file keys and `ProgressManager` access inside the session and storage implementation.
+- Lesson and progress records use `to_dict()` and `from_dict()` for serialization. Session query and turn results are value objects returned directly to callers.
+- Test session behavior through its public interface with a temporary progress file. Keep lesson command validation and command-line parsing checks at their own interfaces.
 
 ---
 

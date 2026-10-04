@@ -82,6 +82,7 @@ You will be greeted with an interactive menu:
 
 ? Select an option:
   › ★ Daily Review (3 due)     ← shown when tasks are ready
+    ↩ Continue where I left off
     1. Practice a Lesson
     2. Review All Failed Commands
     3. View Progress & Stats
@@ -94,7 +95,9 @@ You will be greeted with an interactive menu:
 
 ![Conf T curriculum browser](docs/screenshots/curriculum-browser.svg)
 
-When practicing a lesson, the curriculum browser groups lessons by difficulty, shows your progress (✓ ◐ ○) and **passed/total · %** (e.g. `7/12 · 58%`), highlights a **recommended next** lesson, and lets you **filter by topic tags**. Prerequisites warn softly before starting. Re-entering a lesson lets you **resume**, **start over**, or **pick a task** to continue from.
+When practicing a lesson, the curriculum browser groups lessons by difficulty, shows your progress (✓ ◐ ○) and **passed/total · %** (e.g. `7/12 · 58%`), highlights a **recommended next** lesson, and lets you **filter by topic tags**. Prerequisites warn softly before starting. Re-entering a lesson lets you **resume** the tasks that still need a first-try pass, **start over**, or **pick a task** to continue from. A lesson is completed when every task has a first-try pass, whether earned in Practice or Review.
+
+**Continue where I left off** opens due Review first, then the most recently attempted unfinished lesson, then the recommended next lesson. If every lesson is completed, it opens the first lesson in curriculum order.
 
 **Spaced repetition:** failed commands resurface on a schedule (due now → 1 day → 3 days → 7 days). When tasks are due, **Daily Review** appears at the top of the main menu.
 
@@ -119,7 +122,9 @@ During a practice session:
 |---|---|
 | `hint` | Show a hint without using an attempt |
 | `skip` | Reveal the answer and move on |
-| `exit` / `quit` | Confirm and exit the session |
+| `exit` / `quit` | Confirm and exit the session, unless the word is an accepted answer for the current task |
+
+Practice and Review use the same answer handling. Hints and blank lines do not use an attempt. A correct first attempt passes the task; a miss, skip, or correct answer after a miss keeps it in Review.
 
 ---
 
@@ -202,13 +207,17 @@ Create a `.json` file in `conf_t/lessons/` using this schema:
 ```
 conf_t/
 ├── main.py        # Entry point — bootstraps the app
+├── parser.py      # Command-line flags and action detection
 ├── cli.py         # All UI/terminal rendering and menus
-├── engine.py      # Business logic (pure Python, no UI)
-├── models.py      # Data classes: Task, Lesson, SessionStats
+├── session.py     # Shared Task turns and Learner progress queries
+├── engine.py      # Answer validation, lesson loading, curriculum helpers, progress storage
+├── models.py      # Task, Lesson, TaskProgress, and SessionStats data classes
 └── lessons/       # JSON lesson files (one per lesson)
 ```
 
-> **Design principle:** `engine.py` is completely UI-agnostic — making it trivial to expose the engine via a REST API (FastAPI) or port it to a mobile/web frontend in the future.
+`cli.py` calls `Session` for both Practice and Review. The session handles submitted commands and answers questions about lesson standing, due Review, the failed queue, stats, resume, prerequisites, and where to continue. It keeps the progress file's structure behind that interface, using `ProgressManager` in `engine.py` for local storage and migration.
+
+`session.py` and `engine.py` contain no terminal UI. Tests use the same session interface with a temporary progress file; command-line parsing and lesson validation have their own checks.
 
 ---
 

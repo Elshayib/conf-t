@@ -10,111 +10,111 @@
     "tasks": [
         {
             "id": "linux_shell_scripting__shebang_line",
-            "prompt": "Write the shebang line that should be the first line of a Bash script.",
+            "prompt": "In Ubuntu Bash, you own the writable file deploy.sh in your home directory. Use printf to replace its contents with a single Bash shebang line followed by a newline. /bin/bash exists; /usr/bin/env can also find bash on PATH. Quote the shebang literally.",
             "prefix": "user@ubuntu:~$",
-            "expected": "^#!/bin/bash$",
-            "aliases": ["#!/usr/bin/env bash"],
-            "hint": "The shebang tells the OS which interpreter to use: '#!/bin/bash'",
-            "explanation": "The shebang (#!/) on line 1 instructs the kernel to execute the script with /bin/bash."
+            "expected": "^printf\\s+(['\"])%s\\\\n\\1\\s+'#!/(bin/bash|usr/bin/env bash)'\\s*>\\s*deploy\\.sh$",
+            "aliases": ["printf '%s\\n' '#!/bin/bash' > deploy.sh", "printf '#!/bin/bash\\n' > deploy.sh", "printf '#!/usr/bin/env bash\\n' > deploy.sh"],
+            "hint": "Use printf to write the line: printf '%s\\n' '#!/bin/bash' > deploy.sh",
+            "explanation": "printf writes the literal shebang and a newline; > replaces the file's contents, so the shebang is its first and only line. On direct execution, #!/bin/bash selects that interpreter; #!/usr/bin/env bash locates Bash through PATH. You own the file, so no sudo is needed."
         },
         {
             "id": "linux_shell_scripting__chmod_executable",
-            "prompt": "Make the script 'deploy.sh' executable by the owner.",
+            "prompt": "In your Ubuntu home directory, you own the regular file deploy.sh with standard permissions and no extended ACL. Use chmod with symbolic notation to add execute permission only for its owner, leaving group, others and every other bit unchanged.",
             "prefix": "user@ubuntu:~$",
-            "expected": "^chmod\\s+\\+x\\s+deploy\\.sh$",
+            "expected": "^chmod\\s+u\\+x\\s+deploy\\.sh$",
             "aliases": ["chmod u+x deploy.sh"],
-            "hint": "Use chmod add execute: 'chmod +x deploy.sh'",
-            "explanation": "'chmod +x' adds execute permission so the script can be run directly with ./deploy.sh"
+            "hint": "Use 'chmod u+x deploy.sh'.",
+            "explanation": "u+x adds only the owner's execute bit. An unqualified +x can affect group and others according to umask, so it does not express this owner-only change. You own the file and do not need sudo."
         },
         {
             "id": "linux_shell_scripting__run_script",
-            "prompt": "Execute the script 'deploy.sh' in the current directory.",
+            "prompt": "In Ubuntu Bash, you are in your home directory, which is absent from PATH. You own the readable executable script deploy.sh there, with a valid Bash shebang, on a filesystem that allows execution. Run it directly using the explicit ./ path.",
             "prefix": "user@ubuntu:~$",
             "expected": "^\\./deploy\\.sh$",
-            "aliases": [],
+            "aliases": ["./deploy.sh"],
             "hint": "Run with relative path: './deploy.sh'",
-            "explanation": "The './' prefix is required to execute a script in the current directory, which is not in PATH by default."
+            "explanation": "./deploy.sh names the file directly instead of searching PATH. Direct execution needs its execute permission and uses the interpreter named by its shebang."
         },
         {
             "id": "linux_shell_scripting__bash_script",
-            "prompt": "Run 'deploy.sh' explicitly using the bash interpreter (without execute permission).",
+            "prompt": "On Ubuntu, you own the readable Bash script deploy.sh in your current home directory, but it has no execute permission. Use the bash interpreter explicitly to run this file.",
             "prefix": "user@ubuntu:~$",
-            "expected": "^bash\\s+deploy\\.sh$",
-            "aliases": [],
+            "expected": "^bash\\s+(['\"]?)(\\./)?deploy\\.sh\\1$",
+            "aliases": ["bash deploy.sh"],
             "hint": "Invoke bash directly: 'bash deploy.sh'",
-            "explanation": "Running 'bash script.sh' executes the script without needing the executable bit set."
+            "explanation": "bash reads and executes the script as input, so the file needs read permission but not the execute bit. The named Bash interpreter is used regardless of a shebang; sh may select a different shell."
         },
         {
             "id": "linux_shell_scripting__variable_assign",
-            "prompt": "Assign the string 'production' to the shell variable named 'ENV' (no spaces around =).",
+            "prompt": "In your current Ubuntu Bash shell, ENV is a writable shell variable. Assign the literal string production to ENV using a standalone assignment, without running another command.",
             "prefix": "user@ubuntu:~$",
-            "expected": "^ENV=production$",
-            "aliases": [],
+            "expected": "^ENV=(production|'production'|\"production\")$",
+            "aliases": ["ENV=production"],
             "hint": "Assign without spaces: 'ENV=production'",
-            "explanation": "Bash variable assignment must have no spaces around '='. The value is accessed later as $ENV."
+            "explanation": "A standalone assignment updates ENV in the current shell. There must be no spaces around =; optional quotes preserve this literal value. The assignment alone does not newly export the variable to child processes."
         },
         {
             "id": "linux_shell_scripting__echo_variable",
-            "prompt": "Print the value of the variable 'HOSTNAME' to the terminal.",
+            "prompt": "In your Ubuntu Bash shell, HOSTNAME has been overridden with the label 'server  east' (two spaces). Use echo with a double-quoted variable expansion to print its entire value followed by a newline, preserving those spaces.",
             "prefix": "user@ubuntu:~$",
-            "expected": "^echo\\s+\\$HOSTNAME$",
-            "aliases": ["echo ${HOSTNAME}"],
-            "hint": "Use echo with variable: 'echo $HOSTNAME'",
-            "explanation": "'echo $VAR' expands the variable and prints its current value to stdout."
+            "expected": "^echo\\s+\"\\$(HOSTNAME|\\{HOSTNAME\\})\"$",
+            "aliases": ["echo \"$HOSTNAME\""],
+            "hint": "Use echo \"$HOSTNAME\".",
+            "explanation": "Double quotes allow variable expansion while preventing word splitting and pathname expansion. echo receives the whole label as one argument and prints it with a newline. Unquoted expansion would split the label and lose repeated spaces; single quotes would print $HOSTNAME literally."
         },
         {
             "id": "linux_shell_scripting__if_test",
-            "prompt": "Write a one-line test: exit 0 if file 'config.yml' exists, else exit 1 (using test builtin).",
+            "prompt": "In Ubuntu Bash, check config.yml in your current directory with the test builtin (or its [ spelling). Return status 0 if the path resolves to an existing regular file and status 1 otherwise, without exiting the shell.",
             "prefix": "user@ubuntu:~$",
-            "expected": "^test\\s+-f\\s+config\\.yml$",
-            "aliases": ["[ -f config.yml ]"],
+            "expected": "^(?:test\\s+-f\\s+(['\"]?)config\\.yml\\1|\\[\\s+-f\\s+(['\"]?)config\\.yml\\2\\s+\\])$",
+            "aliases": ["test -f config.yml", "[ -f config.yml ]"],
             "hint": "Use test file exists: 'test -f config.yml'",
-            "explanation": "'test -f file' returns exit code 0 if the file exists and is a regular file, 1 otherwise."
+            "explanation": "test -f returns success for a regular file, following a symbolic link if present, and failure otherwise. It returns a status without exiting the shell or printing a result. [ is an equivalent builtin spelling that requires a separate closing ] argument."
         },
         {
             "id": "linux_shell_scripting__for_loop",
-            "prompt": "Write a for loop header that iterates over files '*.log' (one line, as you'd type in a script).",
+            "prompt": "In Ubuntu Bash, your current directory has at least one non-hidden filename ending in .log, with no newlines in filenames; some names contain spaces. Write a complete one-line for loop using variable file and the *.log glob, printing each matching filename on its own line with printf.",
             "prefix": "user@ubuntu:~$",
-            "expected": "^for\\s+file\\s+in\\s+\\*\\.log;\\s+do$",
-            "aliases": ["for file in *.log; do"],
-            "hint": "Use for...in syntax: 'for file in *.log; do'",
-            "explanation": "'for var in list; do' loops over each item. '*.log' expands to all matching filenames."
+            "expected": "^for\\s+file\\s+in\\s+\\*\\.log\\s*;\\s*do\\s+printf\\s+(['\"])%s\\\\n\\1\\s+\"\\$(file|\\{file\\})\"\\s*;\\s*done$",
+            "aliases": ["for file in *.log; do printf '%s\\n' \"$file\"; done"],
+            "hint": "Complete the body and close the loop: for file in *.log; do printf '%s\\n' \"$file\"; done",
+            "explanation": "The unquoted *.log glob supplies filenames to the loop. Quoting \"$file\" passes each whole filename to printf, preserving spaces. The fixed %s format prints names literally, and done closes the compound command."
         },
         {
             "id": "linux_shell_scripting__while_read",
-            "prompt": "Write a while loop header that reads 'app.log' line by line into variable 'line'.",
+            "prompt": "In Ubuntu Bash, app.log is a readable text file in your current directory; every line ends with a newline and contains no NUL bytes. Write a complete one-line while loop that reads it into variable line and prints each line with printf, preserving blank lines, leading/trailing spaces and backslashes.",
             "prefix": "user@ubuntu:~$",
-            "expected": "^while\\s+read\\s+line;\\s+do\\s+<\\s+app\\.log$",
-            "aliases": ["while read line; do < app.log"],
-            "hint": "Use while read with input redirect: 'while read line; do < app.log'",
-            "explanation": "'while read line' reads stdin line by line. Redirecting app.log feeds the file as input."
+            "expected": "^while\\s+IFS=(?:''|\"\")?\\s+read\\s+-r\\s+line\\s*;\\s*do\\s+printf\\s+(['\"])%s\\\\n\\1\\s+\"\\$(line|\\{line\\})\"\\s*;\\s*done\\s*<\\s*app\\.log$",
+            "aliases": ["while IFS= read -r line; do printf '%s\\n' \"$line\"; done < app.log"],
+            "hint": "Redirect after done: while IFS= read -r line; do printf '%s\\n' \"$line\"; done < app.log",
+            "explanation": "IFS= prevents read from trimming spaces and -r keeps backslashes literal. Quoting \"$line\" preserves each value, including empty lines, for printf. < app.log after done feeds the entire loop, so successive reads consume successive lines until EOF. The stated final newline ensures the last line is processed."
         },
         {
             "id": "linux_shell_scripting__function_define",
-            "prompt": "Define a Bash function named 'greet' (opening line only).",
+            "prompt": "In your Ubuntu Bash shell, greet is not readonly. Define a function named greet on one complete line. Its body must use printf to print the literal Hello followed by a newline when called; define it without invoking it.",
             "prefix": "user@ubuntu:~$",
-            "expected": "^greet\\(\\)\\s+\\{$",
-            "aliases": ["function greet {"],
-            "hint": "Use function syntax: 'greet() {'",
-            "explanation": "Functions in Bash are defined with 'name() {' followed by commands and a closing '}'."
+            "expected": "^(?:greet\\s*\\(\\s*\\)|function\\s+greet(?:\\s*\\(\\s*\\))?)\\s+\\{\\s+printf\\s+(['\"])%s\\\\n\\1\\s+(['\"])Hello\\2\\s*;\\s*\\}$",
+            "aliases": ["greet() { printf '%s\\n' 'Hello'; }", "greet() { printf 'Hello\\n'; }", "function greet { printf 'Hello\\n'; }"],
+            "hint": "Supply the body and closing brace: greet() { printf '%s\\n' 'Hello'; }",
+            "explanation": "greet() declares a function whose complete body is inside braces. The semicolon ends printf before the closing brace. Defining the function produces no greeting yet; calling greet runs its body and prints Hello with a newline. Bash also supports function greet syntax."
         },
         {
             "id": "linux_shell_scripting__exit_code",
-            "prompt": "Exit the current script with status code 1 to signal failure.",
+            "prompt": "You are writing a command inside a running Bash script on Ubuntu. Use the exit builtin to terminate that script with status 1, reporting failure to its caller.",
             "prefix": "user@ubuntu:~$",
             "expected": "^exit\\s+1$",
-            "aliases": [],
+            "aliases": ["exit 1"],
             "hint": "Use exit with code: 'exit 1'",
-            "explanation": "'exit 1' terminates the script with a non-zero status, indicating an error to calling processes."
+            "explanation": "exit 1 terminates the script's Bash process and returns status 1 to its caller. A nonzero status indicates failure; the same command in an interactive shell would exit that shell."
         },
         {
             "id": "linux_shell_scripting__case_statement",
-            "prompt": "Write the opening line of a case statement matching the variable '$ACTION'.",
+            "prompt": "In Ubuntu Bash with case-sensitive pattern matching, ACTION contains an arbitrary string. Write a complete one-line case statement matching its value. For exactly start, use printf to print Starting with a newline; for every other value, print Unknown with a newline. End each branch with ;;.",
             "prefix": "user@ubuntu:~$",
-            "expected": "^case\\s+\\$ACTION\\s+in$",
-            "aliases": ["case $ACTION in"],
-            "hint": "Use case syntax: 'case $ACTION in'",
-            "explanation": "'case $VAR in' begins a multi-branch conditional, similar to switch statements in other languages."
+            "expected": "^case\\s+(\"?)\\$(?:ACTION|\\{ACTION\\})\\1\\s+in\\s+start\\)\\s*printf\\s+(?:'%s\\\\n'|\"%s\\\\n\")\\s+(?:'Starting'|\"Starting\"|Starting)\\s*;;\\s*\\*\\)\\s*printf\\s+(?:'%s\\\\n'|\"%s\\\\n\")\\s+(?:'Unknown'|\"Unknown\"|Unknown)\\s*;;\\s*esac$",
+            "aliases": ["case \"$ACTION\" in start) printf '%s\\n' 'Starting';; *) printf '%s\\n' 'Unknown';; esac"],
+            "hint": "Complete both branches: case \"$ACTION\" in start) printf '%s\\n' 'Starting';; *) printf '%s\\n' 'Unknown';; esac",
+            "explanation": "case compares ACTION to patterns: start matches that exact value, while * catches anything else. ;; stops after the selected branch so only its printf runs. esac closes the statement. Bash does not split or glob the case comparison word, so its unquoted variable spelling also works."
         }
     ]
 }

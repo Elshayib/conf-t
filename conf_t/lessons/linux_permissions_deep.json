@@ -5,98 +5,98 @@
     "description": "Go beyond basic chmod with symbolic permissions, ownership, umask, ACLs, and special permission bits like SUID, SGID, and sticky bit.",
     "difficulty": "intermediate",
     "tags": ["permissions", "security", "acl"],
-    "prerequisites": ["linux_basic"],
+    "prerequisites": ["linux_advanced"],
     "estimated_minutes": 30,
     "tasks": [
         {
             "id": "linux_permissions_deep__chmod_symbolic_add",
-            "prompt": "Add execute permission for the group on 'deploy.sh' using symbolic (letter) notation.",
+            "prompt": "In your Ubuntu home directory, you own the regular file deploy.sh. Use chmod with symbolic notation to add execute permission only for its group, leaving all other permission bits unchanged.",
             "prefix": "user@ubuntu:~$",
             "expected": "^chmod\\s+g\\+x\\s+deploy\\.sh$",
-            "aliases": [],
+            "aliases": ["chmod g+x deploy.sh"],
             "hint": "Use chmod with group add execute: 'chmod g+x deploy.sh'",
             "explanation": "Symbolic chmod uses who (u/g/o/a), operator (+/-/=), and permissions (r/w/x). 'g+x' adds execute for the group."
         },
         {
             "id": "linux_permissions_deep__chmod_symbolic_remove",
-            "prompt": "Remove write permission for others on 'secret.conf' using symbolic notation.",
+            "prompt": "In your Ubuntu home directory, you own the regular file secret.conf with standard permissions and no extended ACL. Use chmod with symbolic notation to remove write permission only for others, leaving all other permission bits unchanged.",
             "prefix": "user@ubuntu:~$",
             "expected": "^chmod\\s+o-w\\s+secret\\.conf$",
-            "aliases": [],
+            "aliases": ["chmod o-w secret.conf"],
             "hint": "Use chmod with others remove write: 'chmod o-w secret.conf'",
-            "explanation": "'o-w' removes write permission from the 'others' category, preventing non-owner/non-group users from modifying the file."
+            "explanation": "o-w clears only the others write bit. The owner and group bits stay unchanged; because you own the file, sudo is unnecessary. This removes write access through the others permission class."
         },
         {
             "id": "linux_permissions_deep__chmod_octal_640",
-            "prompt": "Set permissions on 'database.conf' to owner read/write, group read, others none (octal 640).",
+            "prompt": "In your Ubuntu home directory, you own the regular file database.conf with no extended ACL. Use chmod with octal notation to set owner read/write, group read, others no permissions, and no special bits (640).",
             "prefix": "user@ubuntu:~$",
-            "expected": "^chmod\\s+640\\s+database\\.conf$",
-            "aliases": [],
+            "expected": "^chmod\\s+0?640\\s+database\\.conf$",
+            "aliases": ["chmod 640 database.conf"],
             "hint": "Use chmod with octal 640: 'chmod 640 database.conf'",
             "explanation": "Octal 640 means owner gets rw- (6), group gets r-- (4), and others get --- (0)."
         },
         {
             "id": "linux_permissions_deep__chown_user",
-            "prompt": "Change only the owner of 'app.log' to user 'www-data' (leave group unchanged).",
+            "prompt": "As an ordinary Ubuntu user with sudo access, use chown to change only the owner of the existing app.log in your home directory to the existing account www-data. Leave its group unchanged.",
             "prefix": "user@ubuntu:~$",
-            "expected": "^chown\\s+www-data\\s+app\\.log$",
-            "aliases": [],
-            "hint": "Use chown with just the username: 'chown www-data app.log'",
-            "explanation": "When only a username is specified (no colon), 'chown' changes the owner while preserving the existing group."
+            "expected": "^sudo\\s+chown\\s+www-data\\s+app\\.log$",
+            "aliases": ["sudo chown www-data app.log"],
+            "hint": "Use 'sudo chown www-data app.log'.",
+            "explanation": "A username without a colon changes only the owner. A trailing colon would also select the user's login group. sudo permits transferring ownership to another account."
         },
         {
             "id": "linux_permissions_deep__chgrp_change",
-            "prompt": "Change the group of 'shared_dir' to 'developers' recursively.",
+            "prompt": "As an ordinary Ubuntu user with sudo access, use chgrp to change the group of shared_dir in your home directory and all its contents to the existing developers group. This tree contains root-owned files and no symbolic links.",
             "prefix": "user@ubuntu:~$",
-            "expected": "^chgrp\\s+-R\\s+developers\\s+shared_dir$",
-            "aliases": [],
-            "hint": "Use chgrp with recursive flag (-R): 'chgrp -R developers shared_dir'",
-            "explanation": "'chgrp' changes group ownership. '-R' applies the change to all files and subdirectories within the target."
+            "expected": "^sudo\\s+chgrp\\s+(-R|--recursive)\\s+developers\\s+shared_dir$",
+            "aliases": ["sudo chgrp -R developers shared_dir", "sudo chgrp developers -R shared_dir"],
+            "hint": "Use 'sudo chgrp -R developers shared_dir'.",
+            "explanation": "chgrp preserves owners while changing groups. -R visits the directory and its descendants; sudo permits changes to the root-owned files too."
         },
         {
             "id": "linux_permissions_deep__umask_value",
-            "prompt": "Display the current umask value in octal format.",
+            "prompt": "In your Ubuntu Bash session, use the umask builtin to display the current shell's file-creation mask in octal format without changing it.",
             "prefix": "user@ubuntu:~$",
             "expected": "^umask$",
-            "aliases": [],
+            "aliases": ["umask"],
             "hint": "Run the umask command with no arguments: 'umask'",
-            "explanation": "'umask' shows the default permission mask subtracted from new files and directories at creation time."
+            "explanation": "umask without arguments prints the current shell's mask in octal. The mask clears bits from the permissions requested when creating a file or directory; it is not arithmetic subtraction and does not change existing files."
         },
         {
             "id": "linux_permissions_deep__setfacl_user",
-            "prompt": "Grant user 'alice' read and write permissions on 'project.txt' using an ACL.",
+            "prompt": "In your Ubuntu home directory, you own the regular file project.txt, which has no extended ACL. alice is another existing account. The acl tools are installed and the filesystem supports ACLs. Use setfacl to grant alice read and write, without execute permission, through a named-user ACL entry.",
             "prefix": "user@ubuntu:~$",
-            "expected": "^setfacl\\s+-m\\s+u:alice:rw\\s+project\\.txt$",
-            "aliases": [],
+            "expected": "^setfacl\\s+(-m\\s+|--modify[=\\s])(u|user):alice:rw-?\\s+project\\.txt$",
+            "aliases": ["setfacl -m u:alice:rw project.txt"],
             "hint": "Use setfacl modify: 'setfacl -m u:alice:rw project.txt'",
-            "explanation": "'setfacl -m' modifies ACL entries. 'u:alice:rw' grants read and write to the specific user alice."
+            "explanation": "setfacl -m modifies access ACL entries. u:alice:rw adds a named-user entry for read and write. The default mask recalculation includes these rights; the file owner can change its ACL without sudo."
         },
         {
             "id": "linux_permissions_deep__getfacl_view",
-            "prompt": "Display the ACL entries and standard permissions for 'project.txt'.",
+            "prompt": "In your Ubuntu home directory, project.txt exists and you can access its directory. The acl tools are installed. Use getfacl to display the file's standard permissions and extended ACL entries.",
             "prefix": "user@ubuntu:~$",
             "expected": "^getfacl\\s+project\\.txt$",
-            "aliases": [],
+            "aliases": ["getfacl project.txt"],
             "hint": "Use getfacl: 'getfacl project.txt'",
-            "explanation": "'getfacl' shows both traditional Unix permissions and any extended ACL entries on a file."
+            "explanation": "getfacl prints owner, group, traditional permissions and extended ACL entries, including the mask that limits named-user and group rights. Inspecting the ACL does not modify it or require owning the file."
         },
         {
             "id": "linux_permissions_deep__chmod_suid",
-            "prompt": "Set the SUID bit on '/usr/local/bin/backup_tool' using octal mode 4755.",
+            "prompt": "On Ubuntu, /usr/local/bin/backup_tool is a root-owned regular binary executable on a filesystem that permits SUID. As an ordinary user with sudo access, use chmod to set its exact octal mode to 4755.",
             "prefix": "user@ubuntu:~$",
-            "expected": "^chmod\\s+4755\\s+/usr/local/bin/backup_tool$",
-            "aliases": [],
-            "hint": "Use chmod 4755: 'chmod 4755 /usr/local/bin/backup_tool'",
-            "explanation": "The leading 4 in octal 4755 sets the SUID bit, causing the program to run with the file owner's privileges."
+            "expected": "^sudo\\s+chmod\\s+0?4755\\s+/usr/local/bin/backup_tool$",
+            "aliases": ["sudo chmod 4755 /usr/local/bin/backup_tool"],
+            "hint": "Use 'sudo chmod 4755 /usr/local/bin/backup_tool'.",
+            "explanation": "The leading 4 sets SUID and 755 sets rwxr-xr-x. On execution, this binary takes the owner's effective UID (root here). sudo is needed to change a root-owned file; Linux ignores SUID on shell scripts."
         },
         {
             "id": "linux_permissions_deep__chmod_sticky",
-            "prompt": "Set the sticky bit on the directory '/tmp/shared' using octal mode 1777.",
+            "prompt": "On Ubuntu, /tmp/shared already exists and is a root-owned directory with no other special bits. As an ordinary user with sudo access, use chmod to make it world-writable and set the sticky bit with octal mode 1777.",
             "prefix": "user@ubuntu:~$",
-            "expected": "^chmod\\s+1777\\s+/tmp/shared$",
-            "aliases": [],
-            "hint": "Use chmod 1777: 'chmod 1777 /tmp/shared'",
-            "explanation": "The sticky bit (1xxx) on a directory ensures users can only delete files they own, even in world-writable directories."
+            "expected": "^sudo\\s+chmod\\s+0?1777\\s+/tmp/shared$",
+            "aliases": ["sudo chmod 1777 /tmp/shared"],
+            "hint": "Use 'sudo chmod 1777 /tmp/shared'.",
+            "explanation": "777 grants everyone read, write and directory search permissions. The leading 1 restricts removal or renaming of entries to their owner, the directory owner, or a privileged process. sudo allows changing this root-owned directory."
         }
     ]
 }

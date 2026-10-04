@@ -10,75 +10,75 @@
     "tasks": [
         {
             "id": "linux_users_groups__useradd_create",
-            "prompt": "Create a new user account 'jsmith' with home directory '/home/jsmith' and default shell /bin/bash.",
+            "prompt": "As ordinary Ubuntu user 'user' with sudo access, use useradd to create the absent local account jsmith and its absent home directory, with login shell /bin/bash. The configured home-directory base is /home.",
             "prefix": "user@ubuntu:~$",
-            "expected": "^sudo\\s+useradd\\s+-m\\s+-s\\s+/bin/bash\\s+jsmith$",
-            "aliases": ["useradd -m -s /bin/bash jsmith"],
+            "expected": "^sudo\\s+useradd\\s+(-m|--create-home)\\s+(-s|--shell)\\s+/bin/bash\\s+jsmith$",
+            "aliases": ["sudo useradd -m -s /bin/bash jsmith", "sudo useradd -s /bin/bash -m jsmith", "sudo useradd -m -d /home/jsmith -s /bin/bash jsmith"],
             "hint": "Use useradd with -m and -s: 'sudo useradd -m -s /bin/bash jsmith'",
-            "explanation": "'useradd -m' creates the home directory. '-s /bin/bash' sets the login shell for the new account."
+            "explanation": "sudo permits creating a system account. useradd -m creates /home/jsmith using the stated /home base; -s selects the login shell. This does not set a usable password."
         },
         {
             "id": "linux_users_groups__usermod_groups",
-            "prompt": "Add user 'jsmith' to the supplementary group 'docker'.",
+            "prompt": "As ordinary Ubuntu user 'user' with sudo access, use usermod to add the existing local account jsmith to the existing supplementary group docker, preserving all other group memberships.",
             "prefix": "user@ubuntu:~$",
-            "expected": "^sudo\\s+usermod\\s+-aG\\s+docker\\s+jsmith$",
-            "aliases": ["usermod -a -G docker jsmith"],
+            "expected": "^sudo\\s+usermod\\s+(-aG\\s+docker|(-a|--append)\\s+(-G|--groups)\\s+docker|(-G|--groups)\\s+docker\\s+(-a|--append))\\s+jsmith$",
+            "aliases": ["sudo usermod -aG docker jsmith"],
             "hint": "Use usermod append groups: 'sudo usermod -aG docker jsmith'",
             "explanation": "'usermod -aG' appends the user to supplementary groups without removing existing group memberships."
         },
         {
             "id": "linux_users_groups__userdel_remove",
-            "prompt": "Delete user 'tempuser' along with their home directory and mail spool.",
+            "prompt": "As ordinary Ubuntu user 'user' with sudo access, use userdel to delete the existing local account tempuser, its home directory and its mail spool. tempuser has no running processes.",
             "prefix": "user@ubuntu:~$",
-            "expected": "^sudo\\s+userdel\\s+-r\\s+tempuser$",
-            "aliases": ["userdel -r tempuser"],
+            "expected": "^sudo\\s+userdel\\s+(-r|--remove)\\s+tempuser$",
+            "aliases": ["sudo userdel -r tempuser"],
             "hint": "Use userdel with remove home (-r): 'sudo userdel -r tempuser'",
-            "explanation": "'userdel -r' removes the user account and recursively deletes their home directory."
+            "explanation": "sudo permits removing the local account. userdel -r also removes its home directory and mail spool; files owned by that user elsewhere are not automatically removed."
         },
         {
             "id": "linux_users_groups__passwd_set",
-            "prompt": "Set or change the password for user 'jsmith'.",
+            "prompt": "As ordinary Ubuntu user 'user' with sudo access, use passwd to interactively set a new password for the existing local account jsmith, which belongs to someone else.",
             "prefix": "user@ubuntu:~$",
             "expected": "^sudo\\s+passwd\\s+jsmith$",
-            "aliases": ["passwd jsmith"],
+            "aliases": ["sudo passwd jsmith"],
             "hint": "Use passwd with username: 'sudo passwd jsmith'",
             "explanation": "'passwd' interactively prompts for a new password and updates the encrypted hash in /etc/shadow."
         },
         {
             "id": "linux_users_groups__groupadd_create",
-            "prompt": "Create a new group named 'developers' with GID 1500.",
+            "prompt": "As ordinary Ubuntu user 'user' with sudo access, use groupadd to create a local group developers with GID 1500. Both the group name and GID are unused.",
             "prefix": "user@ubuntu:~$",
-            "expected": "^sudo\\s+groupadd\\s+-g\\s+1500\\s+developers$",
-            "aliases": ["groupadd -g 1500 developers"],
+            "expected": "^sudo\\s+groupadd\\s+(-g|--gid)\\s+1500\\s+developers$",
+            "aliases": ["sudo groupadd -g 1500 developers"],
             "hint": "Use groupadd with GID (-g): 'sudo groupadd -g 1500 developers'",
             "explanation": "'groupadd -g' creates a group with a specific numeric Group ID."
         },
         {
             "id": "linux_users_groups__groupmod_name",
-            "prompt": "Rename the group 'oldteam' to 'newteam'.",
+            "prompt": "As ordinary Ubuntu user 'user' with sudo access, use groupmod to rename the existing local group oldteam to the unused name newteam, preserving its GID and membership.",
             "prefix": "user@ubuntu:~$",
-            "expected": "^sudo\\s+groupmod\\s+-n\\s+newteam\\s+oldteam$",
-            "aliases": ["groupmod --new-name newteam oldteam"],
+            "expected": "^sudo\\s+groupmod\\s+(-n|--new-name)\\s+newteam\\s+oldteam$",
+            "aliases": ["sudo groupmod -n newteam oldteam"],
             "hint": "Use groupmod rename (-n): 'sudo groupmod -n newteam oldteam'",
             "explanation": "'groupmod -n' changes the group name while preserving GID and member assignments."
         },
         {
             "id": "linux_users_groups__id_user",
-            "prompt": "Display the UID, GID, and all group memberships for user 'jsmith'.",
+            "prompt": "On Ubuntu, local account jsmith exists. Use id to display that account's UID, primary GID, and supplementary group memberships from the account database.",
             "prefix": "user@ubuntu:~$",
             "expected": "^id\\s+jsmith$",
-            "aliases": [],
+            "aliases": ["id jsmith"],
             "hint": "Use id with username: 'id jsmith'",
             "explanation": "'id' prints the real user ID, primary group, and all supplementary groups for a given user."
         },
         {
             "id": "linux_users_groups__groups_list",
-            "prompt": "List all groups that the current user belongs to.",
+            "prompt": "In your Ubuntu Bash session, use groups without a username to list the current process's group memberships.",
             "prefix": "user@ubuntu:~$",
             "expected": "^groups$",
-            "aliases": [],
+            "aliases": ["groups"],
             "hint": "Use the groups command: 'groups'",
-            "explanation": "'groups' shows the group memberships of the invoking user, useful for permission troubleshooting."
+            "explanation": "groups without a username shows the current process's primary and supplementary groups. A session may need a new login to pick up membership changes made in the account database."
         }
     ]
 }

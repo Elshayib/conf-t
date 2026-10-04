@@ -10,57 +10,57 @@
     "tasks": [
         {
             "id": "linux_advanced__ps_aux",
-            "prompt": "View all running system processes in detail.",
+            "prompt": "On Ubuntu with procps installed and the usual /proc visibility, use ps to take a detailed snapshot of all current processes, including their user identity and command line.",
             "prefix": "user@ubuntu:~$",
-            "expected": "^(ps\\s+aux|top|htop)$",
-            "aliases": ["ps aux", "top", "htop"],
-            "hint": "Use 'ps' with 'aux' flags or 'top'",
-            "explanation": "'ps aux' lists all running processes. 'top' or 'htop' displays them in an interactive real-time screen."
+            "expected": "^ps\\s+(aux|axu|-ef|-fe|-e\\s+-f|-f\\s+-e|-Af|-fA|-A\\s+-f|-f\\s+-A)$",
+            "aliases": ["ps aux"],
+            "hint": "Use 'ps aux'.",
+            "explanation": "ps aux selects processes with and without terminals and gives user-oriented detail, including user identity and command line. ps -ef provides an alternative full listing. ps is a snapshot; interactive monitors update continuously."
         },
         {
             "id": "linux_advanced__kill_process",
-            "prompt": "Forcefully terminate a process with Process ID (PID) '1234'.",
+            "prompt": "In Ubuntu Bash, a process you own has PID 1234. Use the kill builtin to forcefully terminate that process with SIGKILL (signal 9).",
             "prefix": "user@ubuntu:~$",
-            "expected": "^kill\\s+-9\\s+1234$",
-            "aliases": [],
+            "expected": "^kill\\s+(-(9|(?i:KILL|SIGKILL))|-s\\s+(9|(?i:KILL|SIGKILL))|-n\\s+9)\\s+1234$",
+            "aliases": ["kill -9 1234"],
             "hint": "Use kill command with signal 9: 'kill -9 1234'",
-            "explanation": "The '-9' (SIGKILL) signal forces the operating system to immediately terminate the process."
+            "explanation": "-9 selects SIGKILL and 1234 is the sole target PID. Unlike SIGTERM, SIGKILL cannot be caught or ignored and offers no cleanup opportunity. You can signal your own process without sudo; 'kill 9 1234' instead targets two PIDs with the default signal."
         },
         {
             "id": "linux_advanced__chmod_permissions",
-            "prompt": "Change permissions of 'script.sh' to owner: read/write/execute, others: read/execute (octal format).",
+            "prompt": "In your Ubuntu home directory, you own the regular file script.sh with no extended ACL. Use chmod with octal notation to set owner read/write/execute, group and others read/execute, and no special bits (755).",
             "prefix": "user@ubuntu:~$",
-            "expected": "^chmod\\s+755\\s+script\\.sh$",
-            "aliases": [],
+            "expected": "^chmod\\s+0?755\\s+script\\.sh$",
+            "aliases": ["chmod 755 script.sh"],
             "hint": "Use chmod command with octal 755: 'chmod 755 script.sh'",
             "explanation": "'chmod 755' assigns full permissions (7) to the owner, and read/execute (5) to the group and others."
         },
         {
             "id": "linux_advanced__chown_owner",
-            "prompt": "Change the owner and group of 'file.txt' to 'root' (both owner and group).",
+            "prompt": "As an ordinary Ubuntu user with sudo access, use chown to change both owner and group of the existing file.txt in your home directory to root.",
             "prefix": "user@ubuntu:~$",
-            "expected": "^chown\\s+root:root\\s+file\\.txt$",
-            "aliases": [],
-            "hint": "Use chown command: 'chown root:root file.txt'",
-            "explanation": "'chown' (Change Owner) changes file user and group assignments. The syntax is owner:group."
+            "expected": "^sudo\\s+chown\\s+root:root\\s+file\\.txt$",
+            "aliases": ["sudo chown root:root file.txt"],
+            "hint": "Use 'sudo chown root:root file.txt'.",
+            "explanation": "chown uses owner:group to change both identities. sudo is required to transfer ownership to root; changing only the owner would leave the group unchanged."
         },
         {
             "id": "linux_advanced__ping_test",
-            "prompt": "Send exactly 4 ping requests to test connectivity to host '8.8.8.8'.",
+            "prompt": "On Ubuntu with iputils ping installed and configured for ordinary-user ICMP requests, use ping to send exactly four IPv4 echo requests to 8.8.8.8.",
             "prefix": "user@ubuntu:~$",
-            "expected": "^ping\\s+-c\\s+4\\s+8\\.8\\.8\\.8$",
-            "aliases": ["ping 8.8.8.8 -c 4"],
+            "expected": "^ping\\s+(-c\\s*4\\s+8\\.8\\.8\\.8|8\\.8\\.8\\.8\\s+-c\\s*4)$",
+            "aliases": ["ping -c 4 8.8.8.8", "ping -4 -c 4 8.8.8.8"],
             "hint": "Use count flag (-c): 'ping -c 4 8.8.8.8'",
-            "explanation": "'ping' checks system network accessibility. '-c 4' limits the ping count so it doesn't run infinitely."
+            "explanation": "ping -c 4 sends four ICMP echo requests and then stops. Replies can demonstrate IP reachability, but their absence may also mean filtering rather than a host failure."
         },
         {
             "id": "linux_advanced__journalctl_logs",
-            "prompt": "View systemd journal logs in real-time (follow log output).",
+            "prompt": "On Ubuntu with systemd, you have sudo access but no direct permission to read the full system journal. Use journalctl to follow new entries in that journal in real time.",
             "prefix": "user@ubuntu:~$",
-            "expected": "^(journalctl\\s+-f|tail\\s+-f\\s+/var/log/syslog)$",
-            "aliases": [],
-            "hint": "Use journalctl with follow flag: 'journalctl -f'",
-            "explanation": "'journalctl -f' displays the system logs as they generate in real time."
+            "expected": "^sudo\\s+journalctl\\s+(-f|--follow)$",
+            "aliases": ["sudo journalctl -f"],
+            "hint": "Use 'sudo journalctl -f'.",
+            "explanation": "journalctl -f displays recent journal entries and waits for new ones. sudo grants access to the full system journal; tailing a text syslog file reads a different log source."
         }
     ]
 }

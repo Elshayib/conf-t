@@ -10,93 +10,93 @@
     "tasks": [
         {
             "id": "linux_process_management__ps_tree",
-            "prompt": "Display running processes in a tree format showing parent-child relationships.",
+            "prompt": "On Ubuntu, use procps ps to display all visible processes with parent-child relationships drawn as a forest. Include processes without a terminal.",
             "prefix": "user@ubuntu:~$",
-            "expected": "^ps\\s+auxf$",
-            "aliases": ["ps aux f"],
+            "expected": "^ps\\s+aux(?:f|\\s+(?:f|--forest))$",
+            "aliases": ["ps auxf", "ps aux f", "ps aux --forest", "ps -ef --forest"],
             "hint": "Use ps with aux and forest format: 'ps auxf'",
-            "explanation": "'ps auxf' lists all processes with the forest ('f') option drawing an ASCII tree of process hierarchy."
+            "explanation": "ps aux selects all visible processes, including those without a terminal, in user-oriented format. The BSD f option or --forest draws parent-child relationships. Reading the visible process table needs no sudo."
         },
         {
             "id": "linux_process_management__pgrep_name",
-            "prompt": "Find the PIDs of all processes whose name matches 'nginx'.",
+            "prompt": "On Ubuntu, use pgrep to list PIDs of all visible processes whose name is exactly nginx, excluding similarly named processes such as nginx_helper.",
             "prefix": "user@ubuntu:~$",
-            "expected": "^pgrep\\s+nginx$",
-            "aliases": [],
-            "hint": "Use pgrep with the process name: 'pgrep nginx'",
-            "explanation": "'pgrep' searches the process table and returns PIDs matching the given name pattern."
+            "expected": "^pgrep\\s+(?:-x|--exact)\\s+nginx$",
+            "aliases": ["pgrep -x nginx", "pgrep --exact nginx"],
+            "hint": "Use exact-name matching: 'pgrep -x nginx'",
+            "explanation": "pgrep searches process names and prints matching PIDs. -x requires a whole-name match; without it, nginx also matches nginx_helper. Reading visible process information does not require sudo."
         },
         {
             "id": "linux_process_management__pkill_signal",
-            "prompt": "Send SIGTERM to all processes named 'stale_worker'.",
+            "prompt": "On Ubuntu, all processes whose name is exactly stale_worker belong to you. Use pkill to send only those processes SIGTERM, without matching names such as stale_worker2.",
             "prefix": "user@ubuntu:~$",
-            "expected": "^pkill\\s+stale_worker$",
-            "aliases": [],
-            "hint": "Use pkill with the process name: 'pkill stale_worker'",
-            "explanation": "'pkill' sends the default SIGTERM signal to processes matching the specified name."
+            "expected": "^pkill\\s+(?:(?:-(?:15|TERM|SIGTERM)|--signal(?:=|\\s+)(?:15|TERM|SIGTERM))\\s+)?(?:-x|--exact)\\s+stale_worker$",
+            "aliases": ["pkill -x stale_worker", "pkill -TERM -x stale_worker"],
+            "hint": "Use exact-name matching: 'pkill -x stale_worker'. SIGTERM is the default signal.",
+            "explanation": "pkill defaults to SIGTERM. -x matches the entire process name, so stale_worker2 is excluded. All matching processes are yours in this scenario, so no elevation is needed."
         },
         {
             "id": "linux_process_management__kill_sigterm",
-            "prompt": "Send SIGTERM (signal 15) to process with PID 5678 for graceful shutdown.",
+            "prompt": "In Ubuntu Bash, use kill to send only SIGTERM (signal 15) to your own process with PID 5678, requesting a graceful shutdown.",
             "prefix": "user@ubuntu:~$",
-            "expected": "^kill\\s+15\\s+5678$",
-            "aliases": ["kill -15 5678", "kill -TERM 5678"],
-            "hint": "Use kill with signal 15: 'kill 15 5678'",
-            "explanation": "SIGTERM (15) requests a process to terminate gracefully, allowing cleanup before exit."
+            "expected": "^kill\\s+(?:(?:-(?:15|TERM|SIGTERM)|-s\\s+(?:15|TERM|SIGTERM)|-n\\s+15)\\s+)?5678$",
+            "aliases": ["kill -15 5678", "kill -TERM 5678", "kill 5678"],
+            "hint": "Use a signal option: 'kill -15 5678'. Without an option, kill defaults to SIGTERM.",
+            "explanation": "SIGTERM requests termination and allows a process to handle cleanup; it does not guarantee exit. The leading '-' makes 15 a signal option. 'kill 15 5678' instead targets two PIDs. You may signal your own process without sudo."
         },
         {
             "id": "linux_process_management__kill_sigkill",
-            "prompt": "Forcefully kill process with PID 9999 using SIGKILL.",
+            "prompt": "On Ubuntu, PID 9999 belongs to account backup and has ignored SIGTERM. As an ordinary user with sudo access, use kill to send it SIGKILL.",
             "prefix": "user@ubuntu:~$",
-            "expected": "^kill\\s+-9\\s+9999$",
-            "aliases": ["kill -9 9999", "kill -SIGKILL 9999"],
-            "hint": "Use kill with signal 9: 'kill -9 9999'",
-            "explanation": "SIGKILL (-9) cannot be caught or ignored; the kernel immediately terminates the process."
+            "expected": "^sudo\\s+kill\\s+(?:-(?:9|KILL|SIGKILL)|-s\\s+(?:9|KILL|SIGKILL))\\s+9999$",
+            "aliases": ["sudo kill -9 9999", "sudo kill -SIGKILL 9999"],
+            "hint": "Use elevation and a signal option: 'sudo kill -9 9999'",
+            "explanation": "sudo permits signaling another account's process. SIGKILL (9) cannot be caught or ignored and allows no cleanup handler. A process stuck in uninterruptible kernel sleep may not exit until that operation finishes."
         },
         {
             "id": "linux_process_management__nice_priority",
-            "prompt": "Start 'backup.sh' with a lower priority (nice value 10).",
+            "prompt": "In Ubuntu Bash with current nice value 0, your executable backup.sh is on PATH. Use GNU nice to start it with nice value 10 (lower CPU priority).",
             "prefix": "user@ubuntu:~$",
-            "expected": "^nice\\s+-n\\s+10\\s+backup\\.sh$",
-            "aliases": ["nice -n10 backup.sh"],
+            "expected": "^nice\\s+(?:(?:-n\\s*10|--adjustment(?:=|\\s+)10)\\s+)?backup\\.sh$",
+            "aliases": ["nice -n 10 backup.sh", "nice -n10 backup.sh", "nice --adjustment=10 backup.sh", "nice backup.sh"],
             "hint": "Use nice with -n flag: 'nice -n 10 backup.sh'",
-            "explanation": "'nice' launches a command with adjusted scheduling priority. Higher nice values mean lower CPU priority."
+            "explanation": "GNU nice adds 10 to the inherited nice value by default; -n 10 makes that adjustment explicit. Starting from 0 gives 10, advising the scheduler to favor other work. Raising niceness needs no sudo. The command name resolves through PATH."
         },
         {
             "id": "linux_process_management__renice_pid",
-            "prompt": "Change the nice value of PID 4321 to 5.",
+            "prompt": "On Ubuntu with util-linux renice and POSIXLY_CORRECT unset, PID 4321 belongs to you and has nice value 0. Use renice to set only that process's nice value to 5.",
             "prefix": "user@ubuntu:~$",
-            "expected": "^renice\\s+5\\s+-p\\s+4321$",
-            "aliases": ["renice -n 5 -p 4321"],
+            "expected": "^renice\\s+(?:(?:-n|--priority)\\s+)?5\\s+(?:(?:-p|--pid)\\s+)?4321$",
+            "aliases": ["renice 5 -p 4321", "renice -n 5 -p 4321", "renice 5 4321"],
             "hint": "Use renice with priority and PID: 'renice 5 -p 4321'",
-            "explanation": "'renice' adjusts the priority of a running process identified by its PID."
+            "explanation": "renice changes an existing process's niceness; -p selects a PID rather than a process group or user. Raising your own process's nice value from 0 to 5 lowers its CPU priority without sudo. The positional priority is an absolute value."
         },
         {
             "id": "linux_process_management__jobs_list",
-            "prompt": "List all background jobs in the current shell session.",
+            "prompt": "In your interactive Ubuntu Bash shell with job control enabled, use the jobs builtin to list all current jobs, including running background jobs and stopped jobs.",
             "prefix": "user@ubuntu:~$",
             "expected": "^jobs$",
-            "aliases": [],
+            "aliases": ["jobs", "jobs -l"],
             "hint": "Use the jobs builtin: 'jobs'",
-            "explanation": "'jobs' displays background and suspended tasks started from the current shell."
+            "explanation": "jobs reads this Bash shell's job table, showing running and stopped jobs started here. It is not a listing of every system process. -l also includes PIDs; no sudo is needed."
         },
         {
             "id": "linux_process_management__fg_resume",
-            "prompt": "Bring background job number 1 to the foreground.",
+            "prompt": "In your interactive Ubuntu Bash shell with job control enabled, job 1 exists and is running in the background. Use fg to bring that job to the foreground.",
             "prefix": "user@ubuntu:~$",
             "expected": "^fg\\s+%1$",
-            "aliases": ["fg 1"],
+            "aliases": ["fg %1", "fg 1"],
             "hint": "Use fg with job number: 'fg %1'",
-            "explanation": "'fg %N' resumes job N in the foreground, reconnecting it to the terminal."
+            "explanation": "fg %1 selects job 1 from the current shell's job table and makes it the foreground job. %1 is a job number, not PID 1. This builtin must run in the shell that owns the job."
         },
         {
             "id": "linux_process_management__nohup_run",
-            "prompt": "Run 'long_task.sh' immune to hangups, redirecting output to nohup.out by default.",
+            "prompt": "In Ubuntu Bash, your executable long_task.sh is on PATH. Standard input, output, and error are connected to your terminal, and nohup.out is writable in the current directory. Use GNU nohup to start the script ignoring SIGHUP, allowing its default output redirection.",
             "prefix": "user@ubuntu:~$",
             "expected": "^nohup\\s+long_task\\.sh$",
-            "aliases": [],
+            "aliases": ["nohup long_task.sh", "nohup long_task.sh &"],
             "hint": "Use nohup: 'nohup long_task.sh'",
-            "explanation": "'nohup' runs a command that continues after the terminal closes, ignoring SIGHUP signals."
+            "explanation": "nohup starts the script with SIGHUP ignored. With terminal output it appends stdout to nohup.out and redirects terminal stderr there too; terminal input is detached. nohup alone does not background the script; adding & does. It protects against hangups, not every cause of termination."
         }
     ]
 }

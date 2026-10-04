@@ -10,75 +10,75 @@
     "tasks": [
         {
             "id": "linux_systemd__start_service",
-            "prompt": "Start the 'nginx' service immediately.",
+            "prompt": "On Ubuntu with systemd, nginx.service is installed, unmasked, and stopped. You are an ordinary user with sudo access; system service changes require elevation. Use systemctl to start nginx immediately.",
             "prefix": "user@ubuntu:~$",
-            "expected": "^sudo\\s+systemctl\\s+start\\s+nginx$",
-            "aliases": ["systemctl start nginx"],
+            "expected": "^sudo\\s+systemctl\\s+(?:--system\\s+)?start\\s+nginx(?:\\.service)?$",
+            "aliases": ["sudo systemctl start nginx", "sudo systemctl start nginx.service"],
             "hint": "Use systemctl start: 'sudo systemctl start nginx'",
             "explanation": "'systemctl start' activates a unit (service) right away without changing its enabled/disabled state at boot."
         },
         {
             "id": "linux_systemd__stop_service",
-            "prompt": "Stop the 'apache2' service.",
+            "prompt": "On Ubuntu with systemd, apache2.service is running and allows manual stopping. As an ordinary user with sudo access, use systemctl with elevation to stop this system service.",
             "prefix": "user@ubuntu:~$",
-            "expected": "^sudo\\s+systemctl\\s+stop\\s+apache2$",
-            "aliases": ["systemctl stop apache2"],
+            "expected": "^sudo\\s+systemctl\\s+(?:--system\\s+)?stop\\s+apache2(?:\\.service)?$",
+            "aliases": ["sudo systemctl stop apache2", "sudo systemctl stop apache2.service"],
             "hint": "Use systemctl stop: 'sudo systemctl stop apache2'",
-            "explanation": "'systemctl stop' gracefully shuts down a running service unit."
+            "explanation": "sudo systemctl stop asks the system manager to deactivate apache2.service. It uses the unit's configured stop behavior and may force termination after a timeout. It does not disable future boot activation."
         },
         {
             "id": "linux_systemd__restart_service",
-            "prompt": "Restart the 'mysql' service (stop then start).",
+            "prompt": "On Ubuntu with systemd, mysql.service is installed and running. As an ordinary user with sudo access, use systemctl with elevation to restart this system service (stop then start).",
             "prefix": "user@ubuntu:~$",
-            "expected": "^sudo\\s+systemctl\\s+restart\\s+mysql$",
-            "aliases": ["systemctl restart mysql"],
+            "expected": "^sudo\\s+systemctl\\s+(?:--system\\s+)?restart\\s+mysql(?:\\.service)?$",
+            "aliases": ["sudo systemctl restart mysql", "sudo systemctl restart mysql.service"],
             "hint": "Use systemctl restart: 'sudo systemctl restart mysql'",
-            "explanation": "'systemctl restart' is commonly used after configuration changes to apply them by reloading the service."
+            "explanation": "restart stops and starts mysql.service, unlike reload, which asks a running service to reread its own configuration. Restarting an inactive service would start it. sudo authorizes the system-manager change."
         },
         {
             "id": "linux_systemd__enable_service",
-            "prompt": "Enable the 'docker' service to start automatically at boot.",
+            "prompt": "On Ubuntu with systemd, docker.service is installed, unmasked, and has boot-install settings but is disabled. As an ordinary user with sudo access, use systemctl with elevation to enable it for boot without starting it now.",
             "prefix": "user@ubuntu:~$",
-            "expected": "^sudo\\s+systemctl\\s+enable\\s+docker$",
-            "aliases": ["systemctl enable docker"],
+            "expected": "^sudo\\s+systemctl\\s+(?:--system\\s+)?enable\\s+docker(?:\\.service)?$",
+            "aliases": ["sudo systemctl enable docker", "sudo systemctl enable docker.service"],
             "hint": "Use systemctl enable: 'sudo systemctl enable docker'",
-            "explanation": "'systemctl enable' creates the necessary symlinks so the service starts on system boot."
+            "explanation": "enable creates links based on docker.service's [Install] settings so its boot target pulls it in. It does not start the service immediately; --now would also start it and is outside this request. sudo is needed to modify system unit links."
         },
         {
             "id": "linux_systemd__status_service",
-            "prompt": "Check the detailed status of the 'ssh' service.",
+            "prompt": "On Ubuntu with systemd, ssh.service is installed. Your ordinary account may query system unit status and read its recent journal entries. Use systemctl to inspect this system service's detailed status.",
             "prefix": "user@ubuntu:~$",
-            "expected": "^systemctl\\s+status\\s+ssh$",
-            "aliases": ["sudo systemctl status ssh"],
+            "expected": "^(?:sudo\\s+)?systemctl\\s+(?:--system\\s+)?status\\s+ssh(?:\\.service)?$",
+            "aliases": ["systemctl status ssh", "systemctl status ssh.service", "sudo systemctl status ssh"],
             "hint": "Use systemctl status: 'systemctl status ssh'",
-            "explanation": "'systemctl status' shows whether the unit is active, recent log lines, and its load state."
+            "explanation": "systemctl status shows the unit's load and activation state, process information, and recent accessible journal entries. The .service suffix can be omitted. This account has read permission, so inspection needs no sudo."
         },
         {
             "id": "linux_systemd__daemon_reload",
-            "prompt": "Reload systemd manager configuration after editing unit files.",
+            "prompt": "On Ubuntu with systemd, an administrator has changed system unit files under /etc/systemd/system. As an ordinary user with sudo access, use systemctl with elevation to make the system manager reread those files.",
             "prefix": "user@ubuntu:~$",
-            "expected": "^sudo\\s+systemctl\\s+daemon-reload$",
-            "aliases": ["systemctl daemon-reload"],
+            "expected": "^sudo\\s+systemctl\\s+(?:--system\\s+)?daemon-reload$",
+            "aliases": ["sudo systemctl daemon-reload"],
             "hint": "Use daemon-reload: 'sudo systemctl daemon-reload'",
-            "explanation": "'daemon-reload' must be run after creating or modifying unit files so systemd picks up the changes."
+            "explanation": "daemon-reload reruns generators, rereads unit files, and rebuilds systemd's dependency tree. It does not restart services or reload a service's own configuration. sudo supplies authorization for the system manager."
         },
         {
             "id": "linux_systemd__journalctl_follow",
-            "prompt": "Follow systemd journal logs in real time (like tail -f).",
+            "prompt": "On Ubuntu with systemd-journald, your ordinary account has sudo access but no permission to read system logs directly. Use journalctl with elevation to follow the local journal in real time, including system entries, without a unit filter.",
             "prefix": "user@ubuntu:~$",
-            "expected": "^journalctl\\s+-f$",
-            "aliases": ["sudo journalctl -f"],
-            "hint": "Use journalctl with follow flag: 'journalctl -f'",
-            "explanation": "'journalctl -f' streams new journal entries as they are written, useful for live troubleshooting."
+            "expected": "^sudo\\s+journalctl\\s+(?:-f|--follow)$",
+            "aliases": ["sudo journalctl -f", "sudo journalctl --follow"],
+            "hint": "Use elevation and follow: 'sudo journalctl -f'",
+            "explanation": "-f (or --follow) shows recent journal entries and then streams new ones. sudo grants access to system entries that this account cannot otherwise read. With no unit filter, output includes all accessible local journal sources."
         },
         {
             "id": "linux_systemd__journalctl_unit",
-            "prompt": "View all journal logs for the 'nginx' service unit since today.",
+            "prompt": "On Ubuntu with systemd, nginx.service has journal entries. Your ordinary account has sudo access but cannot read system logs directly. Use journalctl with elevation to show only nginx.service's journal entries since local midnight today.",
             "prefix": "user@ubuntu:~$",
-            "expected": "^journalctl\\s+-u\\s+nginx\\s+--since\\s+today$",
-            "aliases": ["sudo journalctl -u nginx --since today"],
-            "hint": "Use journalctl with unit and since: 'journalctl -u nginx --since today'",
-            "explanation": "'journalctl -u' filters by unit name. '--since today' limits output to entries from the current day."
+            "expected": "^sudo\\s+journalctl\\s+(?:-u\\s+|--unit(?:=|\\s+))nginx(?:\\.service)?\\s+(?:--since(?:=|\\s+)|-S\\s+)(?:today|'today'|\"today\")$",
+            "aliases": ["sudo journalctl -u nginx --since today", "sudo journalctl --since today -u nginx", "sudo journalctl --since \"today\" -u nginx", "sudo journalctl -S today --unit nginx.service"],
+            "hint": "Combine elevation, unit filtering, and a start time: 'sudo journalctl -u nginx --since today'",
+            "explanation": "-u (or --unit) selects nginx.service, including relevant manager messages about that unit. --since today starts at 00:00 in the host's local time; it is not the last 24 hours. sudo grants access to the required system logs."
         }
     ]
 }

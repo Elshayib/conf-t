@@ -5,80 +5,80 @@
     "description": "Schedule recurring and one-time tasks using crontab, at, and systemd timers for automated system maintenance.",
     "difficulty": "intermediate",
     "tags": ["cron", "scheduling", "automation"],
-    "prerequisites": ["linux_basic"],
+    "prerequisites": ["linux_basic", "linux_systemd"],
     "estimated_minutes": 25,
     "tasks": [
         {
             "id": "linux_cron_scheduling__crontab_list",
-            "prompt": "List the current user's crontab entries.",
+            "prompt": "On Ubuntu with cron installed, your ordinary account user is allowed to use crontab and already has scheduled entries. Use crontab to list your own entries.",
             "prefix": "user@ubuntu:~$",
             "expected": "^crontab\\s+-l$",
-            "aliases": [],
+            "aliases": ["crontab -l"],
             "hint": "Use crontab list (-l): 'crontab -l'",
-            "explanation": "'crontab -l' displays all scheduled cron jobs for the invoking user."
+            "explanation": "crontab -l displays the invoking account's scheduled entries. Running sudo crontab -l would select root instead; your own crontab needs no elevation."
         },
         {
             "id": "linux_cron_scheduling__crontab_edit",
-            "prompt": "Open the current user's crontab file in the default editor for editing.",
+            "prompt": "On Ubuntu with cron installed, your ordinary account user is allowed to use crontab. Neither VISUAL nor EDITOR is set, and the default editor is available. Use crontab to open your own entries for editing.",
             "prefix": "user@ubuntu:~$",
             "expected": "^crontab\\s+-e$",
-            "aliases": [],
+            "aliases": ["crontab -e"],
             "hint": "Use crontab edit (-e): 'crontab -e'",
-            "explanation": "'crontab -e' opens the user's crontab in $EDITOR, allowing addition or modification of scheduled jobs."
+            "explanation": "crontab -e opens your entries in the selected editor and installs the changes when editing finishes. VISUAL and EDITOR can select the editor; with both unset, Ubuntu uses the default editor. This edits your account's crontab without sudo."
         },
         {
             "id": "linux_cron_scheduling__crontab_remove",
-            "prompt": "Remove all crontab entries for the current user.",
+            "prompt": "On Ubuntu with cron installed, your ordinary account user is allowed to use crontab and has an existing crontab. Use crontab to remove your entire crontab without a confirmation prompt.",
             "prefix": "user@ubuntu:~$",
             "expected": "^crontab\\s+-r$",
-            "aliases": [],
+            "aliases": ["crontab -r"],
             "hint": "Use crontab remove (-r): 'crontab -r'",
-            "explanation": "'crontab -r' deletes the entire crontab for the current user. Use with caution in production."
+            "explanation": "crontab -r removes every entry in your crontab without prompting; it does not remove another account's crontab or system-wide cron files. sudo without -u would act on root's crontab instead."
         },
         {
             "id": "linux_cron_scheduling__crontab_user",
-            "prompt": "List the crontab entries for user 'backup' (requires root).",
+            "prompt": "On Ubuntu with cron installed, backup has a crontab. Your ordinary account user has sudo access. Use crontab with elevation to list backup's entries.",
             "prefix": "user@ubuntu:~$",
-            "expected": "^sudo\\s+crontab\\s+-l\\s+-u\\s+backup$",
-            "aliases": ["crontab -l -u backup"],
+            "expected": "^sudo\\s+crontab\\s+(?:-l\\s+-u\\s+backup|-u\\s+backup\\s+-l)$",
+            "aliases": ["sudo crontab -l -u backup", "sudo crontab -u backup -l"],
             "hint": "Use crontab with user flag (-u): 'sudo crontab -l -u backup'",
-            "explanation": "'crontab -u username' manages another user's crontab; root privileges are typically required."
+            "explanation": "-l lists entries and -u backup selects backup's crontab. sudo permits inspecting another account's crontab. Omitting -u after sudo would instead list root's crontab."
         },
         {
             "id": "linux_cron_scheduling__at_schedule",
-            "prompt": "Schedule a one-time job to run at 14:30 today using 'at' (interactive prompt).",
+            "prompt": "On Ubuntu, at is installed, atd is running, and your account user is allowed to submit jobs. It is before 14:30 local time today. /home/user/backup-job.sh is readable and contains complete /bin/sh commands using absolute paths. Use at to submit that file's commands as your one-time job for 14:30 today, without interactive input.",
             "prefix": "user@ubuntu:~$",
-            "expected": "^at\\s+14:30$",
-            "aliases": ["at 14:30 today"],
-            "hint": "Use at with time: 'at 14:30'",
-            "explanation": "'at' schedules a command to run once at a specified time. You enter commands at the interactive prompt."
+            "expected": "^at\\s+-f\\s+/home/user/backup-job\\.sh\\s+14:30(?:\\s+today)?$",
+            "aliases": ["at -f /home/user/backup-job.sh 14:30 today", "at 14:30 today < /home/user/backup-job.sh", "at 14:30 < /home/user/backup-job.sh"],
+            "hint": "Read the existing job file with -f: 'at -f /home/user/backup-job.sh 14:30 today'",
+            "explanation": "at -f reads job commands from a file instead of its interactive prompt and queues them for /bin/sh under your account. atd executes the queued job later. Since 14:30 is still ahead, omitting today also selects today. sudo would submit as root rather than as user."
         },
         {
             "id": "linux_cron_scheduling__at_list",
-            "prompt": "List all pending 'at' jobs for the current user.",
+            "prompt": "On Ubuntu, at and atq are installed, and your ordinary account user is permitted to use them. Use atq (or at's listing option) to list all of your pending one-time jobs.",
             "prefix": "user@ubuntu:~$",
             "expected": "^atq$",
-            "aliases": ["at -l"],
+            "aliases": ["atq", "at -l"],
             "hint": "Use atq to list pending jobs: 'atq'",
-            "explanation": "'atq' (at queue) shows scheduled one-time jobs waiting to execute."
+            "explanation": "atq and at -l show pending jobs owned by the invoking account. Running atq as root would show everyone's jobs, so sudo does not match this request."
         },
         {
             "id": "linux_cron_scheduling__systemctl_list_timers",
-            "prompt": "List all active systemd timers and their next scheduled run times.",
+            "prompt": "On Ubuntu with systemd, the system manager has active and inactive timers but no failed timer units. As an ordinary user, use systemctl to list the active system timers and their next run times when available, without including inactive timers.",
             "prefix": "user@ubuntu:~$",
-            "expected": "^systemctl\\s+list-timers$",
-            "aliases": ["systemctl list-timers --all"],
+            "expected": "^(?:sudo\\s+)?systemctl\\s+(?:--system\\s+)?list-timers(?:\\s+--state=active)?$",
+            "aliases": ["systemctl list-timers", "systemctl list-timers --state=active"],
             "hint": "Use systemctl list-timers: 'systemctl list-timers'",
-            "explanation": "systemd timers are a modern alternative to cron. 'list-timers' shows when each timer will fire next."
+            "explanation": "list-timers queries the system manager by default and shows timer schedules, including NEXT and the service each timer activates. --all also includes inactive timers and does not fit this request. Reading timers needs no elevation; --user would inspect a different manager."
         },
         {
             "id": "linux_cron_scheduling__anacron_status",
-            "prompt": "Display the anacron execution timestamps from '/var/spool/anacron/cron.daily'.",
+            "prompt": "On Ubuntu, anacron is installed and has recorded the cron.daily job's last run date in /var/spool/anacron/cron.daily. This file and its parent directories are readable by your account. Use cat to display that recorded date.",
             "prefix": "user@ubuntu:~$",
-            "expected": "^cat\\s+/var/spool/anacron/cron\\.daily$",
-            "aliases": [],
+            "expected": "^cat\\s+(?:--\\s+)?/var/spool/anacron/cron\\.daily$",
+            "aliases": ["cat /var/spool/anacron/cron.daily"],
             "hint": "Use cat to view the file: 'cat /var/spool/anacron/cron.daily'",
-            "explanation": "Anacron runs jobs that may have been missed during downtime. Its spool files record last execution dates."
+            "explanation": "Anacron records a job's last execution date in its spool file and uses that date to decide whether it is due. cat reads this existing date; it neither runs the job nor updates its timestamp. The stated read permissions make sudo unnecessary."
         }
     ]
 }

@@ -10,7 +10,7 @@
     "tasks": [
         {
             "id": "linux_permissions_deep__chmod_symbolic_add",
-            "prompt": "In your Ubuntu home directory, you own the regular file deploy.sh. Use chmod with symbolic notation to add execute permission only for its group, leaving all other permission bits unchanged.",
+            "prompt": "In your Ubuntu home directory, you own the regular file deploy.sh with no special permission bits and no extended ACL. Use chmod with symbolic notation to add execute permission only for its group, leaving all other permission bits unchanged.",
             "prefix": "user@ubuntu:~$",
             "expected": "^chmod\\s+g\\+x\\s+deploy\\.sh$",
             "aliases": ["chmod g+x deploy.sh"],
@@ -19,7 +19,7 @@
         },
         {
             "id": "linux_permissions_deep__chmod_symbolic_remove",
-            "prompt": "In your Ubuntu home directory, you own the regular file secret.conf with standard permissions and no extended ACL. Use chmod with symbolic notation to remove write permission only for others, leaving all other permission bits unchanged.",
+            "prompt": "In your Ubuntu home directory, you own the regular file secret.conf with no special permission bits and no extended ACL. Use chmod with symbolic notation to remove write permission only for others, leaving all other permission bits unchanged.",
             "prefix": "user@ubuntu:~$",
             "expected": "^chmod\\s+o-w\\s+secret\\.conf$",
             "aliases": ["chmod o-w secret.conf"],

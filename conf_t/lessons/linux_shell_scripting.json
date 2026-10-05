@@ -19,7 +19,7 @@
         },
         {
             "id": "linux_shell_scripting__chmod_executable",
-            "prompt": "In your Ubuntu home directory, you own the regular file deploy.sh with standard permissions and no extended ACL. Use chmod with symbolic notation to add execute permission only for its owner, leaving group, others and every other bit unchanged.",
+            "prompt": "In your Ubuntu home directory, you own the regular file deploy.sh with no special permission bits and no extended ACL. Use chmod with symbolic notation to add execute permission only for its owner, leaving group, others and every other bit unchanged.",
             "prefix": "user@ubuntu:~$",
             "expected": "^chmod\\s+u\\+x\\s+deploy\\.sh$",
             "aliases": ["chmod u+x deploy.sh"],

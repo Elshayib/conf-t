@@ -2,191 +2,191 @@
     "id": "linux_troubleshooting_lab",
     "title": "Linux Troubleshooting Lab",
     "platform": "Linux",
-    "description": "Capstone lab combining process, network, storage, and log analysis skills to diagnose real-world Linux server problems.",
+    "description": "Diagnose independent Ubuntu server scenarios in Bash with systemd, combining process, network, storage, and log analysis. Each Task states its own targets and access requirements.",
     "difficulty": "advanced",
     "tags": ["troubleshooting", "capstone", "diagnostics"],
-    "prerequisites": ["linux_networking", "linux_process_management"],
+    "prerequisites": ["linux_networking", "linux_process_management", "linux_systemd", "linux_lvm_storage", "linux_file_operations", "linux_text_processing"],
     "estimated_minutes": 60,
     "tasks": [
         {
             "id": "linux_troubleshooting_lab__uptime_load",
-            "prompt": "A server feels sluggish. Check system uptime and load averages.",
+            "prompt": "An Ubuntu server feels sluggish. As an ordinary user, use procps uptime to inspect how long this host has been running and its 1-, 5-, and 15-minute load averages.",
             "prefix": "user@ubuntu:~$",
             "expected": "^uptime$",
-            "aliases": [],
+            "aliases": ["uptime"],
             "hint": "Use uptime: 'uptime'",
-            "explanation": "'uptime' shows how long the system has been running and the 1, 5, and 15-minute load averages."
+            "explanation": "uptime reports time since boot and recent load averages without elevation. Linux load includes runnable tasks and tasks waiting in uninterruptible sleep, so a high load alone does not prove CPU saturation."
         },
         {
             "id": "linux_troubleshooting_lab__free_memory",
-            "prompt": "Investigate a possible memory issue. Display memory usage in human-readable format.",
+            "prompt": "An Ubuntu host may be short of RAM. Use procps free to display this host's RAM and swap summary in human-readable units as an ordinary user.",
             "prefix": "user@ubuntu:~$",
-            "expected": "^free\\s+-h$",
-            "aliases": [],
+            "expected": "^free\\s+(?:-h|--human)$",
+            "aliases": ["free -h", "free --human"],
             "hint": "Use free with -h: 'free -h'",
-            "explanation": "'free -h' reports total, used, free, and available RAM and swap space."
+            "explanation": "free -h reports RAM and swap using readable units. The available RAM estimate accounts for reclaimable caches and is more useful for allocation headroom than the free column alone. No sudo is needed to read this summary."
         },
         {
             "id": "linux_troubleshooting_lab__df_disk_full",
-            "prompt": "Users report 'disk full' errors. Check filesystem space usage in human-readable format.",
+            "prompt": "Users report disk-space exhaustion on an Ubuntu server. Use GNU df to inspect space used and available on its mounted filesystems in human-readable units, as an ordinary user.",
             "prefix": "user@ubuntu:~$",
-            "expected": "^df\\s+-h$",
-            "aliases": [],
+            "expected": "^df\\s+(?:-h|--human-readable)$",
+            "aliases": ["df -h", "df --human-readable"],
             "hint": "Use df -h: 'df -h'",
-            "explanation": "'df -h' quickly identifies which mounted filesystems are at or near capacity."
+            "explanation": "df -h reports filesystem-wide capacity and available space using powers of 1024. It can reveal a nearly full filesystem without traversing protected directories. Inode exhaustion or quotas may still cause disk-full errors even when blocks remain free."
         },
         {
             "id": "linux_troubleshooting_lab__du_find_large",
-            "prompt": "Find what is consuming space in '/var'. Show total usage of that directory in human-readable format.",
+            "prompt": "On Ubuntu, /var contains protected subdirectories that only root can traverse. Your ordinary account has sudo access. Use GNU du with elevation to show one human-readable summary of disk space allocated to /var and its contents.",
             "prefix": "user@ubuntu:~$",
-            "expected": "^du\\s+-sh\\s+/var$",
-            "aliases": [],
-            "hint": "Use du -sh: 'du -sh /var'",
-            "explanation": "'du -sh /var' gives a single summary of total disk usage under /var to narrow investigation."
+            "expected": "^sudo\\s+du\\s+-(?:sh|hs)\\s+/var$",
+            "aliases": ["sudo du -sh /var", "sudo du --summarize --human-readable /var", "sudo du -s -h /var"],
+            "hint": "Elevate the directory traversal: 'sudo du -sh /var'",
+            "explanation": "du measures allocated file blocks beneath /var; -s prints one total and -h formats it with powers of 1024. sudo permits traversing the protected directories. This differs from df's filesystem-wide free-space report and from apparent file sizes."
         },
         {
             "id": "linux_troubleshooting_lab__find_large_logs",
-            "prompt": "Locate files larger than 100 MB under '/var/log'.",
+            "prompt": "On Ubuntu, /var/log contains directories only root can traverse. Your ordinary account has sudo access. Use GNU find with elevation to print paths of regular files strictly larger than 100 MiB (104857600 bytes) under /var/log, without changing files.",
             "prefix": "user@ubuntu:~$",
-            "expected": "^find\\s+/var/log\\s+-type\\s+f\\s+-size\\s+\\+100M$",
-            "aliases": ["find /var/log -size +100M"],
-            "hint": "Use find with size filter: 'find /var/log -type f -size +100M'",
-            "explanation": "'find -size +100M' locates oversized log files that may need rotation or deletion."
+            "expected": "^sudo\\s+find\\s+/var/log\\s+-type\\s+f\\s+-size\\s+\\+(?:100M|104857600c)$",
+            "aliases": ["sudo find /var/log -type f -size +100M", "sudo find /var/log -size +100M -type f", "sudo find /var/log -type f -size +100M -print"],
+            "hint": "Use a regular-file and size filter: 'sudo find /var/log -type f -size +100M'",
+            "explanation": "-type f excludes directories and other file types. M means MiB, not decimal MB; +100M matches files exceeding 100 MiB, and +104857600c expresses the same byte limit. The default action prints matching paths. sudo permits the full traversal; finding large logs does not establish that they are safe to delete."
         },
         {
             "id": "linux_troubleshooting_lab__ps_high_cpu",
-            "prompt": "Identify processes sorted by CPU usage. List all processes with full details.",
+            "prompt": "An Ubuntu server is CPU-bound. Use procps ps to take a user-format snapshot of all visible processes, including those without terminals, sorted by %CPU from highest to lowest.",
             "prefix": "user@ubuntu:~$",
-            "expected": "^ps\\s+aux$",
-            "aliases": ["top"],
-            "hint": "Use ps aux: 'ps aux'",
-            "explanation": "'ps aux' lists all processes with CPU and memory columns to spot runaway consumers."
+            "expected": "^ps\\s+aux\\s+--sort(?:=|\\s+)-(?:%cpu|pcpu)$",
+            "aliases": ["ps aux --sort=-%cpu", "ps aux --sort=-pcpu", "ps --sort=-%cpu aux"],
+            "hint": "Request descending CPU sorting explicitly: 'ps aux --sort=-%cpu'",
+            "explanation": "aux selects all visible processes in user-oriented format; --sort=-%cpu puts the highest CPU consumers first. ps %CPU is the CPU-time-to-elapsed-time ratio over a process's lifetime, not an instantaneous sample. An unsorted ps aux listing does not satisfy this request."
         },
         {
             "id": "linux_troubleshooting_lab__pgrep_stuck",
-            "prompt": "Find the PID of a stuck 'backup' process by name.",
+            "prompt": "On Ubuntu, one visible process is named exactly backup and appears stuck; similarly named backup_helper processes also exist. Use pgrep to print only the PID of the exact backup process.",
             "prefix": "user@ubuntu:~$",
-            "expected": "^pgrep\\s+backup$",
-            "aliases": [],
-            "hint": "Use pgrep: 'pgrep backup'",
-            "explanation": "'pgrep' quickly returns PIDs matching a process name without parsing full ps output."
+            "expected": "^pgrep\\s+(?:-x|--exact)\\s+backup$",
+            "aliases": ["pgrep -x backup", "pgrep --exact backup", "pgrep '^backup$'"],
+            "hint": "Use exact process-name matching: 'pgrep -x backup'",
+            "explanation": "pgrep -x matches the entire process name rather than a substring, excluding backup_helper. It lists the matching PID without signaling the process. Reading visible process names does not require sudo."
         },
         {
             "id": "linux_troubleshooting_lab__kill_stuck",
-            "prompt": "Gracefully terminate the stuck backup process (PID 8842) with SIGTERM.",
+            "prompt": "In Ubuntu Bash, your own backup process with PID 8842 is stuck. Use kill to send only that PID SIGTERM, requesting a graceful shutdown rather than forcing SIGKILL.",
             "prefix": "user@ubuntu:~$",
-            "expected": "^kill\\s+8842$",
-            "aliases": ["kill -15 8842", "kill -TERM 8842"],
+            "expected": "^kill\\s+(?:(?:-(?:15|TERM|SIGTERM)|-s\\s+(?:15|TERM|SIGTERM)|-n\\s+15)\\s+)?8842$",
+            "aliases": ["kill 8842", "kill -15 8842", "kill -TERM 8842"],
             "hint": "Use kill with PID: 'kill 8842'",
-            "explanation": "Sending SIGTERM (default) allows the process to shut down cleanly before resorting to SIGKILL."
+            "explanation": "kill defaults to SIGTERM, so kill 8842 requests termination without an explicit signal option. A process can handle or ignore SIGTERM; it is a cleanup opportunity, not guaranteed exit. You own this process, so signaling it needs no sudo."
         },
         {
             "id": "linux_troubleshooting_lab__ss_web_port",
-            "prompt": "Verify whether anything is listening on TCP port 80.",
+            "prompt": "On Ubuntu with iproute2 ss installed, check the local network namespace for TCP listeners on exactly local port 80 across all addresses. Use ss's built-in port filter and numeric output; process ownership details are not required.",
             "prefix": "user@ubuntu:~$",
-            "expected": "^ss\\s+-tlnp\\s+\\|\\s+grep\\s+:80$",
-            "aliases": ["ss -tlnp | grep :80", "netstat -tlnp | grep :80"],
-            "hint": "Use ss piped to grep: 'ss -tlnp | grep :80'",
-            "explanation": "Checking port 80 confirms whether the web server bound successfully to the expected interface."
+            "expected": "^ss\\s+-(?:tln|tnl|ltn|lnt|ntl|nlt)\\s+(['\"])sport\\s*=\\s*:80\\1$",
+            "aliases": ["ss -tln 'sport = :80'", "ss -tn state listening 'sport = :80'", "ss -tln sport = :80", "ss --tcp --listening --numeric 'sport = :80'"],
+            "hint": "Filter the local port exactly: ss -tln 'sport = :80'",
+            "explanation": "-t selects TCP, -l selects listeners, and -n keeps ports numeric. sport = :80 tests the local port exactly; grep :80 also matches ports such as 8080. Socket endpoints can be inspected without sudo here. A listener proves a bind, not that HTTP requests will succeed."
         },
         {
             "id": "linux_troubleshooting_lab__lsof_port",
-            "prompt": "Determine which process is using TCP port 8080.",
+            "prompt": "On Ubuntu with lsof installed, a service may be listening on local TCP port 8080. Your ordinary account has sudo access but cannot inspect other accounts' process files directly. Use lsof with elevation to identify the owners of TCP listeners on this port, excluding UDP and established connections.",
             "prefix": "user@ubuntu:~$",
-            "expected": "^sudo\\s+lsof\\s+-i\\s+:8080$",
-            "aliases": ["lsof -i :8080"],
-            "hint": "Use lsof on port: 'sudo lsof -i :8080'",
-            "explanation": "'lsof -i :8080' lists open files and the owning process for the specified network port."
+            "expected": "^sudo\\s+lsof\\s+(?:-nP\\s+)?-i\\s*TCP:8080\\s+-sTCP:LISTEN$",
+            "aliases": ["sudo lsof -nP -iTCP:8080 -sTCP:LISTEN", "sudo lsof -iTCP:8080 -sTCP:LISTEN", "sudo lsof -sTCP:LISTEN -iTCP:8080"],
+            "hint": "Select protocol, port, and state: 'sudo lsof -nP -iTCP:8080 -sTCP:LISTEN'",
+            "explanation": "-iTCP:8080 selects TCP sockets involving port 8080 and -sTCP:LISTEN restricts them to listeners, whose local endpoint is the port in question. sudo allows inspecting all process owners. -nP keeps addresses and ports numeric instead of resolving names."
         },
         {
             "id": "linux_troubleshooting_lab__curl_localhost",
-            "prompt": "Test whether the local web server responds on port 80 with an HTTP request.",
+            "prompt": "On Ubuntu with curl installed and no custom curl or proxy configuration, localhost resolves to loopback. Use curl to test an HTTP response from the root path on localhost TCP port 80 with a HEAD request or its default GET request.",
             "prefix": "user@ubuntu:~$",
-            "expected": "^curl\\s+-I\\s+http://localhost$",
-            "aliases": ["curl http://localhost"],
+            "expected": "^curl\\s+(?:(?:-I|--head)\\s+)?http://localhost(?::80)?/?$",
+            "aliases": ["curl -I http://localhost", "curl http://localhost", "curl --head http://localhost:80/"],
             "hint": "Use curl against localhost: 'curl -I http://localhost'",
-            "explanation": "'curl -I http://localhost' verifies the service responds locally, isolating network from app issues."
+            "explanation": "HTTP defaults to port 80 and an omitted path is /. -I (or --head) sends HEAD and prints response headers; default GET prints the body. A response establishes local HTTP reachability, but its status may still report an application error. This probe does not test access from another host."
         },
         {
             "id": "linux_troubleshooting_lab__ping_gateway",
-            "prompt": "Test layer-3 connectivity to the default gateway at '192.168.1.1' with 4 pings.",
+            "prompt": "On Ubuntu with iputils ping installed, your ordinary account is allowed to send ICMP Echo Requests. The configured default gateway is 192.168.1.1. Use ping to send exactly four Echo Requests to that gateway.",
             "prefix": "user@ubuntu:~$",
-            "expected": "^ping\\s+-c\\s+4\\s+192\\.168\\.1\\.1$",
-            "aliases": ["ping 192.168.1.1 -c 4"],
+            "expected": "^ping\\s+(?:-4\\s+)?-c\\s*4\\s+192\\.168\\.1\\.1$",
+            "aliases": ["ping -c 4 192.168.1.1", "ping 192.168.1.1 -c 4"],
             "hint": "Use ping with count: 'ping -c 4 192.168.1.1'",
-            "explanation": "Pinging the gateway confirms local network connectivity before testing external hosts."
+            "explanation": "-c 4 limits the probe to four Echo Requests. Replies support IP reachability to this gateway; missing replies may also reflect ICMP filtering and do not by themselves identify a routing fault. This does not test external hosts or application services."
         },
         {
             "id": "linux_troubleshooting_lab__dig_dns_fail",
-            "prompt": "DNS resolution is failing for 'api.example.com'. Query its A record.",
+            "prompt": "On Ubuntu with BIND dig installed, /etc/resolv.conf identifies the resolver to investigate and no .digrc overrides are present. Use dig to query the A record for api.example.com through that configured resolver.",
             "prefix": "user@ubuntu:~$",
-            "expected": "^dig\\s+api\\.example\\.com$",
-            "aliases": ["dig api.example.com A", "nslookup api.example.com"],
-            "hint": "Use dig: 'dig api.example.com'",
-            "explanation": "'dig' reveals whether DNS returns a valid A record or shows resolver/configuration errors."
+            "expected": "^dig\\s+api\\.example\\.com\\.?(?:\\s+(?:-t\\s+)?A)?$",
+            "aliases": ["dig api.example.com A", "dig api.example.com", "dig -t A api.example.com.", "dig -t A api.example.com"],
+            "hint": "Select the DNS name and A record: 'dig api.example.com A'",
+            "explanation": "dig uses the nameservers configured in /etc/resolv.conf when no @server is supplied. A requests IPv4 address records and is the default query type here. The answer section, response status, and timeouts help distinguish DNS answers from resolver failures; replacing the configured resolver would investigate a different path."
         },
         {
             "id": "linux_troubleshooting_lab__ip_addr_check",
-            "prompt": "Confirm the server has the expected IP address assigned to its interfaces.",
+            "prompt": "On an Ubuntu server with iproute2 installed, ens3 should have 192.168.1.10/24. As an ordinary user, use ip's address object to list all local interface addresses so you can compare the configuration with that expectation, without changing it.",
             "prefix": "user@ubuntu:~$",
-            "expected": "^ip\\s+addr\\s+show$",
-            "aliases": ["ip a"],
+            "expected": "^ip\\s+(?:addr|address|a)(?:\\s+(?:show|list))?$",
+            "aliases": ["ip addr show", "ip address show", "ip a", "ip -brief address show"],
             "hint": "Use ip addr show: 'ip addr show'",
-            "explanation": "'ip addr show' lists all interface addresses to verify correct network configuration."
+            "explanation": "ip address show reports assigned addresses and prefix lengths, allowing you to compare ens3 with 192.168.1.10/24. addr and a abbreviate the address object; its default action is show. This read-only query needs no elevation and does not prove that remote connectivity works."
         },
         {
             "id": "linux_troubleshooting_lab__traceroute_external",
-            "prompt": "External hosts are unreachable. Trace the route to '8.8.8.8'.",
+            "prompt": "On Ubuntu with the Linux traceroute utility installed, investigate the route toward 8.8.8.8 using its default UDP probe method as an ordinary user. Trace from this host without changing routes; numeric output is optional.",
             "prefix": "user@ubuntu:~$",
-            "expected": "^traceroute\\s+8\\.8\\.8\\.8$",
-            "aliases": ["tracepath 8.8.8.8"],
+            "expected": "^traceroute\\s+(?:(?:-4|-n)\\s+)?8\\.8\\.8\\.8$",
+            "aliases": ["traceroute 8.8.8.8", "traceroute -4 -n 8.8.8.8"],
             "hint": "Use traceroute: 'traceroute 8.8.8.8'",
-            "explanation": "'traceroute' pinpoints where packets stop forwarding, revealing routing or firewall blocks."
+            "explanation": "traceroute raises probe TTL values to discover responding hops and round-trip times. The default UDP method works without elevation here. Asterisks mean no reply within the timeout; filtering or rate limiting can hide a hop even when it forwards traffic, so the output does not pinpoint a fault by itself."
         },
         {
             "id": "linux_troubleshooting_lab__tail_app_log",
-            "prompt": "Monitor the application log '/var/log/app.log' in real time for new errors.",
+            "prompt": "On Ubuntu, /var/log/app.log exists and only root can read it. Your ordinary account has sudo access. The application appends lines to this file without renaming or rotating it during this investigation. Use GNU tail with elevation to monitor newly appended lines.",
             "prefix": "user@ubuntu:~$",
-            "expected": "^tail\\s+-f\\s+/var/log/app\\.log$",
-            "aliases": [],
-            "hint": "Use tail follow: 'tail -f /var/log/app.log'",
-            "explanation": "'tail -f' streams new log lines as they are written, essential for live incident response."
+            "expected": "^sudo\\s+tail\\s+(?:-f|--follow(?:=descriptor)?)\\s+/var/log/app\\.log$",
+            "aliases": ["sudo tail -f /var/log/app.log", "sudo tail --follow=descriptor /var/log/app.log", "sudo tail -F /var/log/app.log"],
+            "hint": "Follow the protected log: 'sudo tail -f /var/log/app.log'",
+            "explanation": "sudo opens this root-readable log. tail -f first prints its last ten lines, then follows appended data through the open file descriptor. The file is not rotated in this scenario; following by name also works here. Watching log lines supplies evidence but does not automatically classify their severity."
         },
         {
             "id": "linux_troubleshooting_lab__grep_errors",
-            "prompt": "Search '/var/log/app.log' for lines containing 'FATAL' to find critical failures.",
+            "prompt": "On Ubuntu, /var/log/app.log exists and only root can read it. Your ordinary account has sudo access. Use GNU grep with elevation to print lines containing the case-sensitive literal text FATAL anywhere in this file.",
             "prefix": "user@ubuntu:~$",
-            "expected": "^grep\\s+FATAL\\s+/var/log/app\\.log$",
-            "aliases": [],
-            "hint": "Use grep: 'grep FATAL /var/log/app.log'",
-            "explanation": "'grep FATAL' filters log noise to show only critical error entries for faster root-cause analysis."
+            "expected": "^sudo\\s+grep\\s+(?:(?:-F|--fixed-strings)\\s+)?(?:FATAL|'FATAL'|\"FATAL\")\\s+/var/log/app\\.log$",
+            "aliases": ["sudo grep FATAL /var/log/app.log", "sudo grep -F 'FATAL' /var/log/app.log"],
+            "hint": "Search the protected log: 'sudo grep FATAL /var/log/app.log'",
+            "explanation": "grep prints lines matching FATAL with case-sensitive matching by default. FATAL has no regular-expression metacharacters, so fixed-string matching with -F produces the same selection. sudo permits reading the protected file. Matching this label identifies candidate failures but does not establish their root cause."
         },
         {
             "id": "linux_troubleshooting_lab__journalctl_service",
-            "prompt": "Review recent logs for the failing 'nginx' systemd service.",
+            "prompt": "On Ubuntu with systemd, nginx.service is failing and writes to the system journal. Your ordinary account has sudo access but is not authorized to read the full system journal directly. Use journalctl with elevation to show this system service's journal entries from one hour ago onward.",
             "prefix": "user@ubuntu:~$",
-            "expected": "^journalctl\\s+-u\\s+nginx\\s+--since\\s+\"1\\s+hour\\s+ago\"$",
-            "aliases": ["journalctl -u nginx -n 50", "sudo journalctl -u nginx --since \"1 hour ago\""],
-            "hint": "Use journalctl with unit: 'journalctl -u nginx --since \"1 hour ago\"'",
-            "explanation": "'journalctl -u nginx' aggregates service-specific logs, often revealing startup or config errors."
+            "expected": "^sudo\\s+journalctl\\s+(?:-u|--unit)\\s+nginx(?:\\.service)?\\s+(?:--since|-S)\\s+(['\"])1\\s+hour\\s+ago\\1$",
+            "aliases": ["sudo journalctl -u nginx --since \"1 hour ago\"", "sudo journalctl --system -u nginx.service --since \"1 hour ago\""],
+            "hint": "Read the service journal with elevation: sudo journalctl -u nginx --since \"1 hour ago\"",
+            "explanation": "-u selects nginx.service, including relevant service-manager messages; the .service suffix may be omitted. --since (or -S) sets the starting time to one hour ago. sudo provides full system-journal access in this scenario. A last-50-lines limit alone would not enforce this time window."
         },
         {
             "id": "linux_troubleshooting_lab__systemctl_status",
-            "prompt": "Check why the 'mysql' service failed to start.",
+            "prompt": "On Ubuntu with systemd, the system service mysql.service failed to start. Your ordinary account is permitted to query its status and read its recent journal entries. Use systemctl to inspect the service's detailed status without changing it.",
             "prefix": "user@ubuntu:~$",
-            "expected": "^systemctl\\s+status\\s+mysql$",
-            "aliases": ["sudo systemctl status mysql"],
-            "hint": "Use systemctl status: 'systemctl status mysql'",
-            "explanation": "'systemctl status' shows active state, exit codes, and the last few log lines for the unit."
+            "expected": "^(?:sudo\\s+)?systemctl\\s+(?:--system\\s+)?status\\s+mysql(?:\\.service)?$",
+            "aliases": ["systemctl status mysql", "sudo systemctl status mysql"],
+            "hint": "Inspect the system service: 'systemctl status mysql'",
+            "explanation": "systemctl status reports the unit's state, recent exit information, and available recent journal lines. mysql expands to mysql.service and the system manager is the default. Your account has the necessary read access here; this inspection can suggest a failure cause but further logs or configuration checks may be needed."
         },
         {
             "id": "linux_troubleshooting_lab__dmesg_kernel",
-            "prompt": "Inspect recent kernel messages for hardware or driver errors after a crash.",
+            "prompt": "On Ubuntu with util-linux dmesg and GNU tail installed, a driver fault occurred during the current boot and the host has not rebooted. dmesg_restrict=1 prevents your ordinary account from reading the kernel ring buffer directly; you have sudo access. Display the last 20 lines of that buffer without clearing it.",
             "prefix": "user@ubuntu:~$",
-            "expected": "^dmesg\\s+\\|\\s+tail\\s+-20$",
-            "aliases": ["sudo dmesg | tail -20", "journalctl -k"],
-            "hint": "Use dmesg piped to tail: 'dmesg | tail -20'",
-            "explanation": "'dmesg' contains kernel ring buffer messages about hardware, drivers, and OOM killer events."
+            "expected": "^sudo\\s+dmesg\\s*\\|\\s*tail\\s+(?:-20|-n\\s*20|--lines(?:=|\\s+)20)$",
+            "aliases": ["sudo dmesg | tail -n 20", "sudo dmesg | tail -20"],
+            "hint": "Read the buffer with elevation and limit its output: 'sudo dmesg | tail -n 20'",
+            "explanation": "sudo dmesg reads the current kernel ring buffer despite dmesg_restrict. tail -n 20 selects its last twenty lines for inspection, without filtering by severity or clearing the buffer. These may contain driver or hardware evidence, but they do not recover a previous boot's crash logs."
         }
     ]
 }

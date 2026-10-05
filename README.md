@@ -28,7 +28,7 @@ You get a simulated shell prompt, type the command, and receive instant feedback
 | 💡 **Hints & Explanations** | Type `hint` for help (may include the command); get a full explanation after each answer |
 | 📊 **Progress Tracking** | Accuracy stats, completed lessons, and history saved locally |
 | 🧩 **Extensible** | Add new lessons by dropping a JSON file into `conf_t/lessons/` |
-| 🎫 **Multiple Platforms** | 643+ tasks across Cisco IOS, Linux, PowerShell, Git, and Docker |
+| 🎫 **Multiple Platforms** | 645+ tasks across Cisco IOS, Linux, PowerShell, Git, and Docker |
 | 📚 **Structured Curriculum** | Beginner → advanced learning paths with prerequisites and capstone labs |
 | 🗺️ **Curriculum Browser** | Difficulty grouping, progress icons, recommended next lesson, soft prerequisite warnings |
 
@@ -130,12 +130,12 @@ Practice and Review use the same answer handling. Hints and blank lines do not u
 
 ## 📦 Lesson Library
 
-Conf T ships with **68 lessons** and **643 practice tasks** across five platforms.
+Conf T ships with **68 lessons** and **645 practice tasks** across five platforms.
 
 | Platform | Lessons | Tasks | Focus |
 |---|---|---|---|
 | Cisco IOS | 21 | 231 | CCNA-aligned switching, routing, security, services |
-| Linux | 15 | 144 | Shell, systemd, networking, scripting, troubleshooting |
+| Linux | 15 | 146 | Shell, systemd, networking, scripting, troubleshooting |
 | PowerShell | 12 | 102 | Cmdlets, pipeline, scripting, remoting, automation |
 | Git | 10 | 83 | Workflow, branching, merging, recovery |
 | Docker | 10 | 83 | Images, containers, compose, networking, volumes |
@@ -155,6 +155,10 @@ Conf T ships with **68 lessons** and **643 practice tasks** across five platform
 | Beginner | `linux_basic`, `linux_file_operations`, `linux_text_processing`, `linux_package_management` |
 | Intermediate | `linux_advanced`, `linux_permissions_deep`, `linux_process_management`, `linux_systemd`, `linux_networking`, `linux_users_groups`, `linux_cron_scheduling` |
 | Advanced | `linux_lvm_storage`, `linux_firewall`, `linux_shell_scripting`, `linux_troubleshooting_lab` |
+
+**Start the Linux path** at `linux_basic` (Linux Terminal Basics), then follow the browser's prerequisite-aware recommendations. Tasks use Ubuntu, Bash, and systemd unless their own scenario names another environment, such as RHEL with firewalld. Each Task provides its own files, permissions, and system state so it can also be answered independently in Review. Commands are validated in the trainer rather than executed on your computer.
+
+Existing Linux Task IDs and progress are preserved. The new ext4 filesystem-creation and firewalld reload Tasks start unanswered. A previously completed storage or firewall Lesson can therefore show as in progress; resume it to answer the addition without resetting your earlier passes.
 
 ### PowerShell, Git & Docker
 

@@ -9,11 +9,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- Two Linux Tasks: create an ext4 filesystem on a new logical volume, and reload firewalld after a permanent rule change.
 - Three beginner Git tasks: set a repository-local name and email, then append an ignore pattern before staging files.
 - Repository workflow docs for GitHub issues, triage labels, and domain language in `AGENTS.md`, `CONTEXT.md`, and `docs/agents/`.
 
 ### Changed
 
+- Repaired all 15 Linux Lessons for independent Practice and Review scenarios, complete Bash answers, required privileges, supported command variants, and accurate Hints and Explanations. Existing Task IDs remain stable; the library now has 645 Tasks, including 146 for Linux.
+- Linux permissions, scheduling, and troubleshooting prerequisites now follow the knowledge they require; README guidance explains where to start and how existing progress resumes the additions.
 - Repaired prompts, accepted commands, aliases, and explanations across the Git lessons so the path can be assigned to learners in Practice and reused in Review.
 - Practice and Review now share command handling through `session.py`, including hints, skips, attempts, explanations, and first-try results.
 - Lesson standing, due Review, the failed queue, stats, continue, resume, start-over, and prerequisite queries now use the session interface. The CLI no longer reads progress file keys to answer them.

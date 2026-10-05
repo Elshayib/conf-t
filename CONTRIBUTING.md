@@ -59,9 +59,14 @@ The easiest way to contribute is to add a new lesson JSON file.
 Before opening a PR with new lessons, verify:
 
 - [ ] One distinct concept per task — no duplicate prompts or regex within a lesson
+- [ ] Each Task asks for one complete command; a complete shell compound command on one submitted line also counts
+- [ ] Each Task supplies an independent scenario for Practice and Review, including relevant current directory, files, permissions, installed tools, and system state
+- [ ] Name the intended tool and the environment when command behavior depends on the shell, distribution, or service manager
 - [ ] `prefix` reflects the real shell/IOS mode for that step
 - [ ] Cisco tasks include common abbreviations in `aliases` (`conf t`, `no shut`, etc.)
 - [ ] `hint` may include the command so a stuck learner can continue; `explanation` teaches the why
+- [ ] Commands in Hints and the first alias used for skip/reveal are complete, concrete, and accepted; check meaningful correct and incorrect commands against the intended tool's manual
+- [ ] Preserve existing Task IDs and teaching goals when repairing a Lesson so saved progress remains usable
 - [ ] `difficulty` and `prerequisites` form a sensible learning path
 - [ ] `pytest tests/` passes
 

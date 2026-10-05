@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+from datetime import datetime
 from pathlib import Path
 from typing import Optional, Sequence
 
@@ -117,8 +118,19 @@ def practice_summary(
 class Session:
     """Owns Lesson standing and related progress answers for Practice and Review."""
 
-    def __init__(self, progress_path: Optional[Path] = None) -> None:
-        self._progress = ProgressManager(filepath=progress_path)
+    def __init__(
+        self,
+        progress_path: Optional[Path] = None,
+        *,
+        clock: datetime | None = None,
+    ) -> None:
+        """Open progress.
+
+        `clock`, when given, is the fixed time for every review check in this
+        session. When omitted, each check uses the current time. A Learner
+        does not set the clock.
+        """
+        self._progress = ProgressManager(filepath=progress_path, clock=clock)
         self._lost_first_try: set[str] = set()
 
     def mark_practice_opened(self, lesson: Lesson) -> None:
@@ -213,7 +225,7 @@ class Session:
             return ContinueTarget(action="daily_review")
 
         by_id = {lesson.id: lesson for lesson in lessons}
-        for lesson_id in reversed(self._progress.data.get("attempted_lessons", [])):
+        for lesson_id in reversed(self._progress.attempted_lesson_ids()):
             lesson = by_id.get(lesson_id)
             if lesson is None:
                 continue
@@ -268,22 +280,22 @@ class Session:
         ]
 
     def stats(self) -> LearnerStats:
-        data = self._progress.data
+        stored = self._progress.lifetime_stats()
         by_platform = {
             platform: PlatformTotals(
-                attempts=int(totals.get("attempts", 0)),
-                correct_first_try=int(totals.get("correct_first_try", 0)),
-                skipped=int(totals.get("skipped", 0)),
+                attempts=totals.attempts,
+                correct_first_try=totals.correct_first_try,
+                skipped=totals.skipped,
             )
-            for platform, totals in data.get("platform_stats", {}).items()
+            for platform, totals in stored.by_platform.items()
         }
         return LearnerStats(
-            completed_lessons=len(data.get("completed_lessons", [])),
+            completed_lessons=stored.completed_lessons,
             due_count=len(self.due_review()),
             failed_queue_size=len(self.failed_queue()),
-            total_attempts=int(data.get("total_attempts", 0)),
-            correct_first_try=int(data.get("correct_first_try", 0)),
-            skipped=int(data.get("skipped_count", 0)),
+            total_attempts=stored.total_attempts,
+            correct_first_try=stored.correct_first_try,
+            skipped=stored.skipped,
             by_platform=by_platform,
         )
 
@@ -291,14 +303,10 @@ class Session:
         self._progress.reset_progress()
 
     def should_show_welcome(self) -> bool:
-        data = self._progress.data
-        if data.get("onboarding_complete"):
-            return False
-        return int(data.get("total_attempts", 0)) == 0
+        return self._progress.should_show_welcome()
 
     def dismiss_welcome(self) -> None:
-        self._progress.data["onboarding_complete"] = True
-        self._progress.save()
+        self._progress.dismiss_welcome()
 
     def lesson_standing(self, lesson: Lesson) -> LessonStanding:
         task_ids = [task.id for task in lesson.tasks]
@@ -345,15 +353,11 @@ class Session:
         return titles
 
     def _has_progress(self, lesson: Lesson, task_ids: list[str]) -> bool:
-        if lesson.id in self._progress.data.get("attempted_lessons", []):
-            return True
-        task_progress = self._progress.data.get("task_progress", {})
-        return any(task_id in task_progress for task_id in task_ids)
+        return self._progress.has_lesson_activity(lesson.id, task_ids)
 
     def _sync_completion(self, lesson: Lesson) -> None:
         standing = self.lesson_standing(lesson)
-        if standing.status == LESSON_STATUS_COMPLETED:
-            self._progress.mark_lesson_completed(lesson.id)
-        elif lesson.id in self._progress.data.get("completed_lessons", []):
-            self._progress.data["completed_lessons"].remove(lesson.id)
-            self._progress.save()
+        self._progress.set_lesson_completed(
+            lesson.id,
+            standing.status == LESSON_STATUS_COMPLETED,
+        )

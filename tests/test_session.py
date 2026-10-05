@@ -1,10 +1,8 @@
-"""Session-module seam tests for standing, Review queues, stats, submit, continue, resume (#17–#23)."""
+"""Session-module seam tests for standing, Review queues, stats, submit, continue, resume."""
 
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 import json
-
-import pytest
 
 from conf_t.models import Lesson, Task
 from conf_t.session import (
@@ -211,23 +209,18 @@ def test_late_pass_stays_in_failed_queue_and_is_not_due(tmp_path: Path) -> None:
     assert session.failed_queue() == [ReviewEntry(lesson_id="l1", task_id="l1__a")]
 
 
-def test_late_pass_waits_1_then_3_then_7_days(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
-    import conf_t.engine as engine
+def _session_at(path: Path, when: datetime) -> Session:
+    return Session(progress_path=path, clock=when)
 
-    clock = {"now": datetime(2026, 1, 1, tzinfo=timezone.utc)}
 
-    def set_now(value: datetime) -> None:
-        clock["now"] = value.replace(microsecond=0)
-
-    monkeypatch.setattr(engine, "_utc_now", lambda: clock["now"])
-    monkeypatch.setattr(engine, "_utc_now_iso", lambda: clock["now"].isoformat())
-
-    session = _session(tmp_path)
+def test_late_pass_waits_1_then_3_then_7_days(tmp_path: Path) -> None:
+    start = datetime(2026, 1, 1, tzinfo=timezone.utc)
+    path = tmp_path / "progress.json"
     lesson = _lesson(tasks=[_task("l1__a")])
     task = lesson.tasks[0]
     entry = ReviewEntry(lesson_id="l1", task_id="l1__a")
-    start = clock["now"]
 
+    session = _session_at(path, start)
     session.record_attempt(lesson, task, correct=False, first_try=True, skipped=False)
     assert session.due_review() == [entry]
 
@@ -235,56 +228,97 @@ def test_late_pass_waits_1_then_3_then_7_days(tmp_path: Path, monkeypatch: pytes
     assert session.due_review() == []
     assert session.failed_queue() == [entry]
 
-    set_now(start + timedelta(days=1))
-    assert session.due_review() == [entry]
-    session.record_attempt(lesson, task, correct=True, first_try=False, skipped=False)
-    assert session.due_review() == []
+    day_1 = _session_at(path, start + timedelta(days=1))
+    assert day_1.due_review() == [entry]
+    day_1.record_attempt(lesson, task, correct=True, first_try=False, skipped=False)
+    assert day_1.due_review() == []
 
-    set_now(start + timedelta(days=1) + timedelta(days=3))
-    assert session.due_review() == [entry]
-    session.record_attempt(lesson, task, correct=True, first_try=False, skipped=False)
-    assert session.due_review() == []
+    day_4 = _session_at(path, start + timedelta(days=1 + 3))
+    assert day_4.due_review() == [entry]
+    day_4.record_attempt(lesson, task, correct=True, first_try=False, skipped=False)
+    assert day_4.due_review() == []
 
-    set_now(start + timedelta(days=1) + timedelta(days=3) + timedelta(days=7))
-    assert session.due_review() == [entry]
-    session.record_attempt(lesson, task, correct=True, first_try=False, skipped=False)
-    assert session.due_review() == []
-    assert session.failed_queue() == [entry]
+    day_11 = _session_at(path, start + timedelta(days=1 + 3 + 7))
+    assert day_11.due_review() == [entry]
+    day_11.record_attempt(lesson, task, correct=True, first_try=False, skipped=False)
+    assert day_11.due_review() == []
+    assert day_11.failed_queue() == [entry]
 
-    almost = start + timedelta(days=1) + timedelta(days=3) + timedelta(days=7) + timedelta(days=6)
-    set_now(almost)
-    assert session.due_review() == []
-    set_now(almost + timedelta(days=1))
-    assert session.due_review() == [entry]
+    almost = start + timedelta(days=1 + 3 + 7 + 6)
+    assert _session_at(path, almost).due_review() == []
+    assert _session_at(path, almost + timedelta(days=1)).due_review() == [entry]
 
 
-def test_due_review_lists_only_due_tasks_soonest_first(
-    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
-) -> None:
-    import conf_t.engine as engine
-
-    clock = {"now": datetime(2026, 6, 1, tzinfo=timezone.utc)}
-    monkeypatch.setattr(engine, "_utc_now", lambda: clock["now"])
-    monkeypatch.setattr(engine, "_utc_now_iso", lambda: clock["now"].isoformat())
-
-    session = _session(tmp_path)
+def test_due_review_lists_only_due_tasks_soonest_first(tmp_path: Path) -> None:
+    start = datetime(2026, 6, 1, tzinfo=timezone.utc)
+    path = tmp_path / "progress.json"
     lesson = _lesson(tasks=[_task("l1__later"), _task("l1__soon")])
     later, soon = lesson.tasks
 
-    session.record_attempt(lesson, later, correct=False, first_try=True, skipped=False)
-    session.record_attempt(lesson, later, correct=True, first_try=False, skipped=False)
+    first = _session_at(path, start)
+    first.record_attempt(lesson, later, correct=False, first_try=True, skipped=False)
+    first.record_attempt(lesson, later, correct=True, first_try=False, skipped=False)
 
-    clock["now"] = clock["now"] + timedelta(hours=12)
-    session.record_attempt(lesson, soon, correct=False, first_try=True, skipped=False)
+    midway = _session_at(path, start + timedelta(hours=12))
+    midway.record_attempt(lesson, soon, correct=False, first_try=True, skipped=False)
 
-    assert session.due_review() == [ReviewEntry(lesson_id="l1", task_id="l1__soon")]
-    assert session.failed_queue() == [
+    assert midway.due_review() == [ReviewEntry(lesson_id="l1", task_id="l1__soon")]
+    assert midway.failed_queue() == [
         ReviewEntry(lesson_id="l1", task_id="l1__later"),
         ReviewEntry(lesson_id="l1", task_id="l1__soon"),
     ]
 
-    clock["now"] = clock["now"] + timedelta(days=1)
-    assert [entry.task_id for entry in session.due_review()] == ["l1__soon", "l1__later"]
+    later_on = _session_at(path, start + timedelta(hours=12) + timedelta(days=1))
+    assert [entry.task_id for entry in later_on.due_review()] == ["l1__soon", "l1__later"]
+
+
+def test_another_miss_or_skip_is_due_immediately(tmp_path: Path) -> None:
+    start = datetime(2026, 4, 1, tzinfo=timezone.utc)
+    path = tmp_path / "progress.json"
+    lesson = _lesson(tasks=[_task("l1__a")])
+    task = lesson.tasks[0]
+    entry = ReviewEntry(lesson_id="l1", task_id="l1__a")
+
+    session = _session_at(path, start)
+    session.record_attempt(lesson, task, correct=False, first_try=True, skipped=False)
+    session.record_attempt(lesson, task, correct=True, first_try=False, skipped=False)
+    assert session.due_review() == []
+
+    same_day = _session_at(path, start + timedelta(hours=1))
+    assert same_day.due_review() == []
+    same_day.record_attempt(lesson, task, correct=False, first_try=False, skipped=False)
+    assert same_day.due_review() == [entry]
+    assert same_day.failed_queue() == [entry]
+
+    same_day.record_attempt(lesson, task, correct=True, first_try=False, skipped=False)
+    assert same_day.due_review() == []
+
+    still_waiting = _session_at(path, start + timedelta(hours=2))
+    assert still_waiting.due_review() == []
+    still_waiting.record_attempt(lesson, task, correct=False, first_try=False, skipped=True)
+    assert still_waiting.due_review() == [entry]
+    assert still_waiting.failed_queue() == [entry]
+
+
+def test_reentering_drill_after_first_try_pass_goes_to_the_end(tmp_path: Path) -> None:
+    session = _session(tmp_path)
+    lesson = _lesson(tasks=[_task("l1__a"), _task("l1__b")])
+    passed, other = lesson.tasks
+
+    session.record_attempt(lesson, passed, correct=True, first_try=True, skipped=False)
+    session.record_attempt(lesson, other, correct=False, first_try=True, skipped=False)
+    session.record_attempt(lesson, passed, correct=False, first_try=False, skipped=False)
+
+    assert session.failed_queue() == [
+        ReviewEntry(lesson_id="l1", task_id="l1__b"),
+        ReviewEntry(lesson_id="l1", task_id="l1__a"),
+    ]
+
+    reopened = Session(progress_path=tmp_path / "progress.json")
+    assert reopened.failed_queue() == [
+        ReviewEntry(lesson_id="l1", task_id="l1__b"),
+        ReviewEntry(lesson_id="l1", task_id="l1__a"),
+    ]
 
 
 def test_failed_queue_includes_tasks_that_are_not_due_yet(tmp_path: Path) -> None:
@@ -423,7 +457,90 @@ def test_older_progress_file_yields_same_passed_due_and_failed(tmp_path: Path) -
     assert "done_l" not in {entry.lesson_id for entry in session.failed_queue()}
 
 
-# --- submit turn (#19) ---
+def test_old_file_first_try_pass_outranks_leftover_drill_entry(tmp_path: Path) -> None:
+    """A pass wins over a drill entry; a drill entry with no record is due now."""
+    progress_file = tmp_path / "progress.json"
+    when = datetime(2026, 6, 1, tzinfo=timezone.utc)
+    waiting_until = datetime(2026, 6, 8, tzinfo=timezone.utc)
+    legacy = {
+        "progress_version": 4,
+        "completed_lessons": ["done_l"],
+        "attempted_lessons": ["done_l", "open_l"],
+        "task_progress": {
+            "open_l__pass": {
+                "lesson_id": "open_l",
+                "status": "passed",
+                "passed_first_try": True,
+                "attempts": 1,
+                "review_level": 0,
+            },
+            "open_l__waiting": {
+                "lesson_id": "open_l",
+                "status": "failed",
+                "passed_first_try": False,
+                "attempts": 2,
+                "review_level": 1,
+                "next_review_at": waiting_until.isoformat(),
+            },
+        },
+        "failed_tasks": [
+            {"lesson_id": "open_l", "task_id": "open_l__pass"},
+            {"lesson_id": "open_l", "task_id": "open_l__only"},
+            {"lesson_id": "open_l", "task_id": "open_l__waiting"},
+        ],
+        "total_attempts": 8,
+        "correct_first_try": 3,
+        "skipped_count": 2,
+        "platform_stats": {
+            "Linux": {"attempts": 5, "correct_first_try": 2, "skipped": 1},
+            "Cisco": {"attempts": 3, "correct_first_try": 1, "skipped": 1},
+        },
+    }
+    progress_file.write_text(json.dumps(legacy), encoding="utf-8")
+
+    session = Session(progress_path=progress_file, clock=when)
+    lesson = _lesson(
+        lesson_id="open_l",
+        tasks=[
+            _task("open_l__pass"),
+            _task("open_l__only"),
+            _task("open_l__waiting"),
+        ],
+    )
+    passed = ReviewEntry(lesson_id="open_l", task_id="open_l__pass")
+    only = ReviewEntry(lesson_id="open_l", task_id="open_l__only")
+    waiting = ReviewEntry(lesson_id="open_l", task_id="open_l__waiting")
+
+    assert passed not in session.due_review()
+    assert passed not in session.failed_queue()
+    assert only in session.due_review()
+    assert only in session.failed_queue()
+    assert waiting not in session.due_review()
+    assert waiting in session.failed_queue()
+    assert session.lesson_standing(lesson).passed == 1
+
+    stats = session.stats()
+    assert stats.completed_lessons == 1
+    assert stats.total_attempts == 8
+    assert stats.correct_first_try == 3
+    assert stats.skipped == 2
+    assert stats.by_platform["Linux"].attempts == 5
+    assert stats.by_platform["Linux"].correct_first_try == 2
+    assert stats.by_platform["Linux"].skipped == 1
+    assert stats.by_platform["Cisco"].attempts == 3
+    assert stats.by_platform["Cisco"].correct_first_try == 1
+    assert stats.by_platform["Cisco"].skipped == 1
+
+    reopened = Session(progress_path=progress_file, clock=when)
+    assert passed not in reopened.due_review()
+    assert passed not in reopened.failed_queue()
+    assert only in reopened.due_review()
+    assert waiting not in reopened.due_review()
+    assert reopened.stats().total_attempts == 8
+    assert reopened.stats().correct_first_try == 3
+
+
+# --- submit turn ---
 
 
 def test_blank_line_is_ignored_and_does_not_record(tmp_path: Path) -> None:

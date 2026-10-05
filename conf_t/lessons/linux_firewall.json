@@ -75,7 +75,7 @@
             "id": "linux_firewall__iptables_list",
             "prompt": "On a separate Ubuntu host with iptables installed and no UFW or firewalld manager, use iptables to list all chains in the IPv4 filter table with numeric addresses/ports and rule line numbers. You are an ordinary user with sudo access.",
             "prefix": "user@ubuntu:~$",
-            "expected": "^sudo\\s+iptables\\s+(?:(-t|--table)\\s+filter\\s+)?(-L|--list)\\s+(-n|--numeric)\\s+--line-numbers$",
+            "expected": "^sudo\\s+iptables(?=(?:\\s+(?:(?:(?:-t|--table)\\s+filter|--table=filter)|-nL|--line-numbers|(?:-L|--list)|(?:-n|--numeric)))+$)(?=.*(?:\\s-nL|\\s-L|\\s--list)(?=\\s|$))(?=.*(?:\\s-nL|\\s-n|\\s--numeric)(?=\\s|$))(?=.*\\s--line-numbers(?=\\s|$))(?!(?:.*\\s--line-numbers(?=\\s|$)){2})(?!(?:.*(?:\\s-L|\\s--list)(?=\\s|$)){2})(?!(?:.*\\s-nL(?=\\s|$)){2})(?!.*\\s-nL(?=\\s|$).*(?:\\s-L|\\s--list)(?=\\s|$))(?!.*(?:\\s-L|\\s--list)(?=\\s|$).*\\s-nL(?=\\s|$))(?!(?:.*(?:\\s-n(?!L)|\\s--numeric)(?=\\s|$)){2})(?!.*\\s-nL(?=\\s|$).*(?:\\s-n(?!L)|\\s--numeric)(?=\\s|$))(?!.*(?:\\s-n(?!L)|\\s--numeric)(?=\\s|$).*\\s-nL(?=\\s|$))(?!(?:.*\\s(?:(?:-t|--table)\\s+filter|--table=filter)){2})(?:\\s+(?:(?:(?:-t|--table)\\s+filter|--table=filter)|-nL|--line-numbers|(?:-L|--list)|(?:-n|--numeric)))+$",
             "aliases": [
                 "sudo iptables -L -n --line-numbers",
                 "sudo iptables -n -L --line-numbers",

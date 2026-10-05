@@ -75,7 +75,7 @@
             "id": "linux_systemd__journalctl_unit",
             "prompt": "On Ubuntu with systemd, nginx.service has journal entries. Your ordinary account has sudo access but cannot read system logs directly. Use journalctl with elevation to show only nginx.service's journal entries since local midnight today.",
             "prefix": "user@ubuntu:~$",
-            "expected": "^sudo\\s+journalctl\\s+(?:-u\\s+|--unit(?:=|\\s+))nginx(?:\\.service)?\\s+(?:--since(?:=|\\s+)|-S\\s+)(?:today|'today'|\"today\")$",
+            "expected": "^sudo\\s+journalctl\\s+(?:(?:-u\\s+|--unit(?:=|\\s+))nginx(?:\\.service)?\\s+(?:--since(?:=|\\s+)|-S\\s+)(?:today|'today'|\"today\")|(?:--since(?:=|\\s+)|-S\\s+)(?:today|'today'|\"today\")\\s+(?:-u\\s+|--unit(?:=|\\s+))nginx(?:\\.service)?)$",
             "aliases": ["sudo journalctl -u nginx --since today", "sudo journalctl --since today -u nginx", "sudo journalctl --since \"today\" -u nginx", "sudo journalctl -S today --unit nginx.service"],
             "hint": "Combine elevation, unit filtering, and a start time: 'sudo journalctl -u nginx --since today'",
             "explanation": "-u (or --unit) selects nginx.service, including relevant manager messages about that unit. --since today starts at 00:00 in the host's local time; it is not the last 24 hours. sudo grants access to the required system logs."

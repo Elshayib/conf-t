@@ -73,7 +73,13 @@ def test_error_search_reads_case_sensitive_matches_in_protected_log() -> None:
 def test_service_journal_has_required_access_unit_and_time_window() -> None:
     task = load_task("journalctl_service")
     for command in ('sudo journalctl -u nginx --since "1 hour ago"',
-                    "sudo journalctl -u nginx.service -S '1 hour ago'"):
+                    "sudo journalctl -u nginx.service -S '1 hour ago'",
+                    'sudo journalctl --unit=nginx --since "1 hour ago"',
+                    'sudo journalctl --since "1 hour ago" -u nginx',
+                    'sudo journalctl -u nginx --since "-1h"',
+                    'sudo journalctl -u nginx --since "60 minutes ago"',
+                    "sudo journalctl -u nginx --since=-1h",
+                    "sudo journalctl --since=-1h -u nginx"):
         assert validate_input(command, task, "Linux"), command
     for command in ('journalctl -u nginx --since "1 hour ago"',
                     'sudo journalctl -u mysql --since "1 hour ago"',
@@ -262,7 +268,18 @@ def test_directory_usage_can_traverse_protected_subdirectories() -> None:
     task = load_task("du_find_large")
     for command in (
         "sudo du -sh /var", "sudo du -hs /var",
+        "sudo du -h -s /var",
         "sudo du --summarize --human-readable /var",
+        "sudo du --human-readable --summarize /var",
+        "sudo du -s --human-readable /var",
+        "sudo du --human-readable -s /var",
+        "sudo du --summarize -h /var",
+        "sudo du -h --summarize /var",
+        "sudo du -h --max-depth=0 /var",
+        "sudo du --max-depth=0 -h /var",
+        "sudo du -d 0 -h /var",
+        "sudo du -h -d 0 /var",
+        "sudo du -d0 -h /var",
     ):
         assert validate_input(command, task, "Linux"), command
     for command in (

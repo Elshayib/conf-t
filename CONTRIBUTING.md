@@ -66,7 +66,7 @@ Before opening a PR with new lessons, verify:
 - [ ] Cisco tasks include common abbreviations in `aliases` (`conf t`, `no shut`, etc.)
 - [ ] `hint` may include the command so a stuck learner can continue; `explanation` teaches the why
 - [ ] Commands in Hints and the first alias used for skip/reveal are complete, concrete, and accepted; check meaningful correct and incorrect commands against the intended tool's manual
-- [ ] Preserve existing Task IDs and teaching goals when repairing a Lesson so saved progress remains usable
+- [ ] Preserve an existing Task ID when repairing a Lesson so saved progress remains usable. An agreed teaching-goal change, such as asking for one complete command, may keep that ID
 - [ ] `difficulty` and `prerequisites` form a sensible learning path
 - [ ] `pytest tests/` passes
 

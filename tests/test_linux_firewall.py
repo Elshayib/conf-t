@@ -100,10 +100,29 @@ def test_iptables_listing_is_numeric_and_includes_line_numbers() -> None:
     assert validate_input(
         "sudo iptables --list --numeric --line-numbers", task, "Linux"
     )
+    assert validate_input(
+        "sudo iptables -t filter -n -L --line-numbers", task, "Linux"
+    )
+    assert validate_input(
+        "sudo iptables --table=filter -n -L --line-numbers", task, "Linux"
+    )
+    assert validate_input("sudo iptables -nL --line-numbers", task, "Linux")
     assert not validate_input("iptables -L -n --line-numbers", task, "Linux")
     assert not validate_input("sudo iptables -L -n", task, "Linux")
     assert not validate_input(
         "sudo iptables -L INPUT -n --line-numbers", task, "Linux"
+    )
+    assert not validate_input(
+        "sudo iptables -Ln --line-numbers", task, "Linux"
+    )
+    assert not validate_input(
+        "sudo iptables -L --list -n --line-numbers", task, "Linux"
+    )
+    assert not validate_input(
+        "sudo iptables -nL -L --line-numbers", task, "Linux"
+    )
+    assert not validate_input(
+        "sudo iptables -L -n --line-numbers -L", task, "Linux"
     )
 
 

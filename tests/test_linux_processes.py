@@ -148,6 +148,9 @@ def test_nginx_journal_since_local_midnight_requires_elevation() -> None:
         "sudo journalctl --unit=nginx.service --since 'today'",
         'sudo journalctl --since "today" -u nginx',
         "sudo journalctl -S today --unit nginx.service",
+        "sudo journalctl --since today -u nginx.service",
+        "sudo journalctl --since today --unit nginx.service",
+        "sudo journalctl -S today -u nginx.service",
     ):
         assert validate_input(command, task, "Linux"), command
     for command in (

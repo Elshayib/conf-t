@@ -39,7 +39,7 @@
             "id": "linux_troubleshooting_lab__du_find_large",
             "prompt": "On Ubuntu, /var contains protected subdirectories that only root can traverse. Your ordinary account has sudo access. Use GNU du with elevation to show one human-readable summary of disk space allocated to /var and its contents.",
             "prefix": "user@ubuntu:~$",
-            "expected": "^sudo\\s+du\\s+-(?:sh|hs)\\s+/var$",
+            "expected": "^sudo\\s+du\\s+(?:-(?:sh|hs)|(?:-s|--summarize|--max-depth(?:=|\\s+)0|-d\\s*0)\\s+(?:-h|--human-readable)|(?:-h|--human-readable)\\s+(?:-s|--summarize|--max-depth(?:=|\\s+)0|-d\\s*0))\\s+/var$",
             "aliases": ["sudo du -sh /var", "sudo du --summarize --human-readable /var", "sudo du -s -h /var"],
             "hint": "Elevate the directory traversal: 'sudo du -sh /var'",
             "explanation": "du measures allocated file blocks beneath /var; -s prints one total and -h formats it with powers of 1024. sudo permits traversing the protected directories. This differs from df's filesystem-wide free-space report and from apparent file sizes."
@@ -165,7 +165,7 @@
             "id": "linux_troubleshooting_lab__journalctl_service",
             "prompt": "On Ubuntu with systemd, nginx.service is failing and writes to the system journal. Your ordinary account has sudo access but is not authorized to read the full system journal directly. Use journalctl with elevation to show this system service's journal entries from one hour ago onward.",
             "prefix": "user@ubuntu:~$",
-            "expected": "^sudo\\s+journalctl\\s+(?:-u|--unit)\\s+nginx(?:\\.service)?\\s+(?:--since|-S)\\s+(['\"])1\\s+hour\\s+ago\\1$",
+            "expected": "^sudo\\s+journalctl\\s+(?:(?:-u\\s+|--unit(?:=|\\s+))nginx(?:\\.service)?\\s+(?:--since(?:=|\\s+)|-S\\s+)(?:(['\\\"])(?:1\\s+hour\\s+ago|-1h|60\\s+minutes\\s+ago)\\1|-1h)|(?:--since(?:=|\\s+)|-S\\s+)(?:(['\\\"])(?:1\\s+hour\\s+ago|-1h|60\\s+minutes\\s+ago)\\2|-1h)\\s+(?:-u\\s+|--unit(?:=|\\s+))nginx(?:\\.service)?)$",
             "aliases": ["sudo journalctl -u nginx --since \"1 hour ago\"", "sudo journalctl --system -u nginx.service --since \"1 hour ago\""],
             "hint": "Read the service journal with elevation: sudo journalctl -u nginx --since \"1 hour ago\"",
             "explanation": "-u selects nginx.service, including relevant service-manager messages; the .service suffix may be omitted. --since (or -S) sets the starting time to one hour ago. sudo provides full system-journal access in this scenario. A last-50-lines limit alone would not enforce this time window."

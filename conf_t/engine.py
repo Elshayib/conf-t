@@ -1,12 +1,21 @@
 import json
-import re
 from datetime import datetime, timedelta, timezone
 from typing import List, Dict, Any, NamedTuple, Optional
 from pathlib import Path
 
-from conf_t.models import Lesson, Task, SessionStats, TaskProgress
+from conf_t.catalog import (
+    DIFFICULTY_ORDER,
+    Catalog,
+    collect_all_tags,
+    filter_lessons_by_tags,
+    lesson_matches_tags,
+    parse_tags_csv,
+    sort_lessons_by_curriculum,
+)
+from conf_t.models import TaskProgress
 
-DIFFICULTY_ORDER = {"beginner": 0, "intermediate": 1, "advanced": 2}
+LessonLoader = Catalog
+
 LESSON_STATUS_COMPLETED = "completed"
 LESSON_STATUS_IN_PROGRESS = "in_progress"
 LESSON_STATUS_NOT_STARTED = "not_started"
@@ -24,93 +33,6 @@ def _parse_iso_datetime(value: str) -> datetime:
     return datetime.fromisoformat(value.replace("Z", "+00:00"))
 
 
-def validate_input(user_input: str, task: Task, platform: str) -> bool:
-    """
-    Validates the user's input command against the task's expected regex and aliases.
-    Applies case-sensitivity based on the platform:
-    - Cisco, PowerShell: case-insensitive
-    - Linux, Git, Docker: case-sensitive
-    """
-    cleaned_input = user_input.strip()
-    
-    # Determine regex flags
-    is_case_insensitive = platform.lower() in ["cisco", "powershell"]
-    flags = re.IGNORECASE if is_case_insensitive else 0
-
-    # 1. Test against expected regex pattern
-    try:
-        pattern = re.compile(task.expected, flags)
-        if pattern.match(cleaned_input):
-            return True
-    except re.error:
-        # Fallback to exact match if regex compilation fails
-        pass
-
-    # 2. Test against aliases list
-    for alias in task.aliases:
-        alias_clean = alias.strip()
-        if is_case_insensitive:
-            if cleaned_input.lower() == alias_clean.lower():
-                return True
-        else:
-            if cleaned_input == alias_clean:
-                return True
-
-    return False
-
-
-def format_display_answer(task: Task, platform: str) -> str:
-    """Return a human-readable correct answer for hints and skip reveals."""
-    if task.aliases:
-        return task.aliases[0]
-
-    display = task.expected
-    if display.startswith("^"):
-        display = display[1:]
-    if display.endswith("$"):
-        display = display[:-1]
-    display = display.replace(r"\s+", " ")
-    display = display.replace(r"\s", " ")
-    display = display.replace("\\", "")
-    return display
-
-
-def sort_lessons_by_curriculum(lessons: List[Lesson]) -> List[Lesson]:
-    return sorted(
-        lessons,
-        key=lambda lesson: (
-            DIFFICULTY_ORDER.get(lesson.difficulty, 99),
-            lesson.title.lower(),
-        ),
-    )
-
-
-def parse_tags_csv(tags: Optional[str]) -> List[str]:
-    if not tags:
-        return []
-    return [tag.strip().lower() for tag in tags.split(",") if tag.strip()]
-
-
-def lesson_matches_tags(lesson: Lesson, tags: List[str]) -> bool:
-    if not tags:
-        return True
-    lesson_tags = {tag.lower() for tag in lesson.tags}
-    return all(tag in lesson_tags for tag in tags)
-
-
-def filter_lessons_by_tags(lessons: List[Lesson], tags: List[str]) -> List[Lesson]:
-    if not tags:
-        return lessons
-    return [lesson for lesson in lessons if lesson_matches_tags(lesson, tags)]
-
-
-def collect_all_tags(lessons: List[Lesson]) -> List[str]:
-    tags: set[str] = set()
-    for lesson in lessons:
-        tags.update(tag.lower() for tag in lesson.tags)
-    return sorted(tags)
-
-
 def is_task_progress_passed(entry: Optional[Dict[str, Any]]) -> bool:
     if not entry:
         return False
@@ -118,54 +40,6 @@ def is_task_progress_passed(entry: Optional[Dict[str, Any]]) -> bool:
         entry.get("status") == TASK_STATUS_PASSED
         and entry.get("passed_first_try", False)
     )
-
-
-class LessonLoader:
-    """Loads and caches lessons from JSON files in the lessons directory."""
-    def __init__(self, lessons_dir: Optional[Path] = None):
-        if lessons_dir is None:
-            # Default to the lessons subdirectory inside the package
-            self.lessons_dir = Path(__file__).parent / "lessons"
-        else:
-            self.lessons_dir = Path(lessons_dir)
-
-    def load_all_lessons(self) -> List[Lesson]:
-        lessons: List[Lesson] = []
-        if not self.lessons_dir.exists() or not self.lessons_dir.is_dir():
-            return lessons
-
-        for file_path in self.lessons_dir.glob("*.json"):
-            try:
-                with open(file_path, "r", encoding="utf-8") as f:
-                    data = json.load(f)
-                    lessons.append(Lesson.from_dict(data))
-            except (json.JSONDecodeError, KeyError, OSError):
-                # Fail silently or ignore malformed lesson files to avoid crash
-                continue
-        return lessons
-
-    def get_lesson_by_id(self, lesson_id: str) -> Optional[Lesson]:
-        lessons = self.load_all_lessons()
-        for lesson in lessons:
-            if lesson.id == lesson_id:
-                return lesson
-        return None
-
-    def save_lesson(self, lesson: Lesson) -> bool:
-        """Saves a Lesson object as a JSON file in the lessons directory."""
-        if not self.lessons_dir.exists():
-            try:
-                self.lessons_dir.mkdir(parents=True, exist_ok=True)
-            except OSError:
-                return False
-        
-        file_path = self.lessons_dir / f"{lesson.id}.json"
-        try:
-            with open(file_path, "w", encoding="utf-8") as f:
-                json.dump(lesson.to_dict(), f, indent=4)
-            return True
-        except OSError:
-            return False
 
 
 class PlatformLifetime(NamedTuple):

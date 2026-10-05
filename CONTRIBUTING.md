@@ -75,7 +75,7 @@ Before opening a PR with new lessons, verify:
 ## Adding a New Platform
 
 1. Create a lesson file: `conf_t/lessons/<lesson_id>.json`
-2. Update `validate_input()` in [`engine.py`](conf_t/engine.py) to set the correct case sensitivity:
+2. Update `validate_input()` in [`acceptance.py`](conf_t/acceptance.py) to set the correct case sensitivity:
    - Case-insensitive: add to the `["cisco", "powershell"]` list
    - Case-sensitive: it is already the default
 3. Update the platform choices list in `create_lesson_menu()` in [`cli.py`](conf_t/cli.py).

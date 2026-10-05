@@ -6,15 +6,11 @@ validate_input. Assert pass/fail commands for new and repaired tasks.
 
 from __future__ import annotations
 
-import json
-from pathlib import Path
-
 import pytest
 
-from conf_t.engine import validate_input
+from conf_t.catalog import Catalog
+from conf_t.acceptance import validate_input
 from conf_t.models import Lesson, Task
-
-LESSONS_DIR = Path(__file__).parent.parent / "conf_t" / "lessons"
 
 GIT_LESSON_IDS = [
     "git_basic",
@@ -31,9 +27,9 @@ GIT_LESSON_IDS = [
 
 
 def _load_lesson(lesson_id: str) -> Lesson:
-    path = LESSONS_DIR / f"{lesson_id}.json"
-    with open(path, encoding="utf-8") as f:
-        return Lesson.from_dict(json.load(f))
+    lesson = Catalog().get_lesson_by_id(lesson_id)
+    assert lesson is not None
+    return lesson
 
 
 def _task_by_id(lesson: Lesson, task_id: str) -> Task:

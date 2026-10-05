@@ -3,7 +3,8 @@
 from dataclasses import replace
 from pathlib import Path
 
-from conf_t.engine import LessonLoader, validate_input
+from conf_t.acceptance import validate_input
+from conf_t.engine import LessonLoader
 from conf_t.models import Lesson
 from conf_t.session import LESSON_STATUS_COMPLETED, TURN_CORRECT, Session
 

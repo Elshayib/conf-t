@@ -7,14 +7,13 @@ from datetime import datetime
 from pathlib import Path
 from typing import Optional, Sequence
 
+from conf_t.acceptance import format_display_answer, validate_input
 from conf_t.engine import (
     LESSON_STATUS_COMPLETED,
     LESSON_STATUS_IN_PROGRESS,
     LESSON_STATUS_NOT_STARTED,
     ProgressManager,
-    format_display_answer,
     sort_lessons_by_curriculum,
-    validate_input,
 )
 from conf_t.models import Lesson, SessionStats, Task
 

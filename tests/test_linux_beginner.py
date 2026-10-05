@@ -6,22 +6,17 @@ commands are executed. Scenarios and teaching prose are reviewed separately.
 
 from __future__ import annotations
 
-import json
-from pathlib import Path
-
 import pytest
 
-from conf_t.engine import format_display_answer, validate_input
+from conf_t.catalog import Catalog
+from conf_t.acceptance import format_display_answer, validate_input
 from conf_t.models import Lesson, Task
-
-LESSONS_DIR = Path(__file__).parent.parent / "conf_t" / "lessons"
 
 
 def _lesson(lesson_id: str) -> Lesson:
-    path = LESSONS_DIR / f"{lesson_id}.json"
-    return Lesson.from_dict(
-        json.loads(path.read_text(encoding="utf-8"))
-    )
+    lesson = Catalog().get_lesson_by_id(lesson_id)
+    assert lesson is not None
+    return lesson
 
 
 def _task(task_id: str) -> Task:

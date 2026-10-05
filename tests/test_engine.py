@@ -3,65 +3,11 @@ from conf_t.engine import (
     LessonLoader,
     collect_all_tags,
     filter_lessons_by_tags,
-    format_display_answer,
     lesson_matches_tags,
     parse_tags_csv,
     sort_lessons_by_curriculum,
-    validate_input,
 )
 
-# 1. Tests for validate_input
-def test_validate_input_cisco_case_insensitive():
-    task = Task(
-        id="test_task",
-        prompt="Enter config mode",
-        prefix="Router#",
-        expected="^configure\\s+terminal$",
-        aliases=["conf t", "config t"]
-    )
-    # Cisco platform is case-insensitive
-    assert validate_input("configure terminal", task, "Cisco") is True
-    assert validate_input("CONFIGURE TERMINAL", task, "Cisco") is True
-    assert validate_input("conf t", task, "Cisco") is True
-    assert validate_input("CONF T", task, "Cisco") is True
-    assert validate_input("wrong command", task, "Cisco") is False
-
-def test_validate_input_linux_case_sensitive():
-    task = Task(
-        id="test_task",
-        prompt="Print directory",
-        prefix="$",
-        expected="^pwd$",
-        aliases=[]
-    )
-    # Linux platform is case-sensitive
-    assert validate_input("pwd", task, "Linux") is True
-    assert validate_input("PWD", task, "Linux") is False
-    assert validate_input(" pwd ", task, "Linux") is True  # strip is applied
-
-def test_validate_input_powershell_case_insensitive():
-    task = Task(
-        id="test_task",
-        prompt="Get services",
-        prefix="PS C:\\>",
-        expected="^Get-Service$",
-        aliases=["gsv"]
-    )
-    assert validate_input("get-service", task, "PowerShell") is True
-    assert validate_input("GSV", task, "PowerShell") is True
-
-def test_validate_input_fallback_exact_match():
-    # Invalid expected regex falls through to aliases instead of crashing.
-    task_with_alias = Task(
-        id="test_task",
-        prompt="Command with bad regex",
-        prefix="$",
-        expected="[invalid-regex",
-        aliases=["exact_cmd"]
-    )
-    assert validate_input("exact_cmd", task_with_alias, "Linux") is True
-
-# 2. Tests for LessonLoader
 def test_lesson_loader_empty_or_nonexistent_dir(tmp_path):
     loader = LessonLoader(lessons_dir=tmp_path / "nonexistent")
     assert loader.load_all_lessons() == []
@@ -89,26 +35,6 @@ def test_lesson_loader_save_and_load(tmp_path):
     
     # Non-existent ID
     assert loader.get_lesson_by_id("nonexistent") is None
-
-def test_format_display_answer_prefers_alias():
-    task = Task(
-        id="t1",
-        prompt="Enter config mode",
-        prefix="Router#",
-        expected="^configure\\s+terminal$",
-        aliases=["conf t", "config t"],
-    )
-    assert format_display_answer(task, "Cisco") == "conf t"
-
-def test_format_display_answer_strips_regex():
-    task = Task(
-        id="t1",
-        prompt="Print directory",
-        prefix="$",
-        expected="^pwd$",
-        aliases=[],
-    )
-    assert format_display_answer(task, "Linux") == "pwd"
 
 def test_sort_lessons_by_curriculum_orders_by_difficulty():
     lessons = [

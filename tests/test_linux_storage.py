@@ -6,12 +6,12 @@ coreutils. Session with temporary progress verifies compatibility only (#30).
 
 from __future__ import annotations
 
-import json
 from pathlib import Path
 
 import pytest
 
-from conf_t.engine import format_display_answer, validate_input
+from conf_t.catalog import Catalog
+from conf_t.acceptance import format_display_answer, validate_input
 from conf_t.models import Lesson, Task
 from conf_t.session import (
     LESSON_STATUS_COMPLETED,
@@ -20,9 +20,6 @@ from conf_t.session import (
     TURN_CORRECT,
 )
 
-LESSON_PATH = (
-    Path(__file__).parent.parent / "conf_t/lessons/linux_lvm_storage.json"
-)
 NEW_TASK_ID = "linux_lvm_storage__mkfs_ext4_create"
 OLD_ACTIONS = (
     "lsblk_list", "df_human", "du_summary", "pvcreate_init",
@@ -32,9 +29,9 @@ OLD_ACTIONS = (
 
 
 def _lesson() -> Lesson:
-    return Lesson.from_dict(
-        json.loads(LESSON_PATH.read_text(encoding="utf-8"))
-    )
+    lesson = Catalog().get_lesson_by_id("linux_lvm_storage")
+    assert lesson is not None
+    return lesson
 
 
 def _task(action: str) -> Task:

@@ -1,24 +1,17 @@
 from __future__ import annotations
 
-import json
 import re
-from pathlib import Path
 
 import pytest
 
+from conf_t.catalog import Catalog
 from conf_t.models import Lesson
 
-LESSONS_DIR = Path(__file__).parent.parent / "conf_t" / "lessons"
 TASK_ID_PATTERN = re.compile(r"^[a-z0-9_]+__[a-z0-9_]+$")
 
 
 def _load_all_lessons() -> list[Lesson]:
-    lessons = []
-    for file_path in sorted(LESSONS_DIR.glob("*.json")):
-        with open(file_path, encoding="utf-8") as f:
-            data = json.load(f)
-        lessons.append(Lesson.from_dict(data))
-    return lessons
+    return Catalog().lessons()
 
 
 @pytest.fixture(scope="module")

@@ -8,7 +8,8 @@ from pathlib import Path
 
 import pytest
 
-from conf_t.engine import LessonLoader, format_display_answer, validate_input
+from conf_t.acceptance import format_display_answer, validate_input
+from conf_t.engine import LessonLoader
 from conf_t.models import Task
 
 

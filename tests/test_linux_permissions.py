@@ -6,7 +6,8 @@ than the catalog's answer patterns. Commands are validated, never executed.
 
 import pytest
 
-from conf_t.engine import LessonLoader, validate_input
+from conf_t.acceptance import validate_input
+from conf_t.engine import LessonLoader
 from conf_t.models import Task
 
 

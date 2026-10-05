@@ -12,16 +12,15 @@ from rich import box
 
 from conf_t import __version__
 from conf_t.models import Lesson, Task
+from conf_t.catalog import Catalog, CatalogRefusal, platform_names, same_platform
 from conf_t.engine import (
     DIFFICULTY_ORDER,
     LESSON_STATUS_COMPLETED,
     LESSON_STATUS_IN_PROGRESS,
     LESSON_STATUS_NOT_STARTED,
-    LessonLoader,
     collect_all_tags,
     filter_lessons_by_tags,
     parse_tags_csv,
-    sort_lessons_by_curriculum,
 )
 from conf_t.session import (
     ReviewEntry,
@@ -37,41 +36,105 @@ from conf_t.session import (
 
 console = Console()
 
-class ConfTCLI:
-    def __init__(self):
-        self.loader = LessonLoader()
-        self.session = Session()
+MENU_DUE_REVIEW = "due_review"
+MENU_CONTINUE = "continue"
+MENU_PRACTICE = "practice"
+MENU_FAILED_DRILL = "failed_drill"
+MENU_STATS = "stats"
+MENU_RESET = "reset"
+MENU_CREATE = "create"
+MENU_EXIT = "exit"
 
-    def _main_menu_choices(self) -> list[str]:
+
+def interrupt_message(*, review: bool) -> str:
+    """What an interrupt says. Review names Review; Practice keeps its line."""
+    if review:
+        return "You left Review."
+    return "Practice aborted."
+
+
+def review_correct_message(*, first_try: bool) -> str:
+    if first_try:
+        return "✓ Correct! This Task left the drill."
+    return "✓ Correct, but not first-try — rescheduled for later review"
+
+
+class ConfTCLI:
+    def __init__(
+        self,
+        catalog: Catalog | None = None,
+        session: Session | None = None,
+    ) -> None:
+        self.catalog = catalog if catalog is not None else Catalog()
+        self.session = session if session is not None else Session()
+
+    def _lessons(
+        self,
+        platform: str | None = None,
+        tags: list[str] | None = None,
+    ) -> list[Lesson]:
+        try:
+            return self.catalog.lessons(platform=platform, tags=tags)
+        except CatalogRefusal as refusal:
+            console.print(
+                f"[bold red]Cannot open lessons.[/] Problem in [bold]{refusal.path.name}[/]."
+            )
+            console.print(f"[dim]{refusal}[/]")
+            sys.exit(1)
+
+    def _main_menu_choices(self) -> list[questionary.Choice]:
         due_count = len(self.session.due_review())
         choices = []
         if due_count > 0:
-            choices.append(f"★ Daily Review ({due_count} due)")
-        choices.append("↩ Continue where I left off")
+            choices.append(
+                questionary.Choice(
+                    title=f"★ Daily Review ({due_count} due)",
+                    value=MENU_DUE_REVIEW,
+                )
+            )
+        choices.append(
+            questionary.Choice(
+                title="↩ Continue where I left off",
+                value=MENU_CONTINUE,
+            )
+        )
         choices.extend([
-            "1. Practice a Lesson",
-            "2. Review All Failed Commands",
-            "3. View Progress & Stats",
-            "4. Reset All Progress",
-            "5. Create a Custom Lesson",
-            "6. Exit",
+            questionary.Choice(title="1. Practice a Lesson", value=MENU_PRACTICE),
+            questionary.Choice(
+                title="2. Review All Failed Commands",
+                value=MENU_FAILED_DRILL,
+            ),
+            questionary.Choice(title="3. View Progress & Stats", value=MENU_STATS),
+            questionary.Choice(title="4. Reset All Progress", value=MENU_RESET),
+            questionary.Choice(title="5. Create a Custom Lesson", value=MENU_CREATE),
+            questionary.Choice(title="6. Exit", value=MENU_EXIT),
         ])
         return choices
+
+    def _dispatch_menu(self, choice: str) -> bool:
+        """Run the action for a stable menu value. A label is not an action."""
+        actions = {
+            MENU_DUE_REVIEW: self.daily_review_menu,
+            MENU_CONTINUE: self.run_continue,
+            MENU_PRACTICE: self.practice_lessons_menu,
+            MENU_FAILED_DRILL: self.review_failed_menu,
+            MENU_STATS: self.view_stats,
+            MENU_RESET: self.reset_progress_menu,
+            MENU_CREATE: self.create_lesson_menu,
+        }
+        action = actions.get(choice)
+        if action is None:
+            return False
+        action()
+        return True
 
     def list_lessons(
         self,
         platform: str | None = None,
         tags: str | None = None,
     ) -> None:
-        lessons = self.loader.load_all_lessons()
-        if platform:
-            lessons = [
-                lesson
-                for lesson in lessons
-                if lesson.platform.lower() == platform.lower()
-            ]
         tag_list = parse_tags_csv(tags)
-        lessons = filter_lessons_by_tags(lessons, tag_list)
+        lessons = self._lessons(platform=platform, tags=tag_list)
 
         if not lessons:
             console.print("[yellow]No lessons match the selected filters.[/]")
@@ -81,7 +144,6 @@ class ConfTCLI:
                 console.print(f"[dim]Tags: {', '.join(tag_list)}[/]")
             return
 
-        sorted_lessons = sort_lessons_by_curriculum(lessons)
         title = "[bold cyan]Conf T Lessons[/]"
         if platform or tag_list:
             filters = []
@@ -99,7 +161,7 @@ class ConfTCLI:
         table.add_column("Tags", style="dim")
         table.add_column("Progress", style="green")
 
-        for lesson in sorted_lessons:
+        for lesson in lessons:
             standing = self.session.lesson_standing(lesson)
             tags_display = ", ".join(lesson.tags) if lesson.tags else "—"
             total = standing.total
@@ -119,7 +181,7 @@ class ConfTCLI:
             )
 
         console.print(table)
-        console.print(f"\n[dim]{len(sorted_lessons)} lesson(s) shown[/]")
+        console.print(f"\n[dim]{len(lessons)} lesson(s) shown[/]")
 
     def _prompt_tag_filter(self, lessons: list[Lesson], context: str) -> list[Lesson]:
         available_tags = collect_all_tags(lessons)
@@ -154,13 +216,13 @@ class ConfTCLI:
         return filtered if filtered else lessons
 
     def run_lesson_by_id(self, lesson_id: str) -> None:
-        lesson = self.loader.get_lesson_by_id(lesson_id)
+        lessons = self._lessons()
+        lesson = next((item for item in lessons if item.id == lesson_id), None)
         if not lesson:
             console.print(f"[bold red]Lesson not found:[/] {lesson_id}")
             console.print("[dim]Use --list to see available lesson IDs.[/]")
             sys.exit(1)
 
-        lessons = self.loader.load_all_lessons()
         if not self._confirm_lesson_start(lesson, lessons):
             return
 
@@ -207,7 +269,7 @@ class ConfTCLI:
         self.session.dismiss_welcome()
 
     def run_continue(self, interactive: bool = True) -> None:
-        lessons = self.loader.load_all_lessons()
+        lessons = self._lessons()
         target = self.session.continue_target(lessons)
 
         if not target:
@@ -240,6 +302,7 @@ class ConfTCLI:
 
     def run(self):
         """Main application execution loop."""
+        self._lessons()
         self.show_welcome_banner()
         self.show_first_run_welcome()
         
@@ -263,23 +326,11 @@ class ConfTCLI:
                 if not choice:
                     break
 
-                if "Daily Review" in choice:
-                    self.daily_review_menu()
-                elif "Continue where" in choice:
-                    self.run_continue()
-                elif "1. Practice" in choice:
-                    self.practice_lessons_menu()
-                elif "2. Review" in choice:
-                    self.review_failed_menu()
-                elif "3. View" in choice:
-                    self.view_stats()
-                elif "4. Reset" in choice:
-                    self.reset_progress_menu()
-                elif "5. Create" in choice:
-                    self.create_lesson_menu()
-                elif "6. Exit" in choice:
+                if choice == MENU_EXIT:
                     console.print("\n[bold cyan]Thank you for training with Conf T! Keep practicing.[/]")
                     break
+
+                self._dispatch_menu(choice)
             except KeyboardInterrupt:
                 console.print("\n\n[bold yellow]Session interrupted. Returning to main menu.[/]")
                 continue
@@ -453,12 +504,12 @@ class ConfTCLI:
 
     def practice_lessons_menu(self):
         """Displays curriculum-aware lesson selection grouped by platform."""
-        lessons = self.loader.load_all_lessons()
+        lessons = self._lessons()
         if not lessons:
             console.print("[bold red]No lessons found in the database. Please add lessons to conf_t/lessons/.[/]")
             return
 
-        platforms = sorted({lesson.platform for lesson in lessons})
+        platforms = platform_names(lessons)
         platform_choices = platforms + ["< Go Back"]
 
         selected_platform = questionary.select(
@@ -469,7 +520,9 @@ class ConfTCLI:
         if not selected_platform or selected_platform == "< Go Back":
             return
 
-        filtered_lessons = [lesson for lesson in lessons if lesson.platform == selected_platform]
+        filtered_lessons = [
+            lesson for lesson in lessons if same_platform(lesson, selected_platform)
+        ]
         filtered_lessons = self._prompt_tag_filter(
             filtered_lessons, f"{selected_platform} lessons"
         )
@@ -477,14 +530,13 @@ class ConfTCLI:
             console.print("[yellow]No lessons available for the selected filters.[/]")
             return
 
-        sorted_lessons = sort_lessons_by_curriculum(filtered_lessons)
         failed_entries = self.session.failed_queue()
         failed_counts: dict[str, int] = {}
         for entry in failed_entries:
             lesson_id = entry.lesson_id
             failed_counts[lesson_id] = failed_counts.get(lesson_id, 0) + 1
 
-        recommended = self.session.recommended_lesson(sorted_lessons, catalog=lessons)
+        recommended = self.session.recommended_lesson(filtered_lessons, catalog=lessons)
         if recommended:
             console.print(
                 f"\n[bold green]★ Recommended next:[/] [white]{recommended.title}[/] "
@@ -502,7 +554,7 @@ class ConfTCLI:
             lesson_choices.append(questionary.Choice(title="─────────────", value="__sep__", disabled=True))
 
         for difficulty in sorted(DIFFICULTY_ORDER, key=lambda key: DIFFICULTY_ORDER[key]):
-            group = [lesson for lesson in sorted_lessons if lesson.difficulty == difficulty]
+            group = [lesson for lesson in filtered_lessons if lesson.difficulty == difficulty]
             if not group:
                 continue
             lesson_choices.append(
@@ -551,11 +603,105 @@ class ConfTCLI:
             return
         self.run_practice_session(selected_lesson, tasks_to_run=tasks_to_run)
 
+    def _run_sitting(
+        self,
+        tasks: list[tuple[Lesson, Task]],
+        *,
+        review: bool,
+    ) -> list | None:
+        """One turn loop for Practice and Review.
+
+        Returns the graded turns, or None when the Learner leaves.
+        """
+        graded = []
+        total = len(tasks)
+        for index, (lesson, task) in enumerate(tasks, 1):
+            if review:
+                console.print(
+                    f"\n[bold cyan]Task {index}/{total} [{lesson.platform}]:[/] "
+                    f"[bold white]{task.prompt}[/]"
+                )
+            else:
+                console.print(
+                    f"\n[bold cyan]Task {index}/{total}:[/] "
+                    f"[bold white]{task.prompt}[/]"
+                )
+            self.session.begin_task(task)
+
+            while True:
+                try:
+                    user_input = console.input(f"{task.prefix} ")
+                except (KeyboardInterrupt, EOFError):
+                    console.print(f"\n[yellow]{interrupt_message(review=review)}[/]")
+                    return None
+
+                result = self.session.submit(lesson, task, user_input)
+
+                if result.kind == TURN_IGNORE:
+                    continue
+
+                if result.kind == TURN_LEAVE:
+                    question = (
+                        "Are you sure you want to exit review mode?"
+                        if review
+                        else "Are you sure you want to exit this lesson?"
+                    )
+                    if questionary.confirm(question).ask():
+                        if not review:
+                            console.print("[bold yellow]Exited practice session.[/]")
+                        return None
+                    continue
+
+                if result.kind == TURN_HINT:
+                    if result.hint:
+                        console.print(Panel(
+                            f"[bold yellow]Hint:[/] {result.hint}",
+                            border_style="yellow",
+                            box=box.MINIMAL,
+                        ))
+                    elif review:
+                        console.print("[dim yellow]No hint available.[/]")
+                    else:
+                        console.print("[dim yellow]No hint available for this task.[/]")
+                    continue
+
+                if not review:
+                    graded.append(result)
+
+                if result.kind == TURN_SKIPPED:
+                    console.print(Panel(
+                        f"[bold red]Skipped.[/]\n\n[bold white]Correct Command:[/] [bold cyan]{result.readable_command}[/]\n\n"
+                        f"[bold white]Explanation:[/] {result.explanation}",
+                        border_style="red",
+                        title="[bold red]Task Explanation[/]",
+                    ))
+                    break
+
+                if result.kind == TURN_CORRECT:
+                    if review:
+                        heading = review_correct_message(first_try=result.first_try)
+                    else:
+                        heading = "✓ Correct!"
+                    console.print(Panel(
+                        f"[bold green]{heading}[/]\n\n"
+                        f"[bold white]Explanation:[/] {result.explanation}",
+                        border_style="green",
+                        box=box.ROUNDED,
+                    ))
+                    break
+
+                if result.kind == TURN_INCORRECT:
+                    console.print(
+                        "[bold red]✗ Incorrect command. Try again, or type 'hint' / 'skip' / 'exit'.[/]"
+                    )
+
+        return graded
+
     def run_practice_session(
         self,
         lesson: Lesson,
         tasks_to_run: list[Task] | None = None,
-    ):
+    ) -> None:
         """
         Runs the interactive prompt loop for a Practice sitting.
         """
@@ -582,65 +728,12 @@ class ConfTCLI:
             box=box.ROUNDED
         ))
 
-        stats_results = []
-
-        for idx, task in enumerate(tasks_to_run, 1):
-            console.print(f"\n[bold cyan]Task {idx}/{len(tasks_to_run)}:[/] [bold white]{task.prompt}[/]")
-            self.session.begin_task(task)
-
-            while True:
-                try:
-                    prompt_str = f"{task.prefix} "
-                    user_input = console.input(prompt_str)
-                except (KeyboardInterrupt, EOFError):
-                    console.print("\n[yellow]Practice aborted.[/]")
-                    return
-
-                result = self.session.submit(lesson, task, user_input)
-
-                if result.kind == TURN_IGNORE:
-                    continue
-
-                if result.kind == TURN_LEAVE:
-                    confirm = questionary.confirm("Are you sure you want to exit this lesson?").ask()
-                    if confirm:
-                        console.print("[bold yellow]Exited practice session.[/]")
-                        return
-                    continue
-
-                if result.kind == TURN_HINT:
-                    if result.hint:
-                        console.print(Panel(
-                            f"[bold yellow]Hint:[/] {result.hint}",
-                            border_style="yellow",
-                            box=box.MINIMAL
-                        ))
-                    else:
-                        console.print("[dim yellow]No hint available for this task.[/]")
-                    continue
-
-                stats_results.append(result)
-
-                if result.kind == TURN_SKIPPED:
-                    console.print(Panel(
-                        f"[bold red]Skipped.[/]\n\n[bold white]Correct Command:[/] [bold cyan]{result.readable_command}[/]\n\n"
-                        f"[bold white]Explanation:[/] {result.explanation}",
-                        border_style="red",
-                        title="[bold red]Task Explanation[/]"
-                    ))
-                    break
-
-                if result.kind == TURN_CORRECT:
-                    console.print(Panel(
-                        f"[bold green]✓ Correct![/]\n\n"
-                        f"[bold white]Explanation:[/] {result.explanation}",
-                        border_style="green",
-                        box=box.ROUNDED
-                    ))
-                    break
-
-                if result.kind == TURN_INCORRECT:
-                    console.print("[bold red]✗ Incorrect command. Try again, or type 'hint' / 'skip' / 'exit'.[/]")
+        stats_results = self._run_sitting(
+            [(lesson, task) for task in tasks_to_run],
+            review=False,
+        )
+        if stats_results is None:
+            return
 
         stats = practice_summary(stats_results, total_tasks=len(tasks_to_run))
         accuracy = (stats.correct_first_try / stats.total_questions) * 100 if stats.total_questions > 0 else 0
@@ -662,7 +755,7 @@ class ConfTCLI:
     def _resolve_review_entries(
         self, entries: list[ReviewEntry]
     ) -> list[tuple[Lesson, Task]]:
-        all_lessons = self.loader.load_all_lessons()
+        all_lessons = self._lessons()
         tasks_to_review: list[tuple[Lesson, Task]] = []
         for entry in entries:
             lesson = next((item for item in all_lessons if item.id == entry.lesson_id), None)
@@ -693,75 +786,16 @@ class ConfTCLI:
             box=box.ROUNDED,
         ))
 
-        for idx, (lesson, task) in enumerate(tasks_to_review, 1):
-            console.print(
-                f"\n[bold cyan]Task {idx}/{len(tasks_to_review)} [{lesson.platform}]:[/] "
-                f"[bold white]{task.prompt}[/]"
-            )
-            self.session.begin_task(task)
-
-            while True:
-                try:
-                    prompt_str = f"{task.prefix} "
-                    user_input = console.input(prompt_str)
-                except (KeyboardInterrupt, EOFError):
-                    console.print("\n[yellow]Practice aborted.[/]")
-                    return
-
-                result = self.session.submit(lesson, task, user_input)
-
-                if result.kind == TURN_IGNORE:
-                    continue
-
-                if result.kind == TURN_LEAVE:
-                    confirm = questionary.confirm("Are you sure you want to exit review mode?").ask()
-                    if confirm:
-                        return
-                    continue
-
-                if result.kind == TURN_HINT:
-                    if result.hint:
-                        console.print(Panel(
-                            f"[bold yellow]Hint:[/] {result.hint}",
-                            border_style="yellow",
-                            box=box.MINIMAL,
-                        ))
-                    else:
-                        console.print("[dim yellow]No hint available.[/]")
-                    continue
-
-                if result.kind == TURN_SKIPPED:
-                    console.print(Panel(
-                        f"[bold red]Skipped.[/]\n\n"
-                        f"[bold white]Correct Command:[/] [bold cyan]{result.readable_command}[/]\n\n"
-                        f"[bold white]Explanation:[/] {result.explanation}",
-                        border_style="red",
-                        title="[bold red]Task Explanation[/]",
-                    ))
-                    break
-
-                if result.kind == TURN_CORRECT:
-                    status_msg = (
-                        "✓ Correct! (Removed from review queue)"
-                        if result.first_try
-                        else "✓ Correct, but not first-try — rescheduled for later review"
-                    )
-                    console.print(Panel(
-                        f"[bold green]{status_msg}[/]\n\n"
-                        f"[bold white]Explanation:[/] {result.explanation}",
-                        border_style="green",
-                        box=box.ROUNDED,
-                    ))
-                    break
-
-                if result.kind == TURN_INCORRECT:
-                    console.print("[bold red]✗ Incorrect command. Try again, or type 'hint' / 'skip' / 'exit'.[/]")
+        finished = self._run_sitting(tasks_to_review, review=True)
+        if finished is None:
+            return
 
         console.print("\n[bold green]Review Session Completed![/]\n")
         if interactive:
             questionary.press_any_key_to_continue().ask()
 
     def daily_review_menu(self, interactive: bool = True) -> None:
+        self._lessons()
         due_entries = self.session.due_review()
         if not due_entries:
             console.print("\n[bold green]★ No tasks due for review right now. Check back later![/]\n")
@@ -782,6 +816,7 @@ class ConfTCLI:
 
     def review_failed_menu(self, interactive: bool = True) -> None:
         """Loads all failed tasks and allows practicing them."""
+        self._lessons()
         failed_entries = self.session.failed_queue()
         if not failed_entries:
             console.print("\n[bold green]★ Nice job! You have no failed commands to review.[/]\n")
@@ -887,7 +922,7 @@ class ConfTCLI:
             return
 
         # Check if already exists
-        if self.loader.get_lesson_by_id(lesson_id):
+        if self.catalog.get_lesson_by_id(lesson_id):
             overwrite = questionary.confirm(f"A lesson with ID '{lesson_id}' already exists. Overwrite it?").ask()
             if not overwrite:
                 return
@@ -970,7 +1005,7 @@ class ConfTCLI:
             tasks=tasks
         )
 
-        success = self.loader.save_lesson(new_lesson)
+        success = self.catalog.save_lesson(new_lesson)
         if success:
             console.print(f"\n[bold green]✔ Success! Lesson '{title}' has been saved to the database.[/]\n")
         else:

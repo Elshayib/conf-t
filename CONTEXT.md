@@ -14,6 +14,18 @@ _Avoid_: tutorial, course, study session
 The mode in which a learner drills tasks they have already seen and need to see again.
 _Avoid_: exam, quiz, assessment
 
+**First-try pass**:
+A correct answer submitted before any incorrect answer the current time the Learner is shown that Task. Only a first-try pass removes the Task from Review.
+_Avoid_: eventual correct, solved
+
+**Due Review**:
+The Review selection of Tasks with no first-try pass whose next review time has arrived.
+_Avoid_: daily quiz, spaced-repetition queue
+
+**Failed-command drill**:
+The Review selection of every Task that has no first-try pass.
+_Avoid_: error list, backlog
+
 A change serves Practice, Review, or both. Shared lessons stay valid for both modes. Neither mode is dropped to favor the other.
 
 ### Curriculum

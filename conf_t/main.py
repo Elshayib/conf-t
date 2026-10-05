@@ -5,9 +5,9 @@ from conf_t.cli import ConfTCLI
 from conf_t.parser import build_parser, has_cli_action
 
 
-def main() -> None:
+def main(argv: list[str] | None = None) -> None:
     parser = build_parser()
-    args = parser.parse_args()
+    args = parser.parse_args(argv)
 
     try:
         app = ConfTCLI()

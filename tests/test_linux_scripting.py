@@ -3,7 +3,8 @@
 Commands follow the GNU Bash manual. The tests never execute shell commands.
 """
 
-from conf_t.engine import LessonLoader, validate_input
+from conf_t.acceptance import validate_input
+from conf_t.engine import LessonLoader
 from conf_t.models import Task
 
 

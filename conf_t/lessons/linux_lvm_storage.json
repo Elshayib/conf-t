@@ -10,93 +10,102 @@
     "tasks": [
         {
             "id": "linux_lvm_storage__lsblk_list",
-            "prompt": "List all block devices in a tree format showing partitions and mount points.",
+            "prompt": "On Ubuntu, util-linux lsblk is installed and sysfs and the udev database are available to your ordinary account. Use lsblk to list the default set of available block devices, including their partitions, as a tree with mount points; do not restrict the listing to one device.",
             "prefix": "user@ubuntu:~$",
-            "expected": "^lsblk$",
-            "aliases": ["lsblk -f"],
-            "hint": "Use lsblk: 'lsblk'",
-            "explanation": "'lsblk' displays block devices, their partitions, sizes, and mount points in an easy-to-read tree."
+            "expected": "^lsblk(?:\\s+(?:-f|--fs|-T|--tree|(?:-o\\s*|--output(?:=|\\s+))NAME,SIZE,TYPE,MOUNTPOINTS))?$",
+            "aliases": ["lsblk"],
+            "hint": "Use lsblk.",
+            "explanation": "lsblk reads sysfs and udev information and normally prints a device tree with mount points; -f adds filesystem information while retaining the tree. This listing needs no sudo under the stated udev assumption. Default lsblk excludes RAM disks; -l flattens the tree and -d omits dependent devices such as partitions."
         },
         {
             "id": "linux_lvm_storage__df_human",
-            "prompt": "Show filesystem disk space usage in human-readable format.",
+            "prompt": "On Ubuntu, GNU df is installed and mounted-filesystem information is accessible to your ordinary account. Use df to report its usual mounted-filesystem space usage in human-readable powers-of-1024 units, without restricting it to one path.",
             "prefix": "user@ubuntu:~$",
-            "expected": "^df\\s+-h$",
-            "aliases": [],
-            "hint": "Use df with human-readable (-h): 'df -h'",
-            "explanation": "'df -h' reports total, used, and available space on mounted filesystems with KB/MB/GB units."
+            "expected": "^df\\s+(?:-h|-hT|-Th|--human-readable)(?:\\s+(?:-T|--print-type))?$",
+            "aliases": ["df -h"],
+            "hint": "Use df -h.",
+            "explanation": "df -h reports total, used and available space for its usual mounted-filesystem listing, with sizes scaled by powers of 1024 (for example KiB, MiB and GiB). It needs no sudo here. -H or --si instead uses powers of 1000; -i reports inode counts rather than block space. df measures filesystem space, while du estimates usage of files and directories."
         },
         {
             "id": "linux_lvm_storage__du_summary",
-            "prompt": "Show the total disk usage of the directory '/var/log' in human-readable format.",
+            "prompt": "On Ubuntu, GNU du is installed. /var/log exists with nested directories that your ordinary account cannot traverse; root can traverse them. You have sudo access. Use sudo and du to report one total of allocated disk space for /var/log including its contents, in human-readable powers-of-1024 units.",
             "prefix": "user@ubuntu:~$",
-            "expected": "^du\\s+-sh\\s+/var/log$",
-            "aliases": [],
-            "hint": "Use du with summary and human flags: 'du -sh /var/log'",
-            "explanation": "'du -sh' summarizes directory size. '-s' gives a total only, and '-h' uses readable units."
+            "expected": "^sudo\\s+(?:(?:-u\\s+root|--user(?:=|\\s+)root)\\s+)?(?:--\\s+)?du\\s+(?:-sh|-hs|-s\\s+-h|-h\\s+-s|--summarize\\s+--human-readable|--human-readable\\s+--summarize|-h\\s+--max-depth(?:=|\\s+)0|--max-depth(?:=|\\s+)0\\s+-h)\\s+(?:--\\s+)?(?:/var/log/?|\\x27/var/log/?\\x27|\"/var/log/?\")$",
+            "aliases": ["sudo du -sh /var/log"],
+            "hint": "Use sudo du -sh /var/log.",
+            "explanation": "du -s gives one total including subdirectories, and -h scales allocated disk usage by powers of 1024. sudo supplies the access needed to traverse the restricted log directories in this scenario; readable directories do not inherently need sudo. --max-depth=0 is equivalent to --summarize. Allocated space can differ from apparent file sizes, and du cannot account for an unlinked file kept open by a process."
         },
         {
             "id": "linux_lvm_storage__pvcreate_init",
-            "prompt": "Initialize '/dev/sdb' as an LVM physical volume.",
+            "prompt": "On Ubuntu, LVM2 is installed and configured to scan /dev/sdb. It is an unused, unmounted, empty 40 GiB whole disk with no partitions, filesystem, LVM membership or data to preserve. You are an ordinary user with sudo access and no direct block-device write permission. Use sudo and pvcreate to initialize exactly /dev/sdb as an LVM physical volume.",
             "prefix": "user@ubuntu:~$",
-            "expected": "^sudo\\s+pvcreate\\s+/dev/sdb$",
-            "aliases": ["pvcreate /dev/sdb"],
-            "hint": "Use pvcreate: 'sudo pvcreate /dev/sdb'",
-            "explanation": "'pvcreate' marks a disk or partition for use by LVM, creating a physical volume."
+            "expected": "^sudo\\s+(?:(?:-u\\s+root|--user(?:=|\\s+)root)\\s+)?(?:--\\s+)?pvcreate\\s+(?:--\\s+)?(?:/dev/sdb|\\x27/dev/sdb\\x27|\"/dev/sdb\")$",
+            "aliases": ["sudo pvcreate /dev/sdb"],
+            "hint": "Use sudo pvcreate /dev/sdb.",
+            "explanation": "pvcreate writes an LVM disk label and initializes metadata so /dev/sdb can become part of a volume group. It can initialize a whole disk or a partition; this scenario names the whole empty disk. sudo provides the required device access. Initializing a device that holds data can destroy it; this is not filesystem creation and does not yet create a VG or LV."
         },
         {
             "id": "linux_lvm_storage__vgcreate_pool",
-            "prompt": "Create a volume group named 'vg_data' using physical volume '/dev/sdb'.",
+            "prompt": "On Ubuntu, LVM2 is installed and /dev/sdb is already an initialized, unused 40 GiB physical volume with no volume-group membership. vg_data does not exist. You are an ordinary user with sudo access and no direct device or LVM metadata write permission. Use sudo and vgcreate with default settings to create vg_data using exactly /dev/sdb.",
             "prefix": "user@ubuntu:~$",
-            "expected": "^sudo\\s+vgcreate\\s+vg_data\\s+/dev/sdb$",
-            "aliases": ["vgcreate vg_data /dev/sdb"],
-            "hint": "Use vgcreate: 'sudo vgcreate vg_data /dev/sdb'",
-            "explanation": "'vgcreate' combines one or more physical volumes into a storage pool called a volume group."
+            "expected": "^sudo\\s+(?:(?:-u\\s+root|--user(?:=|\\s+)root)\\s+)?(?:--\\s+)?vgcreate\\s+(?:--\\s+)?(?:vg_data|\\x27vg_data\\x27|\"vg_data\")\\s+(?:/dev/sdb|\\x27/dev/sdb\\x27|\"/dev/sdb\")$",
+            "aliases": ["sudo vgcreate vg_data /dev/sdb"],
+            "hint": "Use sudo vgcreate vg_data /dev/sdb.",
+            "explanation": "vgcreate creates vg_data using the supplied physical volume, making its allocatable extents available as a storage pool. LVM normally uses 4 MiB extents by default; metadata consumes part of the physical device. sudo supplies the required access. A VG is a pool for later logical-volume allocation, not a filesystem or mount point."
         },
         {
             "id": "linux_lvm_storage__lvcreate_logical",
-            "prompt": "Create a 10 GB logical volume named 'lv_apps' in volume group 'vg_data'.",
+            "prompt": "On Ubuntu, LVM2 is installed with normal default LV settings. vg_data exists, uses 4 MiB extents, and has at least 10 GiB of free allocatable space; lv_apps does not exist. You are an ordinary user with sudo access and no LVM administration permission. Use sudo and lvcreate to allocate a new 10 GiB logical volume named lv_apps in vg_data.",
             "prefix": "user@ubuntu:~$",
-            "expected": "^sudo\\s+lvcreate\\s+-L\\s+10G\\s+-n\\s+lv_apps\\s+vg_data$",
-            "aliases": ["lvcreate -n lv_apps -L 10G vg_data"],
-            "hint": "Use lvcreate with size and name: 'sudo lvcreate -L 10G -n lv_apps vg_data'",
-            "explanation": "'lvcreate' allocates space from a volume group to create a logical volume usable like a disk partition."
+            "expected": "^sudo\\s+(?:(?:-u\\s+root|--user(?:=|\\s+)root)\\s+)?(?:--\\s+)?lvcreate\\s+(?:(?:(?:-L\\s*|--size(?:=|\\s+))(?:10[gG]|10240[mM])|(?:-l\\s*|--extents(?:=|\\s+))2560)\\s+(?:-n\\s*|--name(?:=|\\s+))(?:lv_apps|\\x27lv_apps\\x27|\"lv_apps\")\\s+(?:vg_data|\\x27vg_data\\x27|\"vg_data\")|(?:(?:-L\\s*|--size(?:=|\\s+))(?:10[gG]|10240[mM])|(?:-l\\s*|--extents(?:=|\\s+))2560)\\s+(?:vg_data|\\x27vg_data\\x27|\"vg_data\")\\s+(?:-n\\s*|--name(?:=|\\s+))(?:lv_apps|\\x27lv_apps\\x27|\"lv_apps\")|(?:-n\\s*|--name(?:=|\\s+))(?:lv_apps|\\x27lv_apps\\x27|\"lv_apps\")\\s+(?:(?:-L\\s*|--size(?:=|\\s+))(?:10[gG]|10240[mM])|(?:-l\\s*|--extents(?:=|\\s+))2560)\\s+(?:vg_data|\\x27vg_data\\x27|\"vg_data\")|(?:-n\\s*|--name(?:=|\\s+))(?:lv_apps|\\x27lv_apps\\x27|\"lv_apps\")\\s+(?:vg_data|\\x27vg_data\\x27|\"vg_data\")\\s+(?:(?:-L\\s*|--size(?:=|\\s+))(?:10[gG]|10240[mM])|(?:-l\\s*|--extents(?:=|\\s+))2560)|(?:vg_data|\\x27vg_data\\x27|\"vg_data\")\\s+(?:(?:-L\\s*|--size(?:=|\\s+))(?:10[gG]|10240[mM])|(?:-l\\s*|--extents(?:=|\\s+))2560)\\s+(?:-n\\s*|--name(?:=|\\s+))(?:lv_apps|\\x27lv_apps\\x27|\"lv_apps\")|(?:vg_data|\\x27vg_data\\x27|\"vg_data\")\\s+(?:-n\\s*|--name(?:=|\\s+))(?:lv_apps|\\x27lv_apps\\x27|\"lv_apps\")\\s+(?:(?:-L\\s*|--size(?:=|\\s+))(?:10[gG]|10240[mM])|(?:-l\\s*|--extents(?:=|\\s+))2560))$",
+            "aliases": ["sudo lvcreate -L 10G -n lv_apps vg_data"],
+            "hint": "Use sudo lvcreate -L 10G -n lv_apps vg_data.",
+            "explanation": "lvcreate allocates the named LV from the VG: -L sets its size and -n sets its name. LVM input units are binary regardless of case, so 10G means 10 GiB, also 10240 MiB or 2560 extents of 4 MiB. sudo supplies administration privilege. This creates block storage at /dev/vg_data/lv_apps; an ext4 filesystem must be created separately before it can be mounted."
         },
         {
-            "id": "linux_lvm_storage__lvextend_grow",
-            "prompt": "Extend logical volume 'vg_data/lv_apps' by 5 GB.",
+            "id": "linux_lvm_storage__mkfs_ext4_create",
+            "prompt": "On Ubuntu, e2fsprogs is installed. The active 10 GiB LV /dev/vg_data/lv_apps is new, empty, unmounted and has no filesystem or data to preserve; /dev/mapper/vg_data-lv_apps refers to the same device. You are an ordinary user with sudo access and no direct block-device write permission. Use mkfs.ext4 or its equivalent mke2fs invocation to create an ext4 filesystem using the whole LV.",
             "prefix": "user@ubuntu:~$",
-            "expected": "^sudo\\s+lvextend\\s+-L\\s+\\+5G\\s+/dev/vg_data/lv_apps$",
-            "aliases": ["lvextend -L +5G /dev/vg_data/lv_apps"],
-            "hint": "Use lvextend with +size: 'sudo lvextend -L +5G /dev/vg_data/lv_apps'",
-            "explanation": "'lvextend -L +5G' grows the logical volume by 5 GB. The filesystem must also be resized separately."
-        },
-        {
-            "id": "linux_lvm_storage__resize2fs_grow",
-            "prompt": "Resize the ext4 filesystem on '/dev/vg_data/lv_apps' to fill the logical volume.",
-            "prefix": "user@ubuntu:~$",
-            "expected": "^sudo\\s+resize2fs\\s+/dev/vg_data/lv_apps$",
-            "aliases": ["resize2fs /dev/vg_data/lv_apps"],
-            "hint": "Use resize2fs: 'sudo resize2fs /dev/vg_data/lv_apps'",
-            "explanation": "'resize2fs' expands an ext2/ext3/ext4 filesystem to use all available space in its underlying device."
+            "expected": "^sudo\\s+(?:(?:-u\\s+root|--user(?:=|\\s+)root)\\s+)?(?:--\\s+)?(?:mkfs\\.ext4(?:\\s+-q)?|mke2fs\\s+-t\\s*ext4)\\s+(?:/dev/(?:vg_data/lv_apps|mapper/vg_data-lv_apps)|\\x27/dev/(?:vg_data/lv_apps|mapper/vg_data-lv_apps)\\x27|\"/dev/(?:vg_data/lv_apps|mapper/vg_data-lv_apps)\")$",
+            "aliases": ["sudo mkfs.ext4 /dev/vg_data/lv_apps"],
+            "hint": "Use sudo mkfs.ext4 /dev/vg_data/lv_apps.",
+            "explanation": "mkfs.ext4 invokes mke2fs with ext4 selected, writing a new filesystem to the empty LV. With no filesystem size operand it uses the device size. Creating an LV only allocates block storage; formatting creates filesystem structures, and mounting later attaches the filesystem to a directory. Formatting a populated device destroys its previous filesystem and data; this scenario explicitly supplies an empty target."
         },
         {
             "id": "linux_lvm_storage__mount_device",
-            "prompt": "Mount '/dev/vg_data/lv_apps' to the mount point '/mnt/apps'.",
+            "prompt": "On Ubuntu, util-linux mount and ext4 kernel support are available. The active LV /dev/vg_data/lv_apps contains a healthy, unmounted, writable ext4 filesystem; /dev/mapper/vg_data-lv_apps is the same device. /mnt/apps exists as an empty, unmounted directory. There is no applicable /etc/fstab entry or unprivileged mount authorization. As an ordinary user with sudo access, use sudo and mount to attach that filesystem read-write at /mnt/apps.",
             "prefix": "user@ubuntu:~$",
-            "expected": "^sudo\\s+mount\\s+/dev/vg_data/lv_apps\\s+/mnt/apps$",
-            "aliases": ["mount /dev/vg_data/lv_apps /mnt/apps"],
-            "hint": "Use mount: 'sudo mount /dev/vg_data/lv_apps /mnt/apps'",
-            "explanation": "'mount' attaches a filesystem to a directory, making its contents accessible at that path."
+            "expected": "^sudo\\s+(?:(?:-u\\s+root|--user(?:=|\\s+)root)\\s+)?(?:--\\s+)?mount\\s+(?:(?:(?:(?:-t\\s*|--types(?:=|\\s+))ext4|(?:-o\\s*|--options(?:=|\\s+))rw)\\s+)*(?:/dev/(?:vg_data/lv_apps|mapper/vg_data-lv_apps)|\\x27/dev/(?:vg_data/lv_apps|mapper/vg_data-lv_apps)\\x27|\"/dev/(?:vg_data/lv_apps|mapper/vg_data-lv_apps)\")\\s+(?:/mnt/apps/?|\\x27/mnt/apps/?\\x27|\"/mnt/apps/?\")(?:\\s+(?:(?:-t\\s*|--types(?:=|\\s+))ext4|(?:-o\\s*|--options(?:=|\\s+))rw))*|--source(?:=|\\s+)(?:/dev/(?:vg_data/lv_apps|mapper/vg_data-lv_apps)|\\x27/dev/(?:vg_data/lv_apps|mapper/vg_data-lv_apps)\\x27|\"/dev/(?:vg_data/lv_apps|mapper/vg_data-lv_apps)\")\\s+--target(?:=|\\s+)(?:/mnt/apps/?|\\x27/mnt/apps/?\\x27|\"/mnt/apps/?\"))$",
+            "aliases": ["sudo mount /dev/vg_data/lv_apps /mnt/apps"],
+            "hint": "Use sudo mount /dev/vg_data/lv_apps /mnt/apps.",
+            "explanation": "mount attaches the existing ext4 filesystem at /mnt/apps; it does not create or resize a filesystem. With both source and target supplied, mount normally detects the type and does not require an fstab entry; -t ext4 can select it explicitly. sudo is needed under this ordinary-user scenario. This is a runtime mount and does not make it persist after reboot. -f is a fake operation and does not attach the filesystem."
+        },
+        {
+            "id": "linux_lvm_storage__lvextend_grow",
+            "prompt": "On Ubuntu, LVM2 is installed. vg_data uses 4 MiB extents and has at least 5 GiB free. Its active LV lv_apps is exactly 10 GiB and holds a healthy, unmounted 10 GiB ext4 filesystem. /dev/vg_data/lv_apps and /dev/mapper/vg_data-lv_apps refer to it. As an ordinary user with sudo access and no LVM administration permission, use sudo and lvextend to add exactly 5 GiB to the LV, leaving filesystem resizing for a separate command.",
+            "prefix": "user@ubuntu:~$",
+            "expected": "^sudo\\s+(?:(?:-u\\s+root|--user(?:=|\\s+)root)\\s+)?(?:--\\s+)?lvextend\\s+(?:(?:(?:-L\\s*|--size(?:=|\\s+))(?:\\+5[gG]|\\+5120[mM]|15[gG]|15360[mM])|(?:-l\\s*|--extents(?:=|\\s+))(?:\\+1280|3840))\\s+(?:vg_data/lv_apps|\\x27vg_data/lv_apps\\x27|\"vg_data/lv_apps\"|(?:/dev/(?:vg_data/lv_apps|mapper/vg_data-lv_apps)|\\x27/dev/(?:vg_data/lv_apps|mapper/vg_data-lv_apps)\\x27|\"/dev/(?:vg_data/lv_apps|mapper/vg_data-lv_apps)\"))|(?:vg_data/lv_apps|\\x27vg_data/lv_apps\\x27|\"vg_data/lv_apps\"|(?:/dev/(?:vg_data/lv_apps|mapper/vg_data-lv_apps)|\\x27/dev/(?:vg_data/lv_apps|mapper/vg_data-lv_apps)\\x27|\"/dev/(?:vg_data/lv_apps|mapper/vg_data-lv_apps)\"))\\s+(?:(?:-L\\s*|--size(?:=|\\s+))(?:\\+5[gG]|\\+5120[mM]|15[gG]|15360[mM])|(?:-l\\s*|--extents(?:=|\\s+))(?:\\+1280|3840)))$",
+            "aliases": ["sudo lvextend -L +5G /dev/vg_data/lv_apps"],
+            "hint": "Use sudo lvextend -L +5G /dev/vg_data/lv_apps.",
+            "explanation": "lvextend -L +5G adds 5 GiB from the VG to the existing 10 GiB LV; -L 15G sets the equivalent final LV size. With 4 MiB extents, +1280 extents gives the same increase. Without -r, the ext4 filesystem remains 10 GiB even though the block device is now 15 GiB. resize2fs can later grow that filesystem; extending the LV alone does not make the added space available to files."
+        },
+        {
+            "id": "linux_lvm_storage__resize2fs_grow",
+            "prompt": "On Ubuntu, e2fsprogs is installed. The active LV /dev/vg_data/lv_apps is already 15 GiB but contains a 10 GiB ext4 filesystem; /dev/mapper/vg_data-lv_apps is the same device. The filesystem is unmounted and has been checked clean with e2fsck. As an ordinary user with sudo access and no block-device write permission, use sudo and resize2fs to grow that existing filesystem to fill the LV, preserving its files.",
+            "prefix": "user@ubuntu:~$",
+            "expected": "^sudo\\s+(?:(?:-u\\s+root|--user(?:=|\\s+)root)\\s+)?(?:--\\s+)?resize2fs\\s+(?:/dev/(?:vg_data/lv_apps|mapper/vg_data-lv_apps)|\\x27/dev/(?:vg_data/lv_apps|mapper/vg_data-lv_apps)\\x27|\"/dev/(?:vg_data/lv_apps|mapper/vg_data-lv_apps)\")(?:\\s+(?:15[gG]|15360[mM]))?$",
+            "aliases": ["sudo resize2fs /dev/vg_data/lv_apps"],
+            "hint": "Use sudo resize2fs /dev/vg_data/lv_apps.",
+            "explanation": "resize2fs grows the existing ext4 filesystem while preserving its contents. Omitting the size operand uses the underlying device size, 15 GiB here; 15G specifies the same result. It does not enlarge the LV itself and cannot grow beyond that device. An unmounted filesystem should be checked first as supplied here; supported mounted ext4 filesystems can also be grown online. -P only estimates a minimum size, and mkfs.ext4 would create a replacement filesystem rather than resize this one."
         },
         {
             "id": "linux_lvm_storage__pvs_display",
-            "prompt": "Display a summary of all LVM physical volumes on the system.",
+            "prompt": "On Ubuntu, LVM2 is installed with its default local-device scanning and report settings. Several initialized physical volumes exist, and their metadata is on block devices that your ordinary account cannot read; root can. You have sudo access. Use sudo and pvs to display a summary of all initialized LVM physical volumes, including their names, volume groups, sizes and free space.",
             "prefix": "user@ubuntu:~$",
-            "expected": "^pvs$",
+            "expected": "^sudo\\s+(?:(?:-u\\s+root|--user(?:=|\\s+)root)\\s+)?(?:--\\s+)?pvs(?:\\s+(?:--readonly|--units\\s+[gG]|(?:-o\\s*|--options(?:=|\\s+))pv_name,vg_name,pv_size,pv_free))*$",
             "aliases": ["sudo pvs"],
-            "hint": "Use pvs: 'pvs'",
-            "explanation": "'pvs' provides a concise overview of physical volumes, their volume groups, and free space."
+            "hint": "Use sudo pvs.",
+            "explanation": "pvs summarizes physical volumes visible to LVM, including their VG membership, size and free extents. sudo supplies the block-device access required in this scenario even though the report is read-only. With no PV argument or selection filter, the report covers all scanned PVs. --readonly reads metadata without locking; -a also includes devices that have not been initialized as PVs, which is broader than this request."
         }
     ]
 }

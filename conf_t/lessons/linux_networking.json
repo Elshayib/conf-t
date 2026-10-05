@@ -10,111 +10,111 @@
     "tasks": [
         {
             "id": "linux_networking__ip_addr_show",
-            "prompt": "Display all network interface addresses and link states.",
+            "prompt": "On Ubuntu, ip from iproute2 is installed. As an ordinary user, use ip to display the IPv4 and IPv6 addresses and link states of every interface in the current network namespace.",
             "prefix": "user@ubuntu:~$",
-            "expected": "^ip\\s+addr\\s+show$",
-            "aliases": ["ip a", "ip address"],
-            "hint": "Use ip addr show: 'ip addr show'",
-            "explanation": "'ip addr show' replaces 'ifconfig' on modern Linux, listing IP addresses assigned to each interface."
+            "expected": "^ip\\s+(?:(?:-o|-oneline|-br|-brief)\\s+)?(?:a|addr|address)(?:\\s+(?:show|list))?$",
+            "aliases": ["ip addr show"],
+            "hint": "Use ip addr show.",
+            "explanation": "ip addr show lists addresses and interface state in the current network namespace. With no family or device filter it includes IPv4 and IPv6 on all interfaces; displaying this information needs no sudo. An administratively UP interface may still lack carrier or connectivity."
         },
         {
             "id": "linux_networking__ip_link_up",
-            "prompt": "Bring the network interface 'eth0' up (administratively enable it).",
+            "prompt": "On Ubuntu, ip from iproute2 is installed and eth0 exists in the current network namespace. You are an ordinary user with sudo access and no network administration capability. Use sudo and ip to bring eth0 administratively UP.",
             "prefix": "user@ubuntu:~$",
-            "expected": "^sudo\\s+ip\\s+link\\s+set\\s+eth0\\s+up$",
-            "aliases": ["ip link set eth0 up"],
-            "hint": "Use ip link set: 'sudo ip link set eth0 up'",
-            "explanation": "'ip link set eth0 up' enables the interface so it can send and receive traffic."
+            "expected": "^sudo\\s+(?:(?:-u\\s+root|--user(?:=|\\s+)root)\\s+)?(?:--\\s+)?ip\\s+link\\s+set\\s+(?:dev\\s+)?(?:eth0|\\x27eth0\\x27|\"eth0\")\\s+up$",
+            "aliases": ["sudo ip link set eth0 up"],
+            "hint": "Use sudo ip link set eth0 up.",
+            "explanation": "sudo runs ip with the network administration privilege needed to change eth0. The up flag enables the interface administratively; it does not assign an address, configure a route, establish physical carrier, or guarantee connectivity. This changes runtime state, not persistent Ubuntu network configuration."
         },
         {
             "id": "linux_networking__ip_route_show",
-            "prompt": "Display the kernel routing table.",
+            "prompt": "On Ubuntu, ip from iproute2 is installed. As an ordinary user, use ip to display all routes in the IPv4 main routing table of the current network namespace.",
             "prefix": "user@ubuntu:~$",
-            "expected": "^ip\\s+route\\s+show$",
-            "aliases": ["ip route", "route -n"],
-            "hint": "Use ip route show: 'ip route show'",
-            "explanation": "'ip route show' lists all routes the kernel uses to forward packets to destinations."
+            "expected": "^ip\\s+(?:(?:-4|-(?:f|family)\\s+inet)\\s+)?route(?:\\s+(?:show|list))?(?:\\s+table\\s+(?:main|254))?$",
+            "aliases": ["ip route show"],
+            "hint": "Use ip route show.",
+            "explanation": "ip route show defaults to the IPv4 main table (table 254). Explicit -4 and table main select the same table. It needs no sudo and does not show every policy-routing table or the IPv6 routing table; ip route get instead resolves one destination."
         },
         {
             "id": "linux_networking__ss_listening",
-            "prompt": "List all TCP listening sockets with process information.",
+            "prompt": "On Ubuntu, ss from iproute2 is installed. You are an ordinary user with sudo access; TCP listeners in the current network namespace include processes owned by other users. Use sudo and ss to list only all TCP listening sockets (IPv4 and IPv6), with numeric addresses and ports and their owning process information. Assume root can inspect their /proc entries.",
             "prefix": "user@ubuntu:~$",
-            "expected": "^ss\\s+-tlnp$",
-            "aliases": [],
-            "hint": "Use ss with flags -tlnp: 'ss -tlnp'",
-            "explanation": "'ss -tlnp' shows TCP (-t) listening (-l) numeric (-n) sockets with owning processes (-p)."
+            "expected": "^(?:sudo\\s+(?:(?:-u\\s+root|--user(?:=|\\s+)root)\\s+)?(?:--\\s+)?ss\\s+(?=[^\\r\\n]*(?:-[tlnp]*t[tlnp]*(?=\\s|$)|--tcp(?=\\s|$)))(?=[^\\r\\n]*(?:-[tlnp]*l[tlnp]*(?=\\s|$)|--listening(?=\\s|$)))(?=[^\\r\\n]*(?:-[tlnp]*n[tlnp]*(?=\\s|$)|--numeric(?=\\s|$)))(?=[^\\r\\n]*(?:-[tlnp]*p[tlnp]*(?=\\s|$)|--processes(?=\\s|$)))(?:-[tlnp]+|--tcp|--listening|--numeric|--processes)(?:\\s+(?:-[tlnp]+|--tcp|--listening|--numeric|--processes))*|sudo\\s+(?:(?:-u\\s+root|--user(?:=|\\s+)root)\\s+)?(?:--\\s+)?ss\\s+(?=[^\\r\\n]*(?:-[tnp]*t[tnp]*(?=\\s|$)|--tcp(?=\\s|$)))(?=[^\\r\\n]*(?:-[tnp]*n[tnp]*(?=\\s|$)|--numeric(?=\\s|$)))(?=[^\\r\\n]*(?:-[tnp]*p[tnp]*(?=\\s|$)|--processes(?=\\s|$)))(?:-[tnp]+|--tcp|--numeric|--processes)(?:\\s+(?:-[tnp]+|--tcp|--numeric|--processes))*\\s+state\\s+listening)$",
+            "aliases": ["sudo ss -tlnp"],
+            "hint": "Use sudo ss -tlnp.",
+            "explanation": "ss selects TCP (-t), listening sockets (-l), numeric addresses and ports (-n), and owning processes (-p). sudo allows inspection of other users' process file descriptors in /proc in this scenario. Process information can be unavailable if a process exits or access is restricted; a listener does not prove remote reachability. The equivalent state listening filter can replace -l."
         },
         {
             "id": "linux_networking__netstat_listening",
-            "prompt": "List all listening TCP ports numerically using netstat.",
+            "prompt": "On Ubuntu, netstat from net-tools is already installed. As an ordinary user, use netstat to list only all listening TCP sockets (IPv4 and IPv6) in the current network namespace, with numeric addresses and ports. Process information is not requested.",
             "prefix": "user@ubuntu:~$",
-            "expected": "^netstat\\s+-tln$",
-            "aliases": [],
-            "hint": "Use netstat with -tln: 'netstat -tln'",
-            "explanation": "'netstat -tln' is the classic tool for viewing listening TCP ports; 'ss' is preferred on newer systems."
+            "expected": "^netstat\\s+(?=[^\\r\\n]*(?:-[tln]*t[tln]*(?=\\s|$)|--tcp(?=\\s|$)))(?=[^\\r\\n]*(?:-[tln]*l[tln]*(?=\\s|$)|--listening(?=\\s|$)))(?=[^\\r\\n]*(?:-[tln]*n[tln]*(?=\\s|$)|--numeric(?=\\s|$)))(?:-[tln]+|--tcp|--listening|--numeric)(?:\\s+(?:-[tln]+|--tcp|--listening|--numeric))*$",
+            "aliases": ["netstat -tln"],
+            "hint": "Use netstat -tln.",
+            "explanation": "netstat -tln selects TCP (-t), listening sockets only (-l), and numeric addresses and ports (-n). This read-only listing needs no sudo. net-tools is an additional installed utility in this scenario; ss provides the modern replacement. Listening locally does not prove a firewall permits remote access."
         },
         {
             "id": "linux_networking__curl_headers",
-            "prompt": "Fetch only the HTTP response headers from 'https://example.com'.",
+            "prompt": "On Ubuntu, curl is installed with default options, DNS and HTTPS access work, and https://example.com/ supports HEAD with a direct response and a trusted certificate. As an ordinary user, use curl to fetch only the HTTP response headers for that HTTPS root URL.",
             "prefix": "user@ubuntu:~$",
-            "expected": "^curl\\s+-I\\s+https://example\\.com$",
-            "aliases": ["curl --head https://example.com"],
-            "hint": "Use curl with head flag (-I): 'curl -I https://example.com'",
-            "explanation": "'curl -I' sends a HEAD request and prints response headers without the body."
+            "expected": "^curl\\s+(?:(?:-I|--head)\\s+(?:--url\\s+)?(?:https://example\\.com/?|\\x27https://example\\.com/?\\x27|\"https://example\\.com/?\")|(?:https://example\\.com/?|\\x27https://example\\.com/?\\x27|\"https://example\\.com/?\")\\s+(?:-I|--head))$",
+            "aliases": ["curl -I https://example.com"],
+            "hint": "Use curl -I https://example.com.",
+            "explanation": "curl -I (or --head) sends HTTP HEAD and displays response headers without downloading the response body. HTTPS uses TLS and certificate verification. -i includes headers along with a GET body; -X HEAD alone changes the request method without putting curl into its proper HEAD handling mode."
         },
         {
             "id": "linux_networking__curl_download",
-            "prompt": "Download 'https://releases.example.com/app.tar.gz' and save it as 'app.tar.gz'.",
+            "prompt": "On Ubuntu with Bash, curl is installed with default options and your current directory is /home/user, which you own and can write. app.tar.gz does not exist. Assume https://releases.example.com/app.tar.gz is an accessible scenario URL returning the archive directly over trusted HTTPS, with no redirect. Use curl to download its response body into /home/user/app.tar.gz.",
             "prefix": "user@ubuntu:~$",
-            "expected": "^curl\\s+-o\\s+app\\.tar\\.gz\\s+https://releases\\.example\\.com/app\\.tar\\.gz$",
-            "aliases": [],
-            "hint": "Use curl with output flag (-o): 'curl -o app.tar.gz https://releases.example.com/app.tar.gz'",
-            "explanation": "'curl -o' writes the downloaded content to the specified local filename."
+            "expected": "^curl\\s+(?:(?:-o\\s*(?:(?:\\./|/home/user/)?app\\.tar\\.gz|\\x27(?:\\./|/home/user/)?app\\.tar\\.gz\\x27|\"(?:\\./|/home/user/)?app\\.tar\\.gz\")|--output(?:=|\\s+)(?:(?:\\./|/home/user/)?app\\.tar\\.gz|\\x27(?:\\./|/home/user/)?app\\.tar\\.gz\\x27|\"(?:\\./|/home/user/)?app\\.tar\\.gz\")|-O|--remote-name)\\s+(?:--url\\s+)?(?:https://releases\\.example\\.com/app\\.tar\\.gz|\\x27https://releases\\.example\\.com/app\\.tar\\.gz\\x27|\"https://releases\\.example\\.com/app\\.tar\\.gz\")|(?:https://releases\\.example\\.com/app\\.tar\\.gz|\\x27https://releases\\.example\\.com/app\\.tar\\.gz\\x27|\"https://releases\\.example\\.com/app\\.tar\\.gz\")\\s+(?:-o\\s*(?:(?:\\./|/home/user/)?app\\.tar\\.gz|\\x27(?:\\./|/home/user/)?app\\.tar\\.gz\\x27|\"(?:\\./|/home/user/)?app\\.tar\\.gz\")|--output(?:=|\\s+)(?:(?:\\./|/home/user/)?app\\.tar\\.gz|\\x27(?:\\./|/home/user/)?app\\.tar\\.gz\\x27|\"(?:\\./|/home/user/)?app\\.tar\\.gz\")|-O|--remote-name)|(?:https://releases\\.example\\.com/app\\.tar\\.gz|\\x27https://releases\\.example\\.com/app\\.tar\\.gz\\x27|\"https://releases\\.example\\.com/app\\.tar\\.gz\")\\s*>\\s*(?:(?:\\./|/home/user/)?app\\.tar\\.gz|\\x27(?:\\./|/home/user/)?app\\.tar\\.gz\\x27|\"(?:\\./|/home/user/)?app\\.tar\\.gz\"))$",
+            "aliases": ["curl -o app.tar.gz https://releases.example.com/app.tar.gz"],
+            "hint": "Use curl -o app.tar.gz https://releases.example.com/app.tar.gz.",
+            "explanation": "curl -o (or --output) saves the response body to the named local file. -O uses the URL basename, app.tar.gz, so it also meets this scenario. Bash > redirects the body into that file. No sudo is needed in your writable directory. The command alone does not verify an archive checksum or authenticity beyond HTTPS certificate verification."
         },
         {
             "id": "linux_networking__dig_mx",
-            "prompt": "Query DNS MX records for the domain 'example.com'.",
+            "prompt": "On Ubuntu, BIND dig is installed, its default IN-class options are unchanged (no .digrc overrides), and /etc/resolv.conf identifies a reachable DNS resolver. As an ordinary user, use dig to query MX records for example.com through the configured resolver.",
             "prefix": "user@ubuntu:~$",
-            "expected": "^dig\\s+example\\.com\\s+MX$",
-            "aliases": ["dig MX example.com"],
-            "hint": "Use dig with record type: 'dig example.com MX'",
-            "explanation": "'dig' performs DNS lookups. Specifying 'MX' queries mail exchange records for the domain."
+            "expected": "^dig\\s+(?:(?:example\\.com\\.?|\\x27example\\.com\\.?\\x27|\"example\\.com\\.?\")\\s+(?:-t\\s*)?(?:MX|mx)|(?:-t\\s*)?(?:MX|mx)\\s+(?:example\\.com\\.?|\\x27example\\.com\\.?\\x27|\"example\\.com\\.?\")|-q\\s+(?:example\\.com\\.?|\\x27example\\.com\\.?\\x27|\"example\\.com\\.?\")\\s+-t\\s*(?:MX|mx)|-t\\s*(?:MX|mx)\\s+-q\\s+(?:example\\.com\\.?|\\x27example\\.com\\.?\\x27|\"example\\.com\\.?\"))$",
+            "aliases": ["dig example.com MX"],
+            "hint": "Use dig example.com MX.",
+            "explanation": "dig queries DNS mail-exchanger (MX) records for example.com, using a resolver from /etc/resolv.conf when no @server is given. The -t option explicitly selects MX; a trailing dot makes the name absolute. An MX reply describes mail-routing preferences and hosts, not whether their SMTP service is reachable. This query needs no sudo."
         },
         {
             "id": "linux_networking__dig_short",
-            "prompt": "Resolve the A record for 'google.com' and show only the answer (short output).",
+            "prompt": "On Ubuntu, BIND dig is installed with unchanged default IN-class options (no .digrc overrides), and /etc/resolv.conf identifies a reachable DNS resolver. As an ordinary user, use dig to query A records for google.com through that resolver and print a short answer rather than the verbose DNS report.",
             "prefix": "user@ubuntu:~$",
-            "expected": "^dig\\s+\\+short\\s+google\\.com$",
+            "expected": "^dig\\s+(?:\\+short\\s+(?:-q\\s+)?(?:google\\.com\\.?|\\x27google\\.com\\.?\\x27|\"google\\.com\\.?\")(?:\\s+(?:-t\\s*)?A)?|(?:-q\\s+)?(?:google\\.com\\.?|\\x27google\\.com\\.?\\x27|\"google\\.com\\.?\")\\s+\\+short(?:\\s+(?:-t\\s*)?A)?|(?:-q\\s+)?(?:google\\.com\\.?|\\x27google\\.com\\.?\\x27|\"google\\.com\\.?\")\\s+(?:-t\\s*)?A\\s+\\+short|(?:-t\\s*)?A\\s+(?:-q\\s+)?(?:google\\.com\\.?|\\x27google\\.com\\.?\\x27|\"google\\.com\\.?\")\\s+\\+short|\\+short\\s+(?:-t\\s*)?A\\s+(?:-q\\s+)?(?:google\\.com\\.?|\\x27google\\.com\\.?\\x27|\"google\\.com\\.?\")|(?:-t\\s*)?A\\s+\\+short\\s+(?:-q\\s+)?(?:google\\.com\\.?|\\x27google\\.com\\.?\\x27|\"google\\.com\\.?\"))$",
             "aliases": ["dig +short google.com A"],
-            "hint": "Use dig with short flag: 'dig +short google.com'",
-            "explanation": "'dig +short' returns just the resolved IP addresses without verbose diagnostic output."
+            "hint": "Use dig +short google.com A.",
+            "explanation": "dig +short requests terse answer output; A is the default query type and can also be stated explicitly or selected with -t A. A records contain IPv4 addresses. A short answer may include CNAME targets as well as addresses, and an empty answer does not by itself explain a lookup failure. No sudo is needed."
         },
         {
             "id": "linux_networking__traceroute_host",
-            "prompt": "Trace the network route (hops) to host '8.8.8.8'.",
+            "prompt": "On Ubuntu, traceroute from the traceroute package is installed and an IPv4 route to 8.8.8.8 is configured. As an ordinary user, use traceroute with its default UDP method (destination ports starting at 33434 and increasing per probe) to trace hops toward 8.8.8.8.",
             "prefix": "user@ubuntu:~$",
-            "expected": "^traceroute\\s+8\\.8\\.8\\.8$",
-            "aliases": ["tracepath 8.8.8.8"],
-            "hint": "Use traceroute: 'traceroute 8.8.8.8'",
-            "explanation": "'traceroute' shows each router hop between your host and the destination, useful for path diagnosis."
+            "expected": "^traceroute\\s+(?:(?:-4|-n|-4n|-n4|-M\\s+default|--module(?:=|\\s+)default)\\s+)*(?:8\\.8\\.8\\.8|\\x278\\.8\\.8\\.8\\x27|\"8\\.8\\.8\\.8\")$",
+            "aliases": ["traceroute 8.8.8.8"],
+            "hint": "Use traceroute 8.8.8.8.",
+            "explanation": "traceroute sends probes with increasing TTL and reports responding hops and round-trip times. The installed utility's default UDP method is allowed for unprivileged users. -n suppresses hostname lookups; -4 explicitly selects IPv4. A * means no response arrived before the timeout, not proof that a router is down; filtering or rate limiting can hide hops."
         },
         {
             "id": "linux_networking__hostname_fqdn",
-            "prompt": "Display the fully qualified domain name (FQDN) of this host.",
+            "prompt": "On Ubuntu, hostname is installed. The current short hostname is lab, and the system resolver maps lab to the canonical fully qualified name lab.example.com (for example through /etc/hosts). As an ordinary user, use hostname to display that resolver-derived FQDN.",
             "prefix": "user@ubuntu:~$",
-            "expected": "^hostname\\s+-f$",
-            "aliases": ["hostname --fqdn"],
-            "hint": "Use hostname with -f flag: 'hostname -f'",
-            "explanation": "'hostname -f' prints the complete DNS name including domain suffix of the machine."
+            "expected": "^hostname\\s+(?:-f|--fqdn|--long)$",
+            "aliases": ["hostname -f"],
+            "hint": "Use hostname -f.",
+            "explanation": "hostname -f (also --fqdn or --long) resolves the current hostname and prints its canonical fully qualified name. The result depends on resolver configuration such as /etc/hosts or DNS; a machine may have no usable FQDN or multiple names. This read-only command needs no sudo and does not set the hostname."
         },
         {
             "id": "linux_networking__ping_count",
-            "prompt": "Send exactly 3 ICMP echo requests to '1.1.1.1'.",
+            "prompt": "On Ubuntu, iputils ping is installed, an IPv4 route to 1.1.1.1 exists, and your ordinary user account is allowed to create ICMP echo sockets. Use ping to send exactly three IPv4 ICMP echo requests to 1.1.1.1, without a deadline that could stop it early.",
             "prefix": "user@ubuntu:~$",
-            "expected": "^ping\\s+-c\\s+3\\s+1\\.1\\.1\\.1$",
-            "aliases": ["ping 1.1.1.1 -c 3"],
-            "hint": "Use ping with count (-c): 'ping -c 3 1.1.1.1'",
-            "explanation": "'ping -c 3' limits the probe to three packets, providing a quick reachability test."
+            "expected": "^ping\\s+(?=[^\\r\\n]*-[4n]*c\\s*3(?=\\s|$))(?:(?:-4|-n|-4n|-n4|-[4n]*c\\s*3)\\s+)*(?:1\\.1\\.1\\.1|\\x271\\.1\\.1\\.1\\x27|\"1\\.1\\.1\\.1\")(?:\\s+(?:-4|-n|-4n|-n4|-[4n]*c\\s*3))*$",
+            "aliases": ["ping -c 3 1.1.1.1"],
+            "hint": "Use ping -c 3 1.1.1.1.",
+            "explanation": "ping -c 3 stops after sending three ECHO_REQUEST packets; it does not require three replies. The numeric destination is IPv4, which -4 can state explicitly. sudo is unnecessary when ICMP echo sockets are allowed as assumed here. Echo replies test ICMP reachability, not whether a TCP service is available; packet loss can reflect filtering as well as network failure."
         }
     ]
 }

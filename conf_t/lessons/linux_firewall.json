@@ -2,101 +2,139 @@
     "id": "linux_firewall",
     "title": "Linux Firewall Configuration",
     "platform": "Linux",
-    "description": "Configure host-based firewalls using ufw, firewalld, and iptables to control inbound and outbound network traffic.",
+    "description": "Practice independent Ubuntu UFW and IPv4 iptables scenarios, plus RHEL-style firewalld scenarios, with explicit privileges and saved versus active configuration.",
     "difficulty": "advanced",
-    "tags": ["firewall", "security", "iptables"],
-    "prerequisites": ["linux_networking"],
+    "tags": [
+        "firewall",
+        "security",
+        "iptables"
+    ],
+    "prerequisites": [
+        "linux_networking"
+    ],
     "estimated_minutes": 35,
     "tasks": [
         {
             "id": "linux_firewall__ufw_status",
-            "prompt": "Display the current status and rules of the ufw firewall.",
+            "prompt": "On Ubuntu, UFW is installed and active. As an ordinary user with sudo access, use ufw to display its status and UFW-managed rules.",
             "prefix": "user@ubuntu:~$",
-            "expected": "^sudo\\s+ufw\\s+status$",
-            "aliases": ["ufw status"],
+            "expected": "^sudo\\s+ufw\\s+status(?:\\s+(verbose|numbered))?$",
+            "aliases": [
+                "sudo ufw status"
+            ],
             "hint": "Use ufw status: 'sudo ufw status'",
-            "explanation": "'ufw status' shows whether the firewall is active and lists configured allow/deny rules."
-        },
-        {
-            "id": "linux_firewall__ufw_enable",
-            "prompt": "Enable the ufw firewall (will prompt for confirmation on remote SSH sessions).",
-            "prefix": "user@ubuntu:~$",
-            "expected": "^sudo\\s+ufw\\s+enable$",
-            "aliases": ["ufw enable"],
-            "hint": "Use ufw enable: 'sudo ufw enable'",
-            "explanation": "'ufw enable' activates the firewall and configures it to start on boot."
+            "explanation": "sudo permits reading UFW's firewall state. ufw status lists its managed rules while active; verbose adds policy details and numbered adds rule numbers. It does not list every low-level rule in the kernel."
         },
         {
             "id": "linux_firewall__ufw_allow_ssh",
-            "prompt": "Allow incoming SSH connections (port 22/tcp) through ufw.",
+            "prompt": "On Ubuntu with UFW installed, SSH listens on TCP port 22; the ssh service name and OpenSSH application profile both specify only 22/tcp. No earlier UFW rule denies this traffic. As an ordinary user with sudo access, use ufw to add an allow rule for incoming TCP port 22 from any source.",
             "prefix": "user@ubuntu:~$",
-            "expected": "^sudo\\s+ufw\\s+allow\\s+ssh$",
-            "aliases": ["sudo ufw allow 22/tcp", "ufw allow OpenSSH"],
+            "expected": "^sudo\\s+ufw\\s+allow\\s+(?:in\\s+)?(ssh(?:/tcp)?|22/tcp|OpenSSH)$",
+            "aliases": [
+                "sudo ufw allow ssh",
+                "sudo ufw allow proto tcp from any to any port 22"
+            ],
             "hint": "Use ufw allow ssh: 'sudo ufw allow ssh'",
-            "explanation": "'ufw allow ssh' adds a rule permitting inbound TCP traffic on port 22 using the built-in SSH profile."
+            "explanation": "ufw allow ssh resolves the service in /etc/services; 22/tcp spells the same port and protocol explicitly. OpenSSH is a separate installed application profile with the stated ports. Direction defaults to incoming. Teach this rule before enabling UFW so new SSH access is permitted."
+        },
+        {
+            "id": "linux_firewall__ufw_enable",
+            "prompt": "On Ubuntu, UFW is installed but disabled, and the required incoming SSH rule for TCP port 22 is already saved with no conflicting deny rules. As an ordinary user with sudo access, use ufw to enable it and its boot-time startup.",
+            "prefix": "user@ubuntu:~$",
+            "expected": "^sudo\\s+ufw\\s+(?:--force\\s+)?enable$",
+            "aliases": [
+                "sudo ufw enable"
+            ],
+            "hint": "Use ufw enable: 'sudo ufw enable'",
+            "explanation": "ufw enable loads the saved firewall rules and enables startup on boot. The scenario already permits required SSH access. UFW may request confirmation over SSH because enabling can disrupt existing connections; --force suppresses that confirmation."
         },
         {
             "id": "linux_firewall__ufw_allow_port",
-            "prompt": "Allow incoming TCP traffic on port 443 through ufw.",
+            "prompt": "On Ubuntu with UFW installed and no earlier rule denying this traffic, use ufw to add an incoming allow rule for only TCP port 443 from any source. You are an ordinary user with sudo access.",
             "prefix": "user@ubuntu:~$",
-            "expected": "^sudo\\s+ufw\\s+allow\\s+443/tcp$",
-            "aliases": ["ufw allow 443/tcp"],
+            "expected": "^sudo\\s+ufw\\s+allow\\s+(?:in\\s+)?443/tcp$",
+            "aliases": [
+                "sudo ufw allow 443/tcp",
+                "sudo ufw allow proto tcp from any to any port 443"
+            ],
             "hint": "Use ufw allow with port: 'sudo ufw allow 443/tcp'",
-            "explanation": "'ufw allow 443/tcp' permits HTTPS traffic, commonly needed for web servers."
+            "explanation": "443/tcp restricts the allow rule to TCP destination port 443, commonly used for HTTPS. Omitting /tcp would also allow UDP. UFW uses incoming direction by default; sudo permits changing its rules."
         },
         {
             "id": "linux_firewall__ufw_deny_ip",
-            "prompt": "Deny all incoming traffic from IP address '192.168.1.100' via ufw.",
+            "prompt": "On Ubuntu with UFW active and no earlier user rule allowing this source, use ufw to add an inbound deny rule for source IPv4 address 192.168.1.100, any destination and any port. You are an ordinary user with sudo access. This changes UFW's user rules, not its framework rules or existing connection tracking.",
             "prefix": "user@ubuntu:~$",
-            "expected": "^sudo\\s+ufw\\s+deny\\s+from\\s+192\\.168\\.1\\.100$",
-            "aliases": ["ufw deny from 192.168.1.100"],
+            "expected": "^sudo\\s+ufw\\s+deny\\s+(?:in\\s+)?from\\s+192\\.168\\.1\\.100(?:/32)?(?:\\s+to\\s+any)?$",
+            "aliases": [
+                "sudo ufw deny from 192.168.1.100"
+            ],
             "hint": "Use ufw deny from: 'sudo ufw deny from 192.168.1.100'",
-            "explanation": "'ufw deny from' blocks all inbound connections originating from the specified source IP."
+            "explanation": "deny from matches that source address without limiting ports; incoming is the default direction. The rule denies packets when reached in UFW's user rules. Earlier framework rules, such as established-connection handling and some ICMP allowances, still apply."
         },
         {
             "id": "linux_firewall__iptables_list",
-            "prompt": "List all rules in the iptables filter table with line numbers.",
+            "prompt": "On a separate Ubuntu host with iptables installed and no UFW or firewalld manager, use iptables to list all chains in the IPv4 filter table with numeric addresses/ports and rule line numbers. You are an ordinary user with sudo access.",
             "prefix": "user@ubuntu:~$",
-            "expected": "^sudo\\s+iptables\\s+-L\\s+-n\\s+--line-numbers$",
-            "aliases": ["iptables -L -n --line-numbers"],
+            "expected": "^sudo\\s+iptables\\s+(?:(-t|--table)\\s+filter\\s+)?(-L|--list)\\s+(-n|--numeric)\\s+--line-numbers$",
+            "aliases": [
+                "sudo iptables -L -n --line-numbers",
+                "sudo iptables -n -L --line-numbers",
+                "sudo iptables -L --line-numbers -n"
+            ],
             "hint": "Use iptables list: 'sudo iptables -L -n --line-numbers'",
-            "explanation": "'iptables -L -n --line-numbers' shows filter table rules numerically without DNS resolution."
+            "explanation": "-L lists every chain when none is named, and filter is the default table. -n avoids name resolution for addresses and ports; --line-numbers adds each rule's position within its chain. Even listing the live rules requires administrator privileges."
         },
         {
             "id": "linux_firewall__iptables_allow_port",
-            "prompt": "Allow incoming TCP traffic on port 80 in iptables INPUT chain.",
+            "prompt": "On a separate Ubuntu host managed directly with IPv4 iptables, its filter INPUT chain is empty with default DROP policy. UFW and firewalld are not managing this host. As an ordinary user with sudo access, use iptables to append an ACCEPT rule for incoming TCP destination port 80.",
             "prefix": "user@ubuntu:~$",
-            "expected": "^sudo\\s+iptables\\s+-A\\s+INPUT\\s+-p\\s+tcp\\s+--dport\\s+80\\s+-j\\s+ACCEPT$",
-            "aliases": [],
+            "expected": "^sudo\\s+iptables\\s+(?:(-t|--table)\\s+filter\\s+)?(-A|--append)\\s+INPUT\\s+(-p|--protocol)\\s+(tcp|6)\\s+(?:-m\\s+tcp\\s+)?--dport\\s+80\\s+(-j|--jump)\\s+ACCEPT$",
+            "aliases": ["sudo iptables -A INPUT -p tcp --dport 80 -j ACCEPT"],
             "hint": "Use iptables append rule: 'sudo iptables -A INPUT -p tcp --dport 80 -j ACCEPT'",
-            "explanation": "This appends (-A) a rule to INPUT allowing TCP destination port 80 with action ACCEPT."
+            "explanation": "-A appends to INPUT, -p tcp selects TCP, and --dport 80 matches the destination port. ACCEPT permits matching packets before the chain's default DROP policy. With the stated empty chain, no earlier rule masks the new rule. This changes live IPv4 rules; it does not save them across reboot."
         },
         {
             "id": "linux_firewall__iptables_drop_all",
-            "prompt": "Set the default policy of the iptables INPUT chain to DROP.",
+            "prompt": "At the local console of a separate Ubuntu host managed directly with IPv4 iptables, INPUT already contains the explicit ACCEPT rules needed for administration and has default ACCEPT policy. UFW and firewalld are absent. As an ordinary user with sudo access, use iptables to set the filter INPUT default policy to DROP, retaining its rules.",
             "prefix": "user@ubuntu:~$",
-            "expected": "^sudo\\s+iptables\\s+-P\\s+INPUT\\s+DROP$",
-            "aliases": ["iptables -P INPUT DROP"],
+            "expected": "^sudo\\s+iptables\\s+(?:(-t|--table)\\s+filter\\s+)?(-P|--policy)\\s+INPUT\\s+DROP$",
+            "aliases": [
+                "sudo iptables -P INPUT DROP"
+            ],
             "hint": "Use iptables policy: 'sudo iptables -P INPUT DROP'",
-            "explanation": "'iptables -P' sets the default policy for a chain. DROP silently discards unmatched packets."
+            "explanation": "-P changes the built-in INPUT chain's policy while preserving its explicit rules. Packets that reach the end of that chain without acceptance are silently dropped. Appending a DROP rule is a different operation, and REJECT is not a built-in chain policy. This live setting is not automatically saved across reboot."
         },
         {
             "id": "linux_firewall__firewalld_status",
-            "prompt": "Check whether firewalld is running on this RHEL-style system.",
-            "prefix": "user@ubuntu:~$",
-            "expected": "^sudo\\s+firewall-cmd\\s+--state$",
-            "aliases": ["firewall-cmd --state"],
-            "hint": "Use firewall-cmd state: 'sudo firewall-cmd --state'",
-            "explanation": "'firewall-cmd --state' reports if firewalld is running, the default firewall on RHEL/CentOS/Fedora."
+            "prompt": "On a separate RHEL-style host with firewalld and firewall-cmd installed, use firewall-cmd to query whether its daemon is running. Your ordinary account is authorized for read-only state queries and also has sudo access.",
+            "prefix": "user@rhel:~$",
+            "expected": "^(?:sudo\\s+)?firewall-cmd\\s+--state$",
+            "aliases": [
+                "firewall-cmd --state"
+            ],
+            "hint": "Use 'firewall-cmd --state'.",
+            "explanation": "--state prints the daemon's state and returns a status indicating whether it is active. It does not modify rules, so the stated read-only authorization suffices without sudo. This RHEL-style example is separate from the Ubuntu UFW and iptables scenarios."
         },
         {
             "id": "linux_firewall__firewalld_add_service",
-            "prompt": "Permanently allow the 'http' service through firewalld.",
-            "prefix": "user@ubuntu:~$",
-            "expected": "^sudo\\s+firewall-cmd\\s+--permanent\\s+--add-service=http$",
-            "aliases": ["firewall-cmd --permanent --add-service=http"],
+            "prompt": "On a separate RHEL-style host, firewalld is running with default zone public and the predefined http service available but not enabled in its saved configuration. Use firewall-cmd to add http to that zone's permanent configuration without changing runtime rules yet. You are an ordinary user with sudo access; policy denies firewall changes from your unelevated account.",
+            "prefix": "user@rhel:~$",
+            "expected": "^sudo\\s+firewall-cmd\\s+(?:--zone=public\\s+)?(?:--permanent\\s+--add-service=http|--add-service=http\\s+--permanent)(?:\\s+--zone=public)?$",
+            "aliases": [
+                "sudo firewall-cmd --permanent --add-service=http",
+                "sudo firewall-cmd --permanent --zone=public --add-service=http"
+            ],
             "hint": "Use firewall-cmd permanent add: 'sudo firewall-cmd --permanent --add-service=http'",
-            "explanation": "'--permanent' saves the rule across reboots. '--add-service=http' opens the predefined HTTP ports."
+            "explanation": "--permanent writes saved configuration, while --add-service=http enables the predefined service in the default public zone. This does not immediately allow runtime traffic: reload or restart applies saved configuration. sudo supplies the privilege missing from the ordinary account."
+        },
+        {
+            "id": "linux_firewall__firewalld_reload",
+            "prompt": "On a separate RHEL-style host, firewalld is running and valid permanent configuration already enables http in public. Apply that saved configuration to runtime while retaining connection state, using firewall-cmd's normal reload. There are no runtime-only changes to preserve. You are an ordinary user with sudo access; policy denies firewall changes from your unelevated account.",
+            "prefix": "user@rhel:~$",
+            "expected": "^sudo\\s+firewall-cmd\\s+--reload$",
+            "aliases": ["sudo firewall-cmd --reload"],
+            "hint": "Use 'sudo firewall-cmd --reload'.",
+            "explanation": "--reload makes saved permanent configuration the active runtime configuration while retaining connection state. Runtime-only zone changes would be discarded, so this scenario excludes them. --complete-reload can lose connection state; --runtime-to-permanent saves in the opposite direction. sudo authorizes the change."
         }
     ]
 }

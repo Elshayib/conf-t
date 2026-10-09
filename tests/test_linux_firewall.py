@@ -16,6 +16,7 @@ from conf_t.session import (
     LESSON_STATUS_IN_PROGRESS,
     ReviewEntry,
     Session,
+    TaskResult,
 )
 
 
@@ -213,7 +214,7 @@ def test_returning_learner_keeps_old_passes_and_resumes_reload(
     previous_session = Session(progress_path=progress_path)
     for task in old_catalog.tasks:
         previous_session.record_attempt(
-            old_catalog, task, correct=True, first_try=True, skipped=False
+            old_catalog, task, TaskResult.FIRST_TRY_PASS
         )
     old_standing = previous_session.lesson_standing(old_catalog)
     assert old_standing.status == LESSON_STATUS_COMPLETED
@@ -248,7 +249,7 @@ def test_retained_failed_task_stays_addressable_for_review(
     previous_session = Session(progress_path=progress_path)
     failed = task_for("ufw_allow_ssh")
     previous_session.record_attempt(
-        old_catalog, failed, correct=False, first_try=True, skipped=False
+        old_catalog, failed, TaskResult.INCORRECT
     )
     expected_review = [ReviewEntry("linux_firewall", failed.id)]
     assert previous_session.due_review() == expected_review

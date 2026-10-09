@@ -18,6 +18,7 @@ from conf_t.session import (
     LESSON_STATUS_IN_PROGRESS,
     Session,
     TURN_CORRECT,
+    TaskResult,
 )
 
 NEW_TASK_ID = "linux_lvm_storage__mkfs_ext4_create"
@@ -57,7 +58,7 @@ def test_completed_old_lesson_resumes_only_new_filesystem_task(
     session.mark_practice_opened(old)
     for task in old.tasks:
         session.record_attempt(
-            old, task, correct=True, first_try=True, skipped=False,
+            old, task, TaskResult.FIRST_TRY_PASS,
         )
     assert session.lesson_standing(old).status == LESSON_STATUS_COMPLETED
     assert session.stats().completed_lessons == 1

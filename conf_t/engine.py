@@ -12,7 +12,7 @@ from conf_t.catalog import (
     parse_tags_csv,
     sort_lessons_by_curriculum,
 )
-from conf_t.models import TaskProgress
+from conf_t.models import TaskProgress, TaskResult
 
 LessonLoader = Catalog
 
@@ -39,6 +39,14 @@ def is_task_progress_passed(entry: Optional[Dict[str, Any]]) -> bool:
     return (
         entry.get("status") == TASK_STATUS_PASSED
         and entry.get("passed_first_try", False)
+    )
+
+
+def _record_is_first_try_pass(record: Optional[TaskProgress]) -> bool:
+    if record is None:
+        return False
+    return (
+        record.status == TASK_STATUS_PASSED and record.passed_first_try
     )
 
 
@@ -181,7 +189,9 @@ class ProgressManager:
             drill_order.append(task_id)
 
         for index, task_id in enumerate(drill_order, start=1):
-            task_progress[task_id]["drill_seq"] = index
+            record = TaskProgress.from_dict(task_progress[task_id])
+            record.drill_place = index
+            task_progress[task_id] = record.to_dict()
 
         data["task_progress"] = task_progress
         data.pop("failed_tasks", None)
@@ -200,100 +210,104 @@ class ProgressManager:
             self._data["attempted_lessons"].append(lesson_id)
             self.save()
 
-    def _update_task_progress(
+    def _read_record(self, task_id: str) -> Optional[TaskProgress]:
+        raw = self._data.get("task_progress", {}).get(task_id)
+        if not isinstance(raw, dict):
+            return None
+        if not raw.get("lesson_id") or "status" not in raw:
+            return None
+        return TaskProgress.from_dict(raw)
+
+    def _write_record(self, task_id: str, record: TaskProgress) -> None:
+        self._data["task_progress"][task_id] = record.to_dict()
+
+    def _record_for_result(
         self,
         lesson_id: str,
-        task_id: str,
-        is_correct: bool,
-        is_first_try: bool,
-        is_skipped: bool,
-    ) -> None:
-        existing = self._data["task_progress"].get(task_id, {})
-        attempts = existing.get("attempts", 0) + 1
-        now = self._now_iso()
-
-        if is_skipped:
+        result: TaskResult,
+        prior: Optional[TaskProgress],
+    ) -> TaskProgress:
+        if result is TaskResult.SKIP:
             status = TASK_STATUS_SKIPPED
             passed_first_try = False
-        elif is_correct and is_first_try:
+        elif result is TaskResult.FIRST_TRY_PASS:
             status = TASK_STATUS_PASSED
             passed_first_try = True
         else:
             status = TASK_STATUS_FAILED
             passed_first_try = False
 
-        review_level = existing.get("review_level", 0)
-        next_review_at = existing.get("next_review_at")
-        self._data["task_progress"][task_id] = TaskProgress(
+        record = TaskProgress(
             lesson_id=lesson_id,
             status=status,
             passed_first_try=passed_first_try,
-            attempts=attempts,
-            last_attempt=now,
-            review_level=review_level,
-            next_review_at=next_review_at,
-        ).to_dict()
+            attempts=(prior.attempts if prior else 0) + 1,
+            last_attempt=self._now_iso(),
+            review_level=prior.review_level if prior else 0,
+            next_review_at=prior.next_review_at if prior else None,
+        )
+        if result is TaskResult.FIRST_TRY_PASS:
+            record.review_level = 0
+            record.next_review_at = None
+            return record
 
-    def _apply_review_schedule(
-        self,
-        task_id: str,
-        is_correct: bool,
-        is_first_try: bool,
-        is_skipped: bool,
-    ) -> None:
-        entry = self._data["task_progress"][task_id]
-        if is_correct and is_first_try:
-            entry["review_level"] = 0
-            entry.pop("next_review_at", None)
-            return
-
-        level = entry.get("review_level", 0)
-        if is_correct and not is_first_try:
+        level = record.review_level
+        if result is TaskResult.CORRECT_NOT_FIRST_TRY:
             level = min(level + 1, len(REVIEW_INTERVALS_DAYS) - 1)
         else:
             level = 0
-
         days = REVIEW_INTERVALS_DAYS[level]
         if days == 0:
             due_at = self._now()
         else:
             due_at = self._now() + timedelta(days=days)
-        entry["review_level"] = level
-        entry["next_review_at"] = due_at.isoformat()
+        record.review_level = level
+        record.next_review_at = due_at.isoformat()
+        return record
+
+    def _place_for(
+        self, result: TaskResult, prior: Optional[TaskProgress]
+    ) -> Optional[int]:
+        if result is TaskResult.FIRST_TRY_PASS:
+            return None
+        if (
+            prior is not None
+            and not _record_is_first_try_pass(prior)
+            and prior.drill_place is not None
+        ):
+            return prior.drill_place
+        return self._next_drill_place()
 
     def is_task_due(self, task_id: str) -> bool:
-        if self.is_task_passed(task_id):
+        record = self._read_record(task_id)
+        if record is None or _record_is_first_try_pass(record):
             return False
-        entry = self.get_task_progress_entry(task_id)
-        if not entry:
-            return False
-        next_review_at = entry.get("next_review_at")
-        if not next_review_at:
-            return entry.get("status") in (TASK_STATUS_FAILED, TASK_STATUS_SKIPPED)
-        return _parse_iso_datetime(next_review_at) <= self._now()
+        if not record.next_review_at:
+            return record.status in (TASK_STATUS_FAILED, TASK_STATUS_SKIPPED)
+        return _parse_iso_datetime(record.next_review_at) <= self._now()
 
     def get_due_review_entries(self) -> List[Dict[str, str]]:
         due_entries: List[Dict[str, str]] = []
-        for task_id, entry in self._data.get("task_progress", {}).items():
-            if not isinstance(entry, dict) or not entry.get("lesson_id"):
+        for task_id in self._data.get("task_progress", {}):
+            record = self._read_record(task_id)
+            if record is None or not record.lesson_id:
                 continue
             if not self.is_task_due(task_id):
                 continue
             due_entries.append(
-                {"lesson_id": entry["lesson_id"], "task_id": task_id}
+                {"lesson_id": record.lesson_id, "task_id": task_id}
             )
-        due_entries.sort(
-            key=lambda item: (
-                self.get_task_progress_entry(item["task_id"]) or {}
-            ).get("next_review_at") or ""
-        )
+        due_entries.sort(key=lambda item: self._due_sort_key(item["task_id"]))
         return due_entries
 
-    def get_task_progress_entry(self, task_id: str) -> Optional[Dict[str, Any]]:
-        return self._data.get("task_progress", {}).get(task_id)
+    def _due_sort_key(self, task_id: str) -> str:
+        record = self._read_record(task_id)
+        if record is None or not record.next_review_at:
+            return ""
+        return record.next_review_at
 
     def is_task_passed(self, task_id: str) -> bool:
-        return is_task_progress_passed(self.get_task_progress_entry(task_id))
+        return _record_is_first_try_pass(self._read_record(task_id))
 
     def get_lesson_task_summary(
         self, lesson_id: str, task_ids: List[str]
@@ -323,47 +337,31 @@ class ProgressManager:
         lesson_id: str,
         platform: str,
         task_id: str,
-        is_correct: bool,
-        is_first_try: bool,
-        is_skipped: bool,
+        result: TaskResult,
     ) -> None:
-        prior = self.get_task_progress_entry(task_id) or {}
-        kept_seq = None
-        if not is_task_progress_passed(prior):
-            kept_seq = prior.get("drill_seq")
+        if not isinstance(result, TaskResult):
+            result = TaskResult(result)
+        prior = self._read_record(task_id)
         self.mark_lesson_attempted(lesson_id)
-        self._update_task_progress(
-            lesson_id, task_id, is_correct, is_first_try, is_skipped
-        )
-        self._apply_review_schedule(
-            task_id, is_correct, is_first_try, is_skipped
-        )
-        entry = self._data["task_progress"][task_id]
-        if is_correct and is_first_try:
-            entry.pop("drill_seq", None)
-        elif isinstance(kept_seq, int) and not isinstance(kept_seq, bool):
-            # Still in the drill: keep the place it already had.
-            entry["drill_seq"] = kept_seq
-        else:
-            # Entering the drill, including after a first-try pass, goes last.
-            entry["drill_seq"] = self._next_drill_seq()
+        record = self._record_for_result(lesson_id, result, prior)
+        record.drill_place = self._place_for(result, prior)
+        self._write_record(task_id, record)
         self._data["total_attempts"] += 1
-        
-        # Initialize platform stats
+
         if platform not in self._data["platform_stats"]:
             self._data["platform_stats"][platform] = {
                 "attempts": 0,
                 "correct_first_try": 0,
                 "skipped": 0
             }
-            
+
         p_stats = self._data["platform_stats"][platform]
         p_stats["attempts"] += 1
 
-        if is_skipped:
+        if result is TaskResult.SKIP:
             self._data["skipped_count"] += 1
             p_stats["skipped"] += 1
-        elif is_correct and is_first_try:
+        elif result is TaskResult.FIRST_TRY_PASS:
             self._data["correct_first_try"] += 1
             p_stats["correct_first_try"] += 1
 
@@ -378,36 +376,37 @@ class ProgressManager:
             done.remove(lesson_id)
             self.save()
 
-    def _next_drill_seq(self) -> int:
+    def _next_drill_place(self) -> int:
         highest = 0
-        for entry in self._data.get("task_progress", {}).values():
-            if not isinstance(entry, dict):
-                continue
-            seq = entry.get("drill_seq")
-            if (
-                isinstance(seq, int)
-                and not isinstance(seq, bool)
-                and seq > highest
-            ):
-                highest = seq
+        for task_id in self._data.get("task_progress", {}):
+            record = self._read_record(task_id)
+            place = (
+                0
+                if record is None or record.drill_place is None
+                else record.drill_place
+            )
+            if place > highest:
+                highest = place
         return highest + 1
 
     def _drill_sort_key(self, task_id: str) -> tuple[int, int]:
-        entry = self.get_task_progress_entry(task_id) or {}
-        seq = entry.get("drill_seq")
-        if isinstance(seq, int) and not isinstance(seq, bool):
-            return (0, seq)
-        return (1, 0)
+        record = self._read_record(task_id)
+        place = None if record is None else record.drill_place
+        if place is None:
+            return (1, 0)
+        return (0, place)
 
     def get_failed_task_entries(self) -> List[Dict[str, str]]:
         entries: List[Dict[str, str]] = []
-        for task_id, entry in self._data.get("task_progress", {}).items():
-            if not isinstance(entry, dict) or is_task_progress_passed(entry):
+        for task_id in self._data.get("task_progress", {}):
+            record = self._read_record(task_id)
+            if record is None or _record_is_first_try_pass(record):
                 continue
-            lesson_id = entry.get("lesson_id")
-            if not lesson_id:
+            if not record.lesson_id:
                 continue
-            entries.append({"lesson_id": lesson_id, "task_id": task_id})
+            entries.append(
+                {"lesson_id": record.lesson_id, "task_id": task_id}
+            )
         entries.sort(key=lambda item: self._drill_sort_key(item["task_id"]))
         return entries
 

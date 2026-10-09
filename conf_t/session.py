@@ -15,7 +15,7 @@ from conf_t.engine import (
     ProgressManager,
     sort_lessons_by_curriculum,
 )
-from conf_t.models import Lesson, SessionStats, Task
+from conf_t.models import Lesson, SessionStats, Task, TaskResult
 
 TURN_IGNORE = "ignore"
 TURN_LEAVE = "leave"
@@ -40,6 +40,7 @@ __all__ = [
     "PlatformTotals",
     "ReviewEntry",
     "Session",
+    "TaskResult",
     "TurnResult",
     "practice_summary",
 ]
@@ -156,13 +157,7 @@ class Session:
         first_try = task.id not in self._lost_first_try
 
         if lowered == "skip":
-            self.record_attempt(
-                lesson,
-                task,
-                correct=False,
-                first_try=first_try,
-                skipped=True,
-            )
+            self.record_attempt(lesson, task, TaskResult.SKIP)
             self._lost_first_try.discard(task.id)
             return TurnResult(
                 kind=TURN_SKIPPED,
@@ -173,13 +168,12 @@ class Session:
 
         is_correct = validate_input(cleaned, task, lesson.platform)
         if is_correct:
-            self.record_attempt(
-                lesson,
-                task,
-                correct=True,
-                first_try=first_try,
-                skipped=False,
+            result = (
+                TaskResult.FIRST_TRY_PASS
+                if first_try
+                else TaskResult.CORRECT_NOT_FIRST_TRY
             )
+            self.record_attempt(lesson, task, result)
             self._lost_first_try.discard(task.id)
             return TurnResult(
                 kind=TURN_CORRECT,
@@ -187,13 +181,7 @@ class Session:
                 first_try=first_try,
             )
 
-        self.record_attempt(
-            lesson,
-            task,
-            correct=False,
-            first_try=first_try,
-            skipped=False,
-        )
+        self.record_attempt(lesson, task, TaskResult.INCORRECT)
         self._lost_first_try.add(task.id)
         return TurnResult(kind=TURN_INCORRECT, first_try=first_try)
 
@@ -201,18 +189,16 @@ class Session:
         self,
         lesson: Lesson,
         task: Task,
-        *,
-        correct: bool,
-        first_try: bool,
-        skipped: bool,
+        result: TaskResult,
     ) -> None:
+        """Store one result. Does not change the showing in progress."""
+        if not isinstance(result, TaskResult):
+            result = TaskResult(result)
         self._progress.record_attempt(
             lesson_id=lesson.id,
             platform=lesson.platform,
             task_id=task.id,
-            is_correct=correct,
-            is_first_try=first_try,
-            is_skipped=skipped,
+            result=result,
         )
         self._sync_completion(lesson)
 

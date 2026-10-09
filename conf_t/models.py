@@ -1,5 +1,15 @@
 from dataclasses import dataclass, field
+from enum import Enum
 from typing import List, Dict, Any, Optional
+
+
+class TaskResult(str, Enum):
+    """One stored result for a Task. A caller passes one of these."""
+
+    FIRST_TRY_PASS = "first_try_pass"
+    CORRECT_NOT_FIRST_TRY = "correct_not_first_try"
+    INCORRECT = "incorrect"
+    SKIP = "skip"
 
 @dataclass
 class Task:
@@ -89,9 +99,13 @@ class TaskProgress:
     last_attempt: Optional[str] = None
     review_level: int = 0
     next_review_at: Optional[str] = None
+    drill_place: Optional[int] = None
 
     @classmethod
     def from_dict(cls, data: Dict[str, Any]) -> "TaskProgress":
+        place = data.get("drill_seq")
+        if isinstance(place, bool) or not isinstance(place, int):
+            place = None
         return cls(
             lesson_id=data["lesson_id"],
             status=data["status"],
@@ -100,6 +114,7 @@ class TaskProgress:
             last_attempt=data.get("last_attempt"),
             review_level=data.get("review_level", 0),
             next_review_at=data.get("next_review_at"),
+            drill_place=place,
         )
 
     def to_dict(self) -> Dict[str, Any]:
@@ -114,6 +129,10 @@ class TaskProgress:
             result["last_attempt"] = self.last_attempt
         if self.next_review_at:
             result["next_review_at"] = self.next_review_at
+        # The progress file stays at its current version, so the place keeps
+        # the drill_seq key already stored on Task records.
+        if self.drill_place is not None:
+            result["drill_seq"] = self.drill_place
         return result
 
 

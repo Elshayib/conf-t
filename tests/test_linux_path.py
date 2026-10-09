@@ -6,7 +6,12 @@ from pathlib import Path
 from conf_t.acceptance import validate_input
 from conf_t.engine import LessonLoader
 from conf_t.models import Lesson
-from conf_t.session import LESSON_STATUS_COMPLETED, TURN_CORRECT, Session
+from conf_t.session import (
+    LESSON_STATUS_COMPLETED,
+    TURN_CORRECT,
+    Session,
+    TaskResult,
+)
 
 
 LINUX_LESSON_IDS = {
@@ -59,9 +64,10 @@ def test_linux_path_reaches_every_lesson_with_completed_prerequisites(
         assert session.missing_prerequisite_titles(lesson, lessons) == []
         for task in lesson.tasks:
             # Command semantics are checked with manual-derived literals in
-            # the topic tests; here record passes to exercise path progression.
+            # the topic tests. Recording a first-try pass walks the path
+            # and does not invent a command.
             session.record_attempt(
-                lesson, task, correct=True, first_try=True, skipped=False,
+                lesson, task, TaskResult.FIRST_TRY_PASS,
             )
         standing = session.lesson_standing(lesson)
         assert standing.status == LESSON_STATUS_COMPLETED

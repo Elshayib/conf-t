@@ -11,7 +11,7 @@ from conf_t.cli import (
     review_correct_message,
 )
 from conf_t.models import Lesson, Task
-from conf_t.session import Session
+from conf_t.session import Session, TaskResult
 
 
 def _app(tmp_path: Path, session: Session | None = None) -> ConfTCLI:
@@ -44,7 +44,7 @@ def test_due_review_keeps_its_wording_and_value(tmp_path: Path) -> None:
         tasks=[task],
     )
     session = Session(tmp_path / "progress.json")
-    session.record_attempt(lesson, task, correct=False, first_try=True, skipped=False)
+    session.record_attempt(lesson, task, TaskResult.INCORRECT)
     choices = _app(tmp_path, session)._main_menu_choices()
 
     assert choices[0].title == "★ Daily Review (1 due)"

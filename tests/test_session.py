@@ -448,6 +448,81 @@ def test_stats_match_due_failed_and_lifetime_totals(tmp_path: Path) -> None:
     assert session.stats().failed_queue_size == 1
 
 
+def test_linux_and_Linux_are_one_stats_row(tmp_path: Path) -> None:
+    session = _session(tmp_path)
+    lower = _lesson(lesson_id="low", platform="linux", tasks=[_task("low__a")])
+    upper = _lesson(lesson_id="up", platform="Linux", tasks=[_task("up__a")])
+    cisco = _lesson(
+        lesson_id="cisco_l", platform="CISCO", tasks=[_task("cisco_l__a")]
+    )
+    powershell = _lesson(
+        lesson_id="ps_l", platform="powershell", tasks=[_task("ps_l__a")]
+    )
+    git = _lesson(lesson_id="git_l", platform="git", tasks=[_task("git_l__a")])
+    docker = _lesson(
+        lesson_id="docker_l", platform="DOCKER", tasks=[_task("docker_l__a")]
+    )
+    juniper = _lesson(
+        lesson_id="juniper_l", platform="Juniper", tasks=[_task("juniper_l__a")]
+    )
+    juniper_lower = _lesson(
+        lesson_id="juniper_low", platform="juniper", tasks=[_task("juniper_low__a")]
+    )
+
+    session.record_attempt(lower, lower.tasks[0], TaskResult.INCORRECT)
+    session.record_attempt(upper, upper.tasks[0], TaskResult.FIRST_TRY_PASS)
+    session.record_attempt(cisco, cisco.tasks[0], TaskResult.SKIP)
+    session.record_attempt(powershell, powershell.tasks[0], TaskResult.INCORRECT)
+    session.record_attempt(git, git.tasks[0], TaskResult.FIRST_TRY_PASS)
+    session.record_attempt(docker, docker.tasks[0], TaskResult.SKIP)
+    session.record_attempt(juniper, juniper.tasks[0], TaskResult.INCORRECT)
+    session.record_attempt(juniper_lower, juniper_lower.tasks[0], TaskResult.INCORRECT)
+
+    stats = session.stats()
+    assert set(stats.by_platform) == {
+        "Linux",
+        "Cisco",
+        "PowerShell",
+        "Git",
+        "Docker",
+        "Juniper",
+        "juniper",
+    }
+    assert stats.by_platform["Linux"].attempts == 2
+    assert stats.by_platform["Linux"].correct_first_try == 1
+    assert stats.by_platform["Linux"].skipped == 0
+    assert stats.by_platform["Cisco"].attempts == 1
+    assert stats.by_platform["Cisco"].skipped == 1
+    assert stats.by_platform["PowerShell"].attempts == 1
+    assert stats.by_platform["Git"].correct_first_try == 1
+    assert stats.by_platform["Docker"].skipped == 1
+    assert stats.by_platform["Juniper"].attempts == 1
+    assert stats.by_platform["juniper"].attempts == 1
+
+    legacy = tmp_path / "legacy.json"
+    legacy.write_text(
+        json.dumps(
+            {
+                "progress_version": 5,
+                "platform_stats": {
+                    "linux": {"attempts": 4, "correct_first_try": 1, "skipped": 2},
+                    "Linux": {"attempts": 1, "correct_first_try": 0, "skipped": 0},
+                    "myos": {"attempts": 1, "correct_first_try": 0, "skipped": 0},
+                    "MyOS": {"attempts": 2, "correct_first_try": 0, "skipped": 0},
+                },
+            }
+        ),
+        encoding="utf-8",
+    )
+    opened = Session(progress_path=legacy).stats()
+    assert opened.by_platform["Linux"].attempts == 5
+    assert opened.by_platform["Linux"].correct_first_try == 1
+    assert opened.by_platform["Linux"].skipped == 2
+    assert "linux" not in opened.by_platform
+    assert opened.by_platform["myos"].attempts == 1
+    assert opened.by_platform["MyOS"].attempts == 2
+
+
 def test_full_reset_clears_standing_drills_stats_and_welcome(tmp_path: Path) -> None:
     session = _session(tmp_path)
     lesson = _lesson(tasks=[_task("l1__a")])
@@ -839,7 +914,7 @@ def test_case_rules_and_aliases_follow_platform(tmp_path: Path) -> None:
     cisco = Lesson(
         id="cisco_l",
         title="Cisco",
-        platform="Cisco",
+        platform="cIsCo",
         description="d",
         tasks=[
             _task("cisco_l__a", expected="^configure terminal$"),
@@ -849,7 +924,7 @@ def test_case_rules_and_aliases_follow_platform(tmp_path: Path) -> None:
     powershell = Lesson(
         id="ps_l",
         title="PS",
-        platform="PowerShell",
+        platform="powershell",
         description="d",
         tasks=[_task("ps_l__a", expected="^Get-Service$", aliases=["GSV"])],
     )

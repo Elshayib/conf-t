@@ -8,6 +8,7 @@ from pathlib import Path
 from typing import Optional, Sequence
 
 from conf_t.models import Lesson
+from conf_t.platform import Platform
 
 DIFFICULTY_ORDER = {"beginner": 0, "intermediate": 1, "advanced": 2}
 
@@ -59,12 +60,15 @@ def collect_all_tags(lessons: Sequence[Lesson]) -> list[str]:
 
 
 def platform_names(lessons: Sequence[Lesson]) -> list[str]:
-    """One display spelling per Platform. Lessons are already in curriculum order."""
+    """One display spelling per Platform. A known Platform uses its canonical spelling."""
     chosen: dict[str, str] = {}
     for lesson in lessons:
-        key = lesson.platform.casefold()
-        if key not in chosen:
-            chosen[key] = lesson.platform
+        platform = Platform.of(lesson.platform)
+        if platform.known:
+            chosen[platform.spelling.casefold()] = platform.spelling
+        else:
+            key = lesson.platform.casefold()
+            chosen.setdefault(key, lesson.platform)
     return sorted(chosen.values(), key=str.casefold)
 
 

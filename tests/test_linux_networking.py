@@ -330,5 +330,5 @@ def test_reveal_is_a_concrete_accepted_command(
     action: str, command: str
 ) -> None:
     task = _task(action)
-    assert format_display_answer(task, "Linux") == command
+    assert format_display_answer(task) == command
     assert validate_input(command, task, "Linux")

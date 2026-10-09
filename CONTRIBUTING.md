@@ -75,10 +75,7 @@ Before opening a PR with new lessons, verify:
 ## Adding a New Platform
 
 1. Create a lesson file: `conf_t/lessons/<lesson_id>.json`
-2. Update `validate_input()` in [`acceptance.py`](conf_t/acceptance.py) to set the correct case sensitivity:
-   - Case-insensitive: add to the `["cisco", "powershell"]` list
-   - Case-sensitive: it is already the default
-3. Update the platform choices list in `create_lesson_menu()` in [`cli.py`](conf_t/cli.py).
+2. Add the Platform in [`platform.py`](conf_t/platform.py): its canonical spelling, whether grading ignores case, and the default prompt prefix. The custom Lesson wizard takes its choices from that module. An unknown name keeps the spelling that was typed, grades with case, and suggests `$`.
 
 ---
 

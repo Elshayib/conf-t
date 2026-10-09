@@ -50,17 +50,32 @@ def test_linux_and_Linux_are_the_same_platform(tmp_path: Path) -> None:
     _write(
         tmp_path,
         "alpha.json",
-        _lesson("alpha", title="Alpha", platform="Linux"),
+        _lesson("alpha", title="Alpha", platform="linux"),
     )
     _write(
         tmp_path,
         "beta.json",
-        _lesson("beta", title="Beta", platform="linux"),
+        _lesson("beta", title="Beta", platform="Linux"),
     )
     _write(
         tmp_path,
         "git.json",
-        _lesson("git_one", title="Git One", platform="Git"),
+        _lesson("git_one", title="Git One", platform="git"),
+    )
+    _write(
+        tmp_path,
+        "cisco.json",
+        _lesson("cisco_one", title="Cisco One", platform="CISCO"),
+    )
+    _write(
+        tmp_path,
+        "ps.json",
+        _lesson("ps_one", title="PS One", platform="powershell"),
+    )
+    _write(
+        tmp_path,
+        "docker.json",
+        _lesson("docker_one", title="Docker One", platform="DOCKER"),
     )
 
     catalog = Catalog(tmp_path)
@@ -69,7 +84,13 @@ def test_linux_and_Linux_are_the_same_platform(tmp_path: Path) -> None:
 
     assert lower == ["alpha", "beta"]
     assert upper == ["alpha", "beta"]
-    assert catalog.platforms() == ["Git", "Linux"]
+    assert catalog.platforms() == [
+        "Cisco",
+        "Docker",
+        "Git",
+        "Linux",
+        "PowerShell",
+    ]
 
 
 def test_lessons_stay_ordered_by_difficulty_then_title(tmp_path: Path) -> None:

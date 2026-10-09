@@ -8,10 +8,12 @@ from pathlib import Path
 from typing import Optional, Sequence
 
 from conf_t.acceptance import format_display_answer, validate_input
+from conf_t.platform import Platform
 from conf_t.engine import (
     LESSON_STATUS_COMPLETED,
     LESSON_STATUS_IN_PROGRESS,
     LESSON_STATUS_NOT_STARTED,
+    PlatformLifetime,
     ProgressManager,
     sort_lessons_by_curriculum,
 )
@@ -108,6 +110,29 @@ def practice_summary(
     )
 
 
+def _fold_platform_totals(
+    stored: dict[str, PlatformLifetime],
+) -> dict[str, PlatformTotals]:
+    """Known Platforms share one canonical stats key. Unknown spellings stay apart."""
+    folded: dict[str, PlatformTotals] = {}
+    for name, totals in stored.items():
+        key = Platform.of(name).spelling
+        current = folded.get(key)
+        if current is None:
+            folded[key] = PlatformTotals(
+                attempts=totals.attempts,
+                correct_first_try=totals.correct_first_try,
+                skipped=totals.skipped,
+            )
+            continue
+        folded[key] = PlatformTotals(
+            attempts=current.attempts + totals.attempts,
+            correct_first_try=current.correct_first_try + totals.correct_first_try,
+            skipped=current.skipped + totals.skipped,
+        )
+    return folded
+
+
 class Session:
     """Owns Lesson standing and related progress answers for Practice and Review."""
 
@@ -155,7 +180,7 @@ class Session:
             return TurnResult(
                 kind=TURN_SKIPPED,
                 explanation=task.explanation,
-                readable_command=format_display_answer(task, lesson.platform),
+                readable_command=format_display_answer(task),
                 first_try=first_try,
             )
 
@@ -189,7 +214,7 @@ class Session:
             result = TaskResult(result)
         self._progress.record_attempt(
             lesson_id=lesson.id,
-            platform=lesson.platform,
+            platform=Platform.of(lesson.platform).spelling,
             task_id=task.id,
             result=result,
         )
@@ -277,14 +302,7 @@ class Session:
 
     def stats(self) -> LearnerStats:
         stored = self._progress.lifetime_stats()
-        by_platform = {
-            platform: PlatformTotals(
-                attempts=totals.attempts,
-                correct_first_try=totals.correct_first_try,
-                skipped=totals.skipped,
-            )
-            for platform, totals in stored.by_platform.items()
-        }
+        by_platform = _fold_platform_totals(stored.by_platform)
         return LearnerStats(
             completed_lessons=stored.completed_lessons,
             due_count=len(self._progress.get_due_review_entries()),

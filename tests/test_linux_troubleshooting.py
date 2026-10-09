@@ -153,7 +153,7 @@ def test_skip_reveals_a_concrete_complete_correct_command(
     action: str, answer: str
 ) -> None:
     task = load_task(action)
-    assert format_display_answer(task, "Linux") == answer
+    assert format_display_answer(task) == answer
     assert validate_input(answer, task, "Linux")
 
 

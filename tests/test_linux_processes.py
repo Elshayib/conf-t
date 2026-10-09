@@ -388,6 +388,6 @@ def test_skip_reveals_a_concrete_command_for_every_task(
     lesson_id: str, action: str, answer: str
 ) -> None:
     task = load_task(lesson_id, action)
-    displayed = format_display_answer(task, "Linux")
+    displayed = format_display_answer(task)
     assert displayed == answer
     assert validate_input(displayed, task, "Linux")

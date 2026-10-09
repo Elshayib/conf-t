@@ -646,7 +646,7 @@ def test_skip_reveals_a_concrete_accepted_command(
     task_id: str, command: str
 ) -> None:
     task = _task(task_id)
-    displayed = format_display_answer(task, "Linux")
+    displayed = format_display_answer(task)
     assert displayed == command
     assert validate_input(displayed, task, "Linux")
 

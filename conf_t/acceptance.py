@@ -5,13 +5,7 @@ from __future__ import annotations
 import re
 
 from conf_t.models import Task
-
-# Cisco and PowerShell ignore case. Linux, Git, and Docker keep it.
-_CASE_INSENSITIVE_PLATFORMS = {"cisco", "powershell"}
-
-
-def _ignores_case(platform: str) -> bool:
-    return platform.lower() in _CASE_INSENSITIVE_PLATFORMS
+from conf_t.platform import Platform
 
 
 def validate_input(user_input: str, task: Task, platform: str) -> bool:
@@ -21,7 +15,8 @@ def validate_input(user_input: str, task: Task, platform: str) -> bool:
     Platform's case rule.
     """
     cleaned_input = user_input.strip()
-    flags = re.IGNORECASE if _ignores_case(platform) else 0
+    ignores_case = Platform.of(platform).ignores_case
+    flags = re.IGNORECASE if ignores_case else 0
 
     try:
         pattern = re.compile(task.expected, flags)
@@ -33,7 +28,7 @@ def validate_input(user_input: str, task: Task, platform: str) -> bool:
 
     for alias in task.aliases:
         alias_clean = alias.strip()
-        if _ignores_case(platform):
+        if ignores_case:
             if cleaned_input.lower() == alias_clean.lower():
                 return True
         elif cleaned_input == alias_clean:
@@ -42,13 +37,11 @@ def validate_input(user_input: str, task: Task, platform: str) -> bool:
     return False
 
 
-def format_display_answer(task: Task, platform: str) -> str:
+def format_display_answer(task: Task) -> str:
     """Command skip shows: the first alias, or the pattern without anchors.
 
-    Callers pass `platform` with the Task. The shown command does not change
-    with the Platform.
+    The shown command is the same on every Platform.
     """
-    _ = platform
     if task.aliases:
         return task.aliases[0]
 

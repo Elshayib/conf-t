@@ -13,6 +13,7 @@ from rich import box
 from conf_t import __version__
 from conf_t.models import Lesson, Task
 from conf_t.catalog import Catalog, CatalogRefusal, platform_names, same_platform
+from conf_t.platform import Platform
 from conf_t.engine import (
     DIFFICULTY_ORDER,
     LESSON_STATUS_COMPLETED,
@@ -915,7 +916,7 @@ class ConfTCLI:
 
         platform = questionary.select(
             "3. Select Platform (or type a custom one in other option):",
-            choices=["Cisco", "Linux", "PowerShell", "Git", "Docker", "Other"]
+            choices=list(Platform.choices()),
         ).ask()
 
         if platform == "Other":
@@ -924,15 +925,8 @@ class ConfTCLI:
                 return
 
         description = questionary.text("4. Enter Lesson Description:").ask()
-        
-        # Determine default prompt prefix
-        default_prefix = "$"
-        if platform.lower() == "cisco":
-            default_prefix = "Router#"
-        elif platform.lower() == "powershell":
-            default_prefix = "PS C:\\"
-        elif platform.lower() == "git":
-            default_prefix = "user@git:~$"
+
+        default_prefix = Platform.of(platform).prefix
 
         tasks = []
         console.print("\n[bold yellow]--- Task Creator Loop ---[/]")

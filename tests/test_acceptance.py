@@ -13,8 +13,8 @@ def test_cisco_answers_ignore_case() -> None:
         aliases=["conf t", "config t"],
     )
     assert validate_input("configure terminal", task, "Cisco") is True
-    assert validate_input("CONFIGURE TERMINAL", task, "Cisco") is True
-    assert validate_input("conf t", task, "Cisco") is True
+    assert validate_input("CONFIGURE TERMINAL", task, "cisco") is True
+    assert validate_input("conf t", task, "cIsCo") is True
     assert validate_input("CONF T", task, "Cisco") is True
     assert validate_input("wrong command", task, "Cisco") is False
 
@@ -28,7 +28,7 @@ def test_powershell_answers_ignore_case() -> None:
         aliases=["gsv"],
     )
     assert validate_input("get-service", task, "PowerShell") is True
-    assert validate_input("GSV", task, "PowerShell") is True
+    assert validate_input("GSV", task, "powershell") is True
 
 
 def test_linux_git_and_docker_answers_keep_case() -> None:
@@ -61,7 +61,19 @@ def test_linux_git_and_docker_answers_keep_case() -> None:
         aliases=[],
     )
     assert validate_input("docker ps", docker, "Docker") is True
-    assert validate_input("Docker PS", docker, "Docker") is False
+    assert validate_input("Docker PS", docker, "docker") is False
+
+    custom = Task(
+        id="custom_task",
+        prompt="Print directory",
+        prefix="$",
+        expected="^pwd$",
+        aliases=["Pwd"],
+    )
+    assert validate_input("pwd", custom, "Juniper") is True
+    assert validate_input("PWD", custom, "Juniper") is False
+    assert validate_input("Pwd", custom, "Juniper") is True
+    assert validate_input("pwd", custom, "juniper") is True
 
 
 def test_invalid_regex_does_not_match_and_aliases_still_can() -> None:
@@ -84,7 +96,7 @@ def test_skip_shows_the_first_alias() -> None:
         expected="^configure\\s+terminal$",
         aliases=["conf t", "config t"],
     )
-    assert format_display_answer(task, "Cisco") == "conf t"
+    assert format_display_answer(task) == "conf t"
 
 
 def test_skip_without_an_alias_strips_anchors_and_whitespace_markers() -> None:
@@ -95,4 +107,4 @@ def test_skip_without_an_alias_strips_anchors_and_whitespace_markers() -> None:
         expected=r"^git\s+status$",
         aliases=[],
     )
-    assert format_display_answer(task, "Git") == "git status"
+    assert format_display_answer(task) == "git status"

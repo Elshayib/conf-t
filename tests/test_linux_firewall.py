@@ -8,7 +8,7 @@ from dataclasses import replace
 from pathlib import Path
 
 from conf_t.acceptance import validate_input
-from conf_t.engine import LessonLoader
+from conf_t.catalog import Catalog
 from conf_t.models import Lesson, Task
 from conf_t.session import (
     ContinueTarget,
@@ -20,7 +20,7 @@ from conf_t.session import (
 
 
 def firewall_lesson() -> Lesson:
-    lesson = LessonLoader().get_lesson_by_id("linux_firewall")
+    lesson = Catalog().get_lesson_by_id("linux_firewall")
     assert lesson is not None
     return lesson
 

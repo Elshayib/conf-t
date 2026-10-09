@@ -9,7 +9,7 @@ from pathlib import Path
 import pytest
 
 from conf_t.acceptance import format_display_answer, validate_input
-from conf_t.engine import LessonLoader
+from conf_t.catalog import Catalog
 from conf_t.models import Task
 
 
@@ -17,7 +17,7 @@ LESSONS_DIR = Path(__file__).parent.parent / "conf_t" / "lessons"
 
 
 def load_task(lesson_id: str, action: str) -> Task:
-    lesson = LessonLoader(LESSONS_DIR).get_lesson_by_id(lesson_id)
+    lesson = Catalog(LESSONS_DIR).get_lesson_by_id(lesson_id)
     assert lesson is not None
     return next(
         task for task in lesson.tasks if task.id == f"{lesson_id}__{action}"
@@ -25,9 +25,9 @@ def load_task(lesson_id: str, action: str) -> Task:
 
 
 def test_timer_curriculum_builds_on_system_service_management() -> None:
-    loader = LessonLoader(LESSONS_DIR)
-    scheduling = loader.get_lesson_by_id("linux_cron_scheduling")
-    systemd = loader.get_lesson_by_id("linux_systemd")
+    catalog = Catalog(LESSONS_DIR)
+    scheduling = catalog.get_lesson_by_id("linux_cron_scheduling")
+    systemd = catalog.get_lesson_by_id("linux_systemd")
     assert scheduling is not None and systemd is not None
     assert systemd.id in scheduling.prerequisites
 

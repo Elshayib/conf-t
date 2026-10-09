@@ -8,6 +8,7 @@ from pathlib import Path
 from typing import Optional, Sequence
 
 from conf_t.acceptance import format_display_answer, validate_input
+from conf_t.catalog import sort_lessons_by_curriculum
 from conf_t.platform import Platform
 from conf_t.engine import (
     LESSON_STATUS_COMPLETED,
@@ -15,7 +16,6 @@ from conf_t.engine import (
     LESSON_STATUS_NOT_STARTED,
     PlatformLifetime,
     ProgressManager,
-    sort_lessons_by_curriculum,
 )
 from conf_t.models import Lesson, SessionStats, Task, TaskResult
 

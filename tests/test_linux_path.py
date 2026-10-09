@@ -4,7 +4,7 @@ from dataclasses import replace
 from pathlib import Path
 
 from conf_t.acceptance import validate_input
-from conf_t.engine import LessonLoader
+from conf_t.catalog import Catalog
 from conf_t.models import Lesson
 from conf_t.session import (
     LESSON_STATUS_COMPLETED,
@@ -35,7 +35,7 @@ LINUX_LESSON_IDS = {
 
 def linux_catalog() -> list[Lesson]:
     return [
-        lesson for lesson in LessonLoader().load_all_lessons()
+        lesson for lesson in Catalog().lessons()
         if lesson.platform == "Linux"
     ]
 
@@ -81,7 +81,7 @@ def test_linux_path_reaches_every_lesson_with_completed_prerequisites(
 def test_repaired_lesson_preserves_passes_without_regrading_old_answers(
     tmp_path: Path,
 ) -> None:
-    repaired = LessonLoader().get_lesson_by_id("linux_basic")
+    repaired = Catalog().get_lesson_by_id("linux_basic")
     assert repaired is not None
     # The old catalog accepted pagers for cat_syslog. Preserve a historical
     # pass even though the repaired Task specifically asks for GNU cat.

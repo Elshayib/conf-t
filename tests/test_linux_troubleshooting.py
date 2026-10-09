@@ -9,7 +9,7 @@ from pathlib import Path
 import pytest
 
 from conf_t.acceptance import format_display_answer, validate_input
-from conf_t.engine import LessonLoader
+from conf_t.catalog import Catalog
 from conf_t.models import Task
 
 
@@ -18,7 +18,7 @@ LESSON_ID = "linux_troubleshooting_lab"
 
 
 def load_task(action: str) -> Task:
-    lesson = LessonLoader(LESSONS_DIR).get_lesson_by_id(LESSON_ID)
+    lesson = Catalog(LESSONS_DIR).get_lesson_by_id(LESSON_ID)
     assert lesson is not None
     return next(task for task in lesson.tasks
                 if task.id == f"{LESSON_ID}__{action}")
@@ -112,7 +112,7 @@ def test_kernel_inspection_reads_last_twenty_current_buffer_lines() -> None:
 
 
 def test_capstone_requires_the_lessons_whose_tools_it_reuses() -> None:
-    lesson = LessonLoader(LESSONS_DIR).get_lesson_by_id(LESSON_ID)
+    lesson = Catalog(LESSONS_DIR).get_lesson_by_id(LESSON_ID)
     assert lesson is not None
     assert {
         "linux_networking", "linux_process_management", "linux_systemd",

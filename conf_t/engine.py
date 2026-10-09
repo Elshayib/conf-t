@@ -3,18 +3,7 @@ from datetime import datetime, timedelta, timezone
 from typing import List, Dict, Any, NamedTuple, Optional
 from pathlib import Path
 
-from conf_t.catalog import (
-    DIFFICULTY_ORDER,
-    Catalog,
-    collect_all_tags,
-    filter_lessons_by_tags,
-    lesson_matches_tags,
-    parse_tags_csv,
-    sort_lessons_by_curriculum,
-)
 from conf_t.models import TaskProgress, TaskResult
-
-LessonLoader = Catalog
 
 LESSON_STATUS_COMPLETED = "completed"
 LESSON_STATUS_IN_PROGRESS = "in_progress"

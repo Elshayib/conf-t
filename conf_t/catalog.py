@@ -106,9 +106,6 @@ class Catalog:
     def platforms(self) -> list[str]:
         return platform_names(self.lessons())
 
-    def load_all_lessons(self) -> list[Lesson]:
-        return self.lessons()
-
     def get_lesson_by_id(self, lesson_id: str) -> Optional[Lesson]:
         for lesson in self.lessons():
             if lesson.id == lesson_id:

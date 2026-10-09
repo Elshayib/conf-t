@@ -4,12 +4,12 @@ Commands follow the GNU Bash manual. The tests never execute shell commands.
 """
 
 from conf_t.acceptance import validate_input
-from conf_t.engine import LessonLoader
+from conf_t.catalog import Catalog
 from conf_t.models import Task
 
 
 def task_for(action: str) -> Task:
-    lesson = LessonLoader().get_lesson_by_id("linux_shell_scripting")
+    lesson = Catalog().get_lesson_by_id("linux_shell_scripting")
     assert lesson is not None
     return next(
         task for task in lesson.tasks

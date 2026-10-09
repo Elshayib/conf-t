@@ -12,16 +12,21 @@ from rich import box
 
 from conf_t import __version__
 from conf_t.models import Lesson, Task
-from conf_t.catalog import Catalog, CatalogRefusal, platform_names, same_platform
-from conf_t.platform import Platform
-from conf_t.engine import (
+from conf_t.catalog import (
     DIFFICULTY_ORDER,
-    LESSON_STATUS_COMPLETED,
-    LESSON_STATUS_IN_PROGRESS,
-    LESSON_STATUS_NOT_STARTED,
+    Catalog,
+    CatalogRefusal,
     collect_all_tags,
     filter_lessons_by_tags,
     parse_tags_csv,
+    platform_names,
+    same_platform,
+)
+from conf_t.platform import Platform
+from conf_t.engine import (
+    LESSON_STATUS_COMPLETED,
+    LESSON_STATUS_IN_PROGRESS,
+    LESSON_STATUS_NOT_STARTED,
 )
 from conf_t.session import (
     Session,

@@ -10,7 +10,6 @@ from conf_t.session import (
     LESSON_STATUS_IN_PROGRESS,
     LESSON_STATUS_NOT_STARTED,
     ContinueTarget,
-    ReviewEntry,
     Session,
     TaskResult,
     TURN_CORRECT,
@@ -173,8 +172,8 @@ def test_first_try_pass_is_in_neither_due_review_nor_failed_queue(tmp_path: Path
     lesson = _lesson(tasks=[_task("l1__a")])
     session.record_attempt(lesson, lesson.tasks[0], TaskResult.FIRST_TRY_PASS)
 
-    assert session.due_review() == []
-    assert session.failed_queue() == []
+    assert session.due_review([lesson]) == []
+    assert session.failed_queue([lesson]) == []
 
 
 def test_miss_is_due_now_and_in_failed_queue(tmp_path: Path) -> None:
@@ -183,10 +182,10 @@ def test_miss_is_due_now_and_in_failed_queue(tmp_path: Path) -> None:
     task = lesson.tasks[0]
     session.record_attempt(lesson, task, TaskResult.INCORRECT)
 
-    due = session.due_review()
-    failed = session.failed_queue()
-    assert due == [ReviewEntry(lesson_id="l1", task_id="l1__a")]
-    assert failed == [ReviewEntry(lesson_id="l1", task_id="l1__a")]
+    due = session.due_review([lesson])
+    failed = session.failed_queue([lesson])
+    assert due == [(lesson, task)]
+    assert failed == [(lesson, task)]
 
 
 def test_skip_is_due_now_and_in_failed_queue(tmp_path: Path) -> None:
@@ -195,8 +194,8 @@ def test_skip_is_due_now_and_in_failed_queue(tmp_path: Path) -> None:
     task = lesson.tasks[0]
     session.record_attempt(lesson, task, TaskResult.SKIP)
 
-    assert session.due_review() == [ReviewEntry(lesson_id="l1", task_id="l1__a")]
-    assert session.failed_queue() == [ReviewEntry(lesson_id="l1", task_id="l1__a")]
+    assert session.due_review([lesson]) == [(lesson, task)]
+    assert session.failed_queue([lesson]) == [(lesson, task)]
 
 
 def test_late_pass_stays_in_failed_queue_and_is_not_due(tmp_path: Path) -> None:
@@ -206,8 +205,8 @@ def test_late_pass_stays_in_failed_queue_and_is_not_due(tmp_path: Path) -> None:
     session.record_attempt(lesson, task, TaskResult.INCORRECT)
     session.record_attempt(lesson, task, TaskResult.CORRECT_NOT_FIRST_TRY)
 
-    assert session.due_review() == []
-    assert session.failed_queue() == [ReviewEntry(lesson_id="l1", task_id="l1__a")]
+    assert session.due_review([lesson]) == []
+    assert session.failed_queue([lesson]) == [(lesson, task)]
 
 
 def _session_at(path: Path, when: datetime) -> Session:
@@ -219,35 +218,35 @@ def test_late_pass_waits_1_then_3_then_7_days(tmp_path: Path) -> None:
     path = tmp_path / "progress.json"
     lesson = _lesson(tasks=[_task("l1__a")])
     task = lesson.tasks[0]
-    entry = ReviewEntry(lesson_id="l1", task_id="l1__a")
+    pair = (lesson, task)
 
     session = _session_at(path, start)
     session.record_attempt(lesson, task, TaskResult.INCORRECT)
-    assert session.due_review() == [entry]
+    assert session.due_review([lesson]) == [pair]
 
     session.record_attempt(lesson, task, TaskResult.CORRECT_NOT_FIRST_TRY)
-    assert session.due_review() == []
-    assert session.failed_queue() == [entry]
+    assert session.due_review([lesson]) == []
+    assert session.failed_queue([lesson]) == [pair]
 
     day_1 = _session_at(path, start + timedelta(days=1))
-    assert day_1.due_review() == [entry]
+    assert day_1.due_review([lesson]) == [pair]
     day_1.record_attempt(lesson, task, TaskResult.CORRECT_NOT_FIRST_TRY)
-    assert day_1.due_review() == []
+    assert day_1.due_review([lesson]) == []
 
     day_4 = _session_at(path, start + timedelta(days=1 + 3))
-    assert day_4.due_review() == [entry]
+    assert day_4.due_review([lesson]) == [pair]
     day_4.record_attempt(lesson, task, TaskResult.CORRECT_NOT_FIRST_TRY)
-    assert day_4.due_review() == []
+    assert day_4.due_review([lesson]) == []
 
     day_11 = _session_at(path, start + timedelta(days=1 + 3 + 7))
-    assert day_11.due_review() == [entry]
+    assert day_11.due_review([lesson]) == [pair]
     day_11.record_attempt(lesson, task, TaskResult.CORRECT_NOT_FIRST_TRY)
-    assert day_11.due_review() == []
-    assert day_11.failed_queue() == [entry]
+    assert day_11.due_review([lesson]) == []
+    assert day_11.failed_queue([lesson]) == [pair]
 
     almost = start + timedelta(days=1 + 3 + 7 + 6)
-    assert _session_at(path, almost).due_review() == []
-    assert _session_at(path, almost + timedelta(days=1)).due_review() == [entry]
+    assert _session_at(path, almost).due_review([lesson]) == []
+    assert _session_at(path, almost + timedelta(days=1)).due_review([lesson]) == [pair]
 
 
 def test_due_review_lists_only_due_tasks_soonest_first(tmp_path: Path) -> None:
@@ -263,14 +262,93 @@ def test_due_review_lists_only_due_tasks_soonest_first(tmp_path: Path) -> None:
     midway = _session_at(path, start + timedelta(hours=12))
     midway.record_attempt(lesson, soon, TaskResult.INCORRECT)
 
-    assert midway.due_review() == [ReviewEntry(lesson_id="l1", task_id="l1__soon")]
-    assert midway.failed_queue() == [
-        ReviewEntry(lesson_id="l1", task_id="l1__later"),
-        ReviewEntry(lesson_id="l1", task_id="l1__soon"),
-    ]
+    assert midway.due_review([lesson]) == [(lesson, soon)]
+    assert midway.failed_queue([lesson]) == [(lesson, later), (lesson, soon)]
 
     later_on = _session_at(path, start + timedelta(hours=12) + timedelta(days=1))
-    assert [entry.task_id for entry in later_on.due_review()] == ["l1__soon", "l1__later"]
+    assert [task.id for _, task in later_on.due_review([lesson])] == [
+        "l1__soon",
+        "l1__later",
+    ]
+
+
+def test_due_review_omits_a_gone_task_and_keeps_next_review_time_order(
+    tmp_path: Path,
+) -> None:
+    start = datetime(2026, 6, 1, tzinfo=timezone.utc)
+    path = tmp_path / "progress.json"
+    full = _lesson(tasks=[_task("l1__early"), _task("l1__middle"), _task("l1__late")])
+    early, middle, late = full.tasks
+
+    first = _session_at(path, start)
+    first.record_attempt(full, early, TaskResult.INCORRECT)
+    first.record_attempt(full, early, TaskResult.CORRECT_NOT_FIRST_TRY)
+
+    second = _session_at(path, start + timedelta(days=1))
+    second.record_attempt(full, middle, TaskResult.INCORRECT)
+    second.record_attempt(full, middle, TaskResult.CORRECT_NOT_FIRST_TRY)
+
+    third = _session_at(path, start + timedelta(days=1, hours=1))
+    third.record_attempt(full, late, TaskResult.INCORRECT)
+
+    kept = _lesson(tasks=[early, late])
+    sitting = _session_at(path, start + timedelta(days=2))
+    assert sitting.due_review([full]) == [
+        (full, early),
+        (full, late),
+        (full, middle),
+    ]
+    assert sitting.due_review([kept]) == [(kept, early), (kept, late)]
+    assert sitting.stats().due_count == 3
+    assert sitting.continue_target([kept]) == ContinueTarget(action="daily_review")
+
+
+def test_failed_queue_omits_a_gone_task_and_keeps_drill_place(tmp_path: Path) -> None:
+    session = _session(tmp_path)
+    full = _lesson(tasks=[_task("l1__a"), _task("l1__b"), _task("l1__c")])
+    first, second, third = full.tasks
+    session.record_attempt(full, first, TaskResult.INCORRECT)
+    session.record_attempt(full, second, TaskResult.INCORRECT)
+    session.record_attempt(full, third, TaskResult.INCORRECT)
+    session.record_attempt(full, second, TaskResult.CORRECT_NOT_FIRST_TRY)
+
+    kept = _lesson(tasks=[first, third])
+    assert session.failed_queue([full]) == [
+        (full, first),
+        (full, second),
+        (full, third),
+    ]
+    assert session.failed_queue([kept]) == [(kept, first), (kept, third)]
+    assert [task.id for _, task in session.due_review([kept])] == ["l1__a", "l1__c"]
+    assert session.stats().failed_queue_size == 3
+
+
+def test_continue_opens_the_grown_lesson_when_no_resolvable_task_is_due(
+    tmp_path: Path,
+) -> None:
+    session = _session(tmp_path)
+    original = _lesson(tasks=[_task("l1__a"), _task("l1__b")])
+    session.record_attempt(original, original.tasks[0], TaskResult.FIRST_TRY_PASS)
+    session.record_attempt(original, original.tasks[1], TaskResult.FIRST_TRY_PASS)
+    assert session.stats().completed_lessons == 1
+
+    ghost = _lesson("ghost", tasks=[_task("ghost__a")])
+    session.record_attempt(ghost, ghost.tasks[0], TaskResult.INCORRECT)
+
+    grown = _lesson(tasks=[*original.tasks, _task("l1__c")])
+    standing = session.lesson_standing(grown)
+    assert session.stats().completed_lessons == 1
+    assert standing.status == LESSON_STATUS_IN_PROGRESS
+    assert standing.passed == 2
+    assert standing.total == 3
+    assert [task.id for task in session.resume_tasks(grown)] == ["l1__c"]
+    assert session.due_review([grown]) == []
+    assert session.failed_queue([grown]) == []
+    assert session.continue_target([grown]) == ContinueTarget(
+        action="lesson", lesson_id="l1"
+    )
+    assert session.stats().due_count == 1
+    assert session.stats().failed_queue_size == 1
 
 
 def test_another_miss_or_skip_is_due_immediately(tmp_path: Path) -> None:
@@ -278,27 +356,27 @@ def test_another_miss_or_skip_is_due_immediately(tmp_path: Path) -> None:
     path = tmp_path / "progress.json"
     lesson = _lesson(tasks=[_task("l1__a")])
     task = lesson.tasks[0]
-    entry = ReviewEntry(lesson_id="l1", task_id="l1__a")
+    pair = (lesson, task)
 
     session = _session_at(path, start)
     session.record_attempt(lesson, task, TaskResult.INCORRECT)
     session.record_attempt(lesson, task, TaskResult.CORRECT_NOT_FIRST_TRY)
-    assert session.due_review() == []
+    assert session.due_review([lesson]) == []
 
     same_day = _session_at(path, start + timedelta(hours=1))
-    assert same_day.due_review() == []
+    assert same_day.due_review([lesson]) == []
     same_day.record_attempt(lesson, task, TaskResult.INCORRECT)
-    assert same_day.due_review() == [entry]
-    assert same_day.failed_queue() == [entry]
+    assert same_day.due_review([lesson]) == [pair]
+    assert same_day.failed_queue([lesson]) == [pair]
 
     same_day.record_attempt(lesson, task, TaskResult.CORRECT_NOT_FIRST_TRY)
-    assert same_day.due_review() == []
+    assert same_day.due_review([lesson]) == []
 
     still_waiting = _session_at(path, start + timedelta(hours=2))
-    assert still_waiting.due_review() == []
+    assert still_waiting.due_review([lesson]) == []
     still_waiting.record_attempt(lesson, task, TaskResult.SKIP)
-    assert still_waiting.due_review() == [entry]
-    assert still_waiting.failed_queue() == [entry]
+    assert still_waiting.due_review([lesson]) == [pair]
+    assert still_waiting.failed_queue([lesson]) == [pair]
 
 
 def test_reentering_drill_after_first_try_pass_goes_to_the_end(tmp_path: Path) -> None:
@@ -310,16 +388,10 @@ def test_reentering_drill_after_first_try_pass_goes_to_the_end(tmp_path: Path) -
     session.record_attempt(lesson, other, TaskResult.INCORRECT)
     session.record_attempt(lesson, passed, TaskResult.INCORRECT)
 
-    assert session.failed_queue() == [
-        ReviewEntry(lesson_id="l1", task_id="l1__b"),
-        ReviewEntry(lesson_id="l1", task_id="l1__a"),
-    ]
+    assert session.failed_queue([lesson]) == [(lesson, other), (lesson, passed)]
 
     reopened = Session(progress_path=tmp_path / "progress.json")
-    assert reopened.failed_queue() == [
-        ReviewEntry(lesson_id="l1", task_id="l1__b"),
-        ReviewEntry(lesson_id="l1", task_id="l1__a"),
-    ]
+    assert reopened.failed_queue([lesson]) == [(lesson, other), (lesson, passed)]
 
 
 def test_failed_queue_includes_tasks_that_are_not_due_yet(tmp_path: Path) -> None:
@@ -331,10 +403,10 @@ def test_failed_queue_includes_tasks_that_are_not_due_yet(tmp_path: Path) -> Non
     session.record_attempt(lesson, waiting, TaskResult.INCORRECT)
     session.record_attempt(lesson, waiting, TaskResult.CORRECT_NOT_FIRST_TRY)
 
-    assert session.due_review() == [ReviewEntry(lesson_id="l1", task_id="l1__due")]
-    assert session.failed_queue() == [
-        ReviewEntry(lesson_id="l1", task_id="l1__due"),
-        ReviewEntry(lesson_id="l1", task_id="l1__waiting"),
+    assert session.due_review([lesson]) == [(lesson, due_task)]
+    assert session.failed_queue([lesson]) == [
+        (lesson, due_task),
+        (lesson, waiting),
     ]
 
 
@@ -386,8 +458,8 @@ def test_full_reset_clears_standing_drills_stats_and_welcome(tmp_path: Path) -> 
     session.reset_all()
 
     assert session.lesson_standing(lesson).status == LESSON_STATUS_NOT_STARTED
-    assert session.due_review() == []
-    assert session.failed_queue() == []
+    assert session.due_review([lesson]) == []
+    assert session.failed_queue([lesson]) == []
     stats = session.stats()
     assert stats.completed_lessons == 0
     assert stats.due_count == 0
@@ -442,11 +514,14 @@ def test_older_progress_file_yields_same_passed_due_and_failed(tmp_path: Path) -
         tasks=[_task("open_l__miss"), _task("open_l__skip"), _task("open_l__ok")],
     )
 
-    assert session.failed_queue() == [
-        ReviewEntry(lesson_id="open_l", task_id="open_l__miss"),
-        ReviewEntry(lesson_id="open_l", task_id="open_l__skip"),
+    miss, skipped, _ok = open_lesson.tasks
+    done = _lesson(lesson_id="done_l", tasks=[_task("done_l__unused")])
+    known = [open_lesson, done]
+    assert session.failed_queue(known) == [
+        (open_lesson, miss),
+        (open_lesson, skipped),
     ]
-    assert {entry.task_id for entry in session.due_review()} == {
+    assert {task.id for _, task in session.due_review(known)} == {
         "open_l__miss",
         "open_l__skip",
     }
@@ -455,7 +530,7 @@ def test_older_progress_file_yields_same_passed_due_and_failed(tmp_path: Path) -
     assert session.stats().failed_queue_size == 2
     assert session.stats().total_attempts == 4
     assert session.stats().completed_lessons == 1
-    assert "done_l" not in {entry.lesson_id for entry in session.failed_queue()}
+    assert "done_l" not in {lesson.id for lesson, _task in session.failed_queue(known)}
 
 
 def test_old_file_first_try_pass_outranks_leftover_drill_entry(tmp_path: Path) -> None:
@@ -508,16 +583,17 @@ def test_old_file_first_try_pass_outranks_leftover_drill_entry(tmp_path: Path) -
             _task("open_l__waiting"),
         ],
     )
-    passed = ReviewEntry(lesson_id="open_l", task_id="open_l__pass")
-    only = ReviewEntry(lesson_id="open_l", task_id="open_l__only")
-    waiting = ReviewEntry(lesson_id="open_l", task_id="open_l__waiting")
+    passed_task, only_task, waiting_task = lesson.tasks
+    passed = (lesson, passed_task)
+    only = (lesson, only_task)
+    waiting = (lesson, waiting_task)
 
-    assert passed not in session.due_review()
-    assert passed not in session.failed_queue()
-    assert only in session.due_review()
-    assert only in session.failed_queue()
-    assert waiting not in session.due_review()
-    assert waiting in session.failed_queue()
+    assert passed not in session.due_review([lesson])
+    assert passed not in session.failed_queue([lesson])
+    assert only in session.due_review([lesson])
+    assert only in session.failed_queue([lesson])
+    assert waiting not in session.due_review([lesson])
+    assert waiting in session.failed_queue([lesson])
     assert session.lesson_standing(lesson).passed == 1
 
     stats = session.stats()
@@ -533,10 +609,10 @@ def test_old_file_first_try_pass_outranks_leftover_drill_entry(tmp_path: Path) -
     assert stats.by_platform["Cisco"].skipped == 1
 
     reopened = Session(progress_path=progress_file, clock=when)
-    assert passed not in reopened.due_review()
-    assert passed not in reopened.failed_queue()
-    assert only in reopened.due_review()
-    assert waiting not in reopened.due_review()
+    assert passed not in reopened.due_review([lesson])
+    assert passed not in reopened.failed_queue([lesson])
+    assert only in reopened.due_review([lesson])
+    assert waiting not in reopened.due_review([lesson])
     assert reopened.stats().total_attempts == 8
     assert reopened.stats().correct_first_try == 3
 
@@ -553,7 +629,7 @@ def test_blank_line_is_ignored_and_does_not_record(tmp_path: Path) -> None:
 
     assert result == TurnResult(kind=TURN_IGNORE)
     assert session.stats().total_attempts == 0
-    assert session.failed_queue() == []
+    assert session.failed_queue([lesson]) == []
 
 
 def test_hint_shows_text_without_recording_or_ending_first_try(tmp_path: Path) -> None:
@@ -600,8 +676,8 @@ def test_skip_records_reveals_readable_command_and_explanation(tmp_path: Path) -
     assert result.kind == TURN_SKIPPED
     assert result.readable_command == "sh ip int br"
     assert result.explanation == "brief interfaces"
-    assert session.due_review() == [ReviewEntry(lesson_id="l1", task_id="l1__a")]
-    assert session.failed_queue() == [ReviewEntry(lesson_id="l1", task_id="l1__a")]
+    assert session.due_review([lesson]) == [(lesson, task)]
+    assert session.failed_queue([lesson]) == [(lesson, task)]
     assert session.stats().skipped == 1
     assert session.stats().total_attempts == 1
 
@@ -618,7 +694,7 @@ def test_skip_without_alias_shows_the_pattern_without_anchors(tmp_path: Path) ->
     assert result.kind == TURN_SKIPPED
     assert result.readable_command == "git status"
     assert result.explanation == "e"
-    assert session.due_review() == [ReviewEntry(lesson_id="l1", task_id="l1__a")]
+    assert session.due_review([lesson]) == [(lesson, task)]
     assert session.stats().total_attempts == 1
 
 
@@ -629,7 +705,7 @@ def test_miss_stays_on_task_and_later_correct_is_not_first_try(tmp_path: Path) -
 
     missed = session.submit(lesson, task, "nope")
     assert missed.kind == TURN_INCORRECT
-    assert session.failed_queue() == [ReviewEntry(lesson_id="l1", task_id="l1__a")]
+    assert session.failed_queue([lesson]) == [(lesson, task)]
 
     blank = session.submit(lesson, task, "")
     assert blank.kind == TURN_IGNORE
@@ -657,7 +733,7 @@ def test_first_graded_correct_passes_and_shows_explanation(tmp_path: Path) -> No
         first_try=True,
     )
     assert session.lesson_standing(lesson).passed == 1
-    assert session.failed_queue() == []
+    assert session.failed_queue([lesson]) == []
 
 
 def test_exit_leave_request_records_nothing_when_not_the_answer(tmp_path: Path) -> None:
@@ -688,10 +764,7 @@ def test_task_already_in_the_drill_keeps_its_place(tmp_path: Path) -> None:
     session.record_attempt(lesson, first, TaskResult.INCORRECT)
     session.record_attempt(lesson, first, TaskResult.SKIP)
 
-    assert session.failed_queue() == [
-        ReviewEntry(lesson_id="l1", task_id="l1__a"),
-        ReviewEntry(lesson_id="l1", task_id="l1__b"),
-    ]
+    assert session.failed_queue([lesson]) == [(lesson, first), (lesson, second)]
 
 
 def test_arranged_first_try_pass_does_not_restore_the_showing(tmp_path: Path) -> None:
@@ -708,9 +781,7 @@ def test_arranged_first_try_pass_does_not_restore_the_showing(tmp_path: Path) ->
     assert late.first_try is False
     assert late.explanation == "e"
     assert session.lesson_standing(lesson).passed == 0
-    assert session.failed_queue() == [
-        ReviewEntry(lesson_id="l1", task_id="l1__a")
-    ]
+    assert session.failed_queue([lesson]) == [(lesson, task)]
 
 
 def test_arranged_incorrect_result_does_not_spend_the_showing(tmp_path: Path) -> None:
@@ -724,8 +795,8 @@ def test_arranged_incorrect_result_does_not_spend_the_showing(tmp_path: Path) ->
 
     assert passed.kind == TURN_CORRECT
     assert passed.first_try is True
-    assert session.due_review() == []
-    assert session.failed_queue() == []
+    assert session.due_review([lesson]) == []
+    assert session.failed_queue([lesson]) == []
 
 
 def test_begin_task_restores_first_try_for_a_new_sitting(tmp_path: Path) -> None:
@@ -760,7 +831,7 @@ def test_exit_that_task_accepts_is_graded_not_leave(tmp_path: Path) -> None:
     result = session.submit(lesson, task, "exit")
     assert result.kind == TURN_CORRECT
     assert result.first_try is True
-    assert session.failed_queue() == []
+    assert session.failed_queue([lesson]) == []
 
 
 def test_case_rules_and_aliases_follow_platform(tmp_path: Path) -> None:
@@ -889,11 +960,11 @@ def test_review_first_try_pass_leaves_due_and_failed_queues(tmp_path: Path) -> N
     session = _session(tmp_path)
     lesson = _lesson(tasks=[_task("l1__a")])
     task = lesson.tasks[0]
-    entry = ReviewEntry(lesson_id="l1", task_id="l1__a")
+    pair = (lesson, task)
 
     session.submit(lesson, task, "nope")
-    assert session.due_review() == [entry]
-    assert session.failed_queue() == [entry]
+    assert session.due_review([lesson]) == [pair]
+    assert session.failed_queue([lesson]) == [pair]
 
     session.begin_task(task)
     result = session.submit(lesson, task, "ok")
@@ -901,8 +972,8 @@ def test_review_first_try_pass_leaves_due_and_failed_queues(tmp_path: Path) -> N
     assert result.kind == TURN_CORRECT
     assert result.first_try is True
     assert result.explanation == "e"
-    assert session.due_review() == []
-    assert session.failed_queue() == []
+    assert session.due_review([lesson]) == []
+    assert session.failed_queue([lesson]) == []
 
 
 def test_review_late_pass_stays_in_failed_queue_and_is_not_due(tmp_path: Path) -> None:
@@ -910,7 +981,6 @@ def test_review_late_pass_stays_in_failed_queue_and_is_not_due(tmp_path: Path) -
     session = _session(tmp_path)
     lesson = _lesson(tasks=[_task("l1__a")])
     task = lesson.tasks[0]
-    entry = ReviewEntry(lesson_id="l1", task_id="l1__a")
 
     session.begin_task(task)
     assert session.submit(lesson, task, "nope").kind == TURN_INCORRECT
@@ -919,8 +989,8 @@ def test_review_late_pass_stays_in_failed_queue_and_is_not_due(tmp_path: Path) -
     assert late.kind == TURN_CORRECT
     assert late.first_try is False
     assert late.explanation == "e"
-    assert session.due_review() == []
-    assert session.failed_queue() == [entry]
+    assert session.due_review([lesson]) == []
+    assert session.failed_queue([lesson]) == [(lesson, task)]
 
 
 def test_review_attempts_count_in_platform_lifetime_stats(tmp_path: Path) -> None:
@@ -965,7 +1035,7 @@ def test_continue_sends_due_review_before_any_lesson(tmp_path: Path) -> None:
 
     target = session.continue_target([open_lesson])
     assert target == ContinueTarget(action="daily_review")
-    assert session.due_review()  # due exists; continue must prefer it
+    assert session.due_review([open_lesson])
 
 
 def test_continue_resumes_last_unfinished_resumable_lesson(tmp_path: Path) -> None:
@@ -1148,7 +1218,7 @@ def test_start_over_clears_lesson_records_failed_queue_and_completion(
     session.record_attempt(
         lesson, lesson.tasks[1], TaskResult.INCORRECT
     )
-    assert session.failed_queue() == [ReviewEntry(lesson_id="l1", task_id="l1__b")]
+    assert session.failed_queue([lesson]) == [(lesson, lesson.tasks[1])]
     session.record_attempt(
         lesson, lesson.tasks[1], TaskResult.FIRST_TRY_PASS
     )
@@ -1160,8 +1230,8 @@ def test_start_over_clears_lesson_records_failed_queue_and_completion(
     assert standing.status != LESSON_STATUS_COMPLETED
     assert standing.passed == 0
     assert session.resume_tasks(lesson) == list(lesson.tasks)
-    assert session.failed_queue() == []
-    assert session.due_review() == []
+    assert session.failed_queue([lesson]) == []
+    assert session.due_review([lesson]) == []
     assert session.stats().completed_lessons == 0
 
 
@@ -1188,25 +1258,19 @@ def test_start_over_leaves_other_lessons_drills_and_completion(
     session.record_attempt(
         drill, drill.tasks[0], TaskResult.INCORRECT
     )
+    known = [target, keeper, drill]
     assert session.lesson_standing(keeper).status == LESSON_STATUS_COMPLETED
-    assert ReviewEntry(lesson_id="drill", task_id="drill__a") in session.failed_queue()
+    assert (drill, drill.tasks[0]) in session.failed_queue(known)
 
     session.start_over(target)
 
     assert session.lesson_standing(keeper).status == LESSON_STATUS_COMPLETED
     assert session.lesson_standing(keeper).passed == 2
-    assert session.failed_queue() == [
-        ReviewEntry(lesson_id="drill", task_id="drill__a")
-    ]
-    assert session.due_review() == [
-        ReviewEntry(lesson_id="drill", task_id="drill__a")
-    ]
+    assert session.failed_queue(known) == [(drill, drill.tasks[0])]
+    assert session.due_review(known) == [(drill, drill.tasks[0])]
     assert session.stats().completed_lessons == 1
     assert session.lesson_standing(target).passed == 0
-    assert (
-        ReviewEntry(lesson_id="target", task_id="target__b")
-        not in session.failed_queue()
-    )
+    assert (target, target.tasks[1]) not in session.failed_queue(known)
 
 
 def test_missing_prerequisites_named_by_lesson_title(tmp_path: Path) -> None:

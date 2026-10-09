@@ -14,7 +14,6 @@ from conf_t.session import (
     ContinueTarget,
     LESSON_STATUS_COMPLETED,
     LESSON_STATUS_IN_PROGRESS,
-    ReviewEntry,
     Session,
     TaskResult,
 )
@@ -231,7 +230,7 @@ def test_returning_learner_keeps_old_passes_and_resumes_reload(
     assert returning.continue_target([repaired]) == ContinueTarget(
         action="lesson", lesson_id="linux_firewall"
     )
-    assert returning.due_review() == []
+    assert returning.due_review([repaired]) == []
 
 
 def test_retained_failed_task_stays_addressable_for_review(
@@ -251,15 +250,12 @@ def test_retained_failed_task_stays_addressable_for_review(
     previous_session.record_attempt(
         old_catalog, failed, TaskResult.INCORRECT
     )
-    expected_review = [ReviewEntry("linux_firewall", failed.id)]
-    assert previous_session.due_review() == expected_review
+    assert previous_session.due_review([old_catalog]) == [(old_catalog, failed)]
 
     returning = Session(progress_path=progress_path)
-    assert returning.due_review() == expected_review
-    assert returning.failed_queue() == expected_review
+    reviewed = next(task for task in repaired.tasks if task.id == failed.id)
+    assert returning.due_review([repaired]) == [(repaired, reviewed)]
+    assert returning.failed_queue([repaired]) == [(repaired, reviewed)]
     assert failed.id in [task.id for task in returning.resume_tasks(repaired)]
-    reviewed_task = next(
-        task for task in repaired.tasks
-        if task.id == returning.due_review()[0].task_id
-    )
+    reviewed_task = returning.due_review([repaired])[0][1]
     assert validate_input("sudo ufw allow 22/tcp", reviewed_task, "Linux")

@@ -38,7 +38,6 @@ __all__ = [
     "LessonStanding",
     "LearnerStats",
     "PlatformTotals",
-    "ReviewEntry",
     "Session",
     "TaskResult",
     "TurnResult",
@@ -57,12 +56,6 @@ class LessonStanding:
 class ContinueTarget:
     action: str
     lesson_id: str | None = None
-
-
-@dataclass(frozen=True)
-class ReviewEntry:
-    lesson_id: str
-    task_id: str
 
 
 @dataclass(frozen=True)
@@ -206,7 +199,7 @@ class Session:
         """Choose where continue / the menu continue entry should send the Learner."""
         if not lessons:
             return None
-        if self.due_review():
+        if self.due_review(lessons):
             return ContinueTarget(action="daily_review")
 
         by_id = {lesson.id: lesson for lesson in lessons}
@@ -252,17 +245,35 @@ class Session:
                 return lesson
         return None
 
-    def due_review(self) -> list[ReviewEntry]:
-        return [
-            ReviewEntry(lesson_id=entry["lesson_id"], task_id=entry["task_id"])
-            for entry in self._progress.get_due_review_entries()
-        ]
+    def due_review(self, lessons: Sequence[Lesson]) -> list[tuple[Lesson, Task]]:
+        """Due Tasks that still exist, soonest next review time first."""
+        return self._resolve(self._progress.get_due_review_entries(), lessons)
 
-    def failed_queue(self) -> list[ReviewEntry]:
-        return [
-            ReviewEntry(lesson_id=entry["lesson_id"], task_id=entry["task_id"])
-            for entry in self._progress.get_failed_task_entries()
-        ]
+    def failed_queue(self, lessons: Sequence[Lesson]) -> list[tuple[Lesson, Task]]:
+        """Drill Tasks that still exist, in drill-place order."""
+        return self._resolve(self._progress.get_failed_task_entries(), lessons)
+
+    def _resolve(
+        self,
+        entries: list[dict[str, str]],
+        lessons: Sequence[Lesson],
+    ) -> list[tuple[Lesson, Task]]:
+        by_id: dict[str, Lesson] = {}
+        for lesson in lessons:
+            by_id.setdefault(lesson.id, lesson)
+        resolved: list[tuple[Lesson, Task]] = []
+        for entry in entries:
+            lesson = by_id.get(entry["lesson_id"])
+            if lesson is None:
+                continue
+            task = next(
+                (item for item in lesson.tasks if item.id == entry["task_id"]),
+                None,
+            )
+            if task is None:
+                continue
+            resolved.append((lesson, task))
+        return resolved
 
     def stats(self) -> LearnerStats:
         stored = self._progress.lifetime_stats()
@@ -276,8 +287,8 @@ class Session:
         }
         return LearnerStats(
             completed_lessons=stored.completed_lessons,
-            due_count=len(self.due_review()),
-            failed_queue_size=len(self.failed_queue()),
+            due_count=len(self._progress.get_due_review_entries()),
+            failed_queue_size=len(self._progress.get_failed_task_entries()),
             total_attempts=stored.total_attempts,
             correct_first_try=stored.correct_first_try,
             skipped=stored.skipped,

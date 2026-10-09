@@ -122,4 +122,4 @@ def test_repaired_lesson_preserves_passes_without_regrading_old_answers(
     assert standing.status == LESSON_STATUS_COMPLETED
     assert standing.passed == standing.total == 6
     assert returning.resume_tasks(repaired) == []
-    assert returning.failed_queue() == []
+    assert returning.failed_queue([repaired]) == []

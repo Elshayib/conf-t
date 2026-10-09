@@ -23,7 +23,6 @@ from conf_t.engine import (
     parse_tags_csv,
 )
 from conf_t.session import (
-    ReviewEntry,
     Session,
     TURN_CORRECT,
     TURN_HINT,
@@ -82,8 +81,12 @@ class ConfTCLI:
             console.print(f"[dim]{refusal}[/]")
             sys.exit(1)
 
-    def _main_menu_choices(self) -> list[questionary.Choice]:
-        due_count = len(self.session.due_review())
+    def _main_menu_choices(
+        self, lessons: list[Lesson] | None = None
+    ) -> list[questionary.Choice]:
+        if lessons is None:
+            lessons = self._lessons()
+        due_count = len(self.session.due_review(lessons))
         choices = []
         if due_count > 0:
             choices.append(
@@ -277,7 +280,7 @@ class ConfTCLI:
             return
 
         if target.action == "daily_review":
-            due_count = len(self.session.due_review())
+            due_count = len(self.session.due_review(lessons))
             console.print(
                 f"\n[bold yellow]Continuing:[/] [white]Daily Review[/] "
                 f"[dim]({due_count} task(s) due)[/]\n"
@@ -308,14 +311,15 @@ class ConfTCLI:
         
         while True:
             try:
-                due_count = len(self.session.due_review())
+                lessons = self._lessons()
+                due_count = len(self.session.due_review(lessons))
                 prompt = "Select an option:"
                 if due_count > 0:
                     prompt = f"[bold yellow]{due_count} task(s) due for review.[/] Select an option:"
 
                 choice = questionary.select(
                     prompt,
-                    choices=self._main_menu_choices(),
+                    choices=self._main_menu_choices(lessons),
                     style=questionary.Style([
                         ('pointer', 'fg:#00ffff bold'),
                         ('highlighted', 'fg:#00ffff bold'),
@@ -530,11 +534,9 @@ class ConfTCLI:
             console.print("[yellow]No lessons available for the selected filters.[/]")
             return
 
-        failed_entries = self.session.failed_queue()
         failed_counts: dict[str, int] = {}
-        for entry in failed_entries:
-            lesson_id = entry.lesson_id
-            failed_counts[lesson_id] = failed_counts.get(lesson_id, 0) + 1
+        for lesson, _task in self.session.failed_queue(lessons):
+            failed_counts[lesson.id] = failed_counts.get(lesson.id, 0) + 1
 
         recommended = self.session.recommended_lesson(filtered_lessons, catalog=lessons)
         if recommended:
@@ -752,20 +754,6 @@ class ConfTCLI:
         console.print("[bold green]Practice Session Completed![/]\n")
         questionary.press_any_key_to_continue().ask()
 
-    def _resolve_review_entries(
-        self, entries: list[ReviewEntry]
-    ) -> list[tuple[Lesson, Task]]:
-        all_lessons = self._lessons()
-        tasks_to_review: list[tuple[Lesson, Task]] = []
-        for entry in entries:
-            lesson = next((item for item in all_lessons if item.id == entry.lesson_id), None)
-            if not lesson:
-                continue
-            task = next((item for item in lesson.tasks if item.id == entry.task_id), None)
-            if task:
-                tasks_to_review.append((lesson, task))
-        return tasks_to_review
-
     def _run_review_session(
         self,
         tasks_to_review: list[tuple[Lesson, Task]],
@@ -795,15 +783,13 @@ class ConfTCLI:
             questionary.press_any_key_to_continue().ask()
 
     def daily_review_menu(self, interactive: bool = True) -> None:
-        self._lessons()
-        due_entries = self.session.due_review()
-        if not due_entries:
+        tasks_to_review = self.session.due_review(self._lessons())
+        if not tasks_to_review:
             console.print("\n[bold green]★ No tasks due for review right now. Check back later![/]\n")
             if interactive:
                 questionary.press_any_key_to_continue().ask()
             return
 
-        tasks_to_review = self._resolve_review_entries(due_entries)
         self._run_review_session(
             tasks_to_review,
             title=f"Daily Review ({len(tasks_to_review)} due)",
@@ -816,25 +802,25 @@ class ConfTCLI:
 
     def review_failed_menu(self, interactive: bool = True) -> None:
         """Loads all failed tasks and allows practicing them."""
-        self._lessons()
-        failed_entries = self.session.failed_queue()
-        if not failed_entries:
+        tasks_to_review = self.session.failed_queue(self._lessons())
+        if not tasks_to_review:
             console.print("\n[bold green]★ Nice job! You have no failed commands to review.[/]\n")
             if interactive:
                 questionary.press_any_key_to_continue().ask()
             return
 
         if interactive:
-            console.print(f"\n[yellow]You have {len(failed_entries)} failed commands in your queue.[/]")
+            console.print(
+                f"\n[yellow]You have {len(tasks_to_review)} failed commands in your queue.[/]"
+            )
             confirm = questionary.confirm("Start practicing all failed commands?").ask()
             if not confirm:
                 return
         else:
             console.print(
-                f"\n[yellow]Reviewing {len(failed_entries)} failed command(s) from the queue.[/]"
+                f"\n[yellow]Reviewing {len(tasks_to_review)} failed command(s) from the queue.[/]"
             )
 
-        tasks_to_review = self._resolve_review_entries(failed_entries)
         self._run_review_session(
             tasks_to_review,
             title="Review All Failed Commands",

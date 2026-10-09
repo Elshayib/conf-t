@@ -253,9 +253,8 @@ def test_retained_failed_task_stays_addressable_for_review(
     assert previous_session.due_review([old_catalog]) == [(old_catalog, failed)]
 
     returning = Session(progress_path=progress_path)
-    reviewed = next(task for task in repaired.tasks if task.id == failed.id)
-    assert returning.due_review([repaired]) == [(repaired, reviewed)]
-    assert returning.failed_queue([repaired]) == [(repaired, reviewed)]
-    assert failed.id in [task.id for task in returning.resume_tasks(repaired)]
-    reviewed_task = returning.due_review([repaired])[0][1]
+    reviewed_lesson, reviewed_task = returning.due_review([repaired])[0]
+    assert (reviewed_lesson, reviewed_task) == (repaired, failed)
+    assert returning.failed_queue([repaired]) == [(repaired, failed)]
+    assert failed in returning.resume_tasks(repaired)
     assert validate_input("sudo ufw allow 22/tcp", reviewed_task, "Linux")

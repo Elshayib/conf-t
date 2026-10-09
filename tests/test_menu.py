@@ -111,7 +111,7 @@ def test_practice_menu_failed_count_skips_a_task_that_left_the_lesson(
     monkeypatch.setattr("conf_t.cli.questionary.select", select)
     ConfTCLI(catalog=Catalog(lessons_dir), session=session).practice_lessons_menu()
 
-    assert any(title.endswith("1 failed") for title in seen)
+    assert "◐ Lesson (0/1 · 0%) · 1 failed" in seen
     assert all("2 failed" not in title for title in seen)
 
 

@@ -36,7 +36,6 @@ __all__ = [
     "TURN_INCORRECT",
     "TURN_LEAVE",
     "TURN_SKIPPED",
-    "ContinueTarget",
     "LessonStanding",
     "LearnerStats",
     "PlatformTotals",
@@ -55,12 +54,6 @@ class LessonStanding:
 
 
 @dataclass(frozen=True)
-class ContinueTarget:
-    action: str
-    lesson_id: str | None = None
-
-
-@dataclass(frozen=True)
 class PlatformTotals:
     attempts: int
     correct_first_try: int
@@ -69,9 +62,15 @@ class PlatformTotals:
 
 @dataclass(frozen=True)
 class LearnerStats:
-    completed_lessons: int
-    due_count: int
-    failed_queue_size: int
+    """Lifetime totals are always present.
+
+    Due, failed-command, and completed-Lesson counts are present only when
+    the caller supplied Lessons. They are then the resolved sitting and standing.
+    """
+
+    completed_lessons: int | None
+    due_count: int | None
+    failed_queue_size: int | None
     total_attempts: int
     correct_first_try: int
     skipped: int
@@ -85,6 +84,8 @@ class TurnResult:
     explanation: str | None = None
     readable_command: str | None = None
     first_try: bool = False
+    left_the_drill: bool = False
+    rescheduled: bool = False
 
 
 def practice_summary(
@@ -201,6 +202,8 @@ class Session:
                 kind=TURN_CORRECT,
                 explanation=task.explanation,
                 first_try=first_try,
+                left_the_drill=first_try,
+                rescheduled=not first_try,
             )
 
         self._store_result(lesson, task, TaskResult.INCORRECT)
@@ -242,12 +245,25 @@ class Session:
         self._lost_first_try.discard(task.id)
         self._open_showings.discard(task.id)
 
-    def continue_target(self, lessons: Sequence[Lesson]) -> ContinueTarget | None:
-        """Choose where continue / the menu continue entry should send the Learner."""
+    def continue_target(
+        self,
+        lessons: Sequence[Lesson],
+        *,
+        catalog: Sequence[Lesson] | None = None,
+    ) -> list[tuple[Lesson, Task]] | Lesson | None:
+        """The Due Review already chosen, the Lesson already chosen, or nothing.
+
+        Nothing is returned when the caller passed no Lessons. A non-empty
+        resolved Due Review is that list, in Due Review order. Otherwise the
+        Lesson is the last unfinished resumable Lesson, else the recommended
+        Lesson, else the first Lesson in catalog order. Prerequisites use
+        `catalog` when the caller supplies the full set.
+        """
         if not lessons:
             return None
-        if self.due_review(lessons):
-            return ContinueTarget(action="daily_review")
+        due = self.due_review(lessons)
+        if due:
+            return due
 
         by_id = {lesson.id: lesson for lesson in lessons}
         for lesson_id in reversed(self._progress.attempted_lesson_ids()):
@@ -255,14 +271,13 @@ class Session:
             if lesson is None:
                 continue
             if self._can_resume(lesson):
-                return ContinueTarget(action="lesson", lesson_id=lesson.id)
+                return lesson
 
-        recommended = self.recommended_lesson(lessons)
+        recommended = self.recommended_lesson(lessons, catalog=catalog)
         if recommended is not None:
-            return ContinueTarget(action="lesson", lesson_id=recommended.id)
+            return recommended
 
-        first = sort_lessons_by_curriculum(list(lessons))[0]
-        return ContinueTarget(action="lesson", lesson_id=first.id)
+        return sort_lessons_by_curriculum(list(lessons))[0]
 
     def _can_resume(self, lesson: Lesson) -> bool:
         standing = self.lesson_standing(lesson)
@@ -322,13 +337,34 @@ class Session:
             resolved.append((lesson, task))
         return resolved
 
-    def stats(self) -> LearnerStats:
+    def stats(self, lessons: Sequence[Lesson] | None = None) -> LearnerStats:
+        """Lifetime totals, plus resolved counts when Lessons are supplied.
+
+        With no Lessons, due, failed-command, and completed-Lesson counts are
+        omitted. The catalog is not read. With Lessons, those counts are the
+        resolved Due Review, the resolved drill, and standing. Stored completion
+        for the Lessons just considered is updated to that standing. A Lesson
+        that was not supplied is left as stored. Stored Task rows are not deleted.
+        """
         stored = self._progress.lifetime_stats()
         by_platform = _fold_platform_totals(stored.by_platform)
+        completed: int | None = None
+        due_count: int | None = None
+        failed_queue_size: int | None = None
+        if lessons is not None:
+            for lesson in lessons:
+                self._sync_completion(lesson)
+            completed = sum(
+                1
+                for lesson in lessons
+                if self.lesson_standing(lesson).status == LESSON_STATUS_COMPLETED
+            )
+            due_count = len(self.due_review(lessons))
+            failed_queue_size = len(self.failed_queue(lessons))
         return LearnerStats(
-            completed_lessons=stored.completed_lessons,
-            due_count=len(self._progress.get_due_review_entries()),
-            failed_queue_size=len(self._progress.get_failed_task_entries()),
+            completed_lessons=completed,
+            due_count=due_count,
+            failed_queue_size=failed_queue_size,
             total_attempts=stored.total_attempts,
             correct_first_try=stored.correct_first_try,
             skipped=stored.skipped,

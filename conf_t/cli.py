@@ -12,23 +12,12 @@ from rich import box
 
 from conf_t import __version__
 from conf_t.models import Lesson, Task
-from conf_t.catalog import (
-    DIFFICULTY_ORDER,
-    Catalog,
-    CatalogRefusal,
-    collect_all_tags,
-    filter_lessons_by_tags,
-    parse_tags_csv,
-    platform_names,
-    same_platform,
-)
+from conf_t.catalog import Catalog, CatalogRefusal
 from conf_t.platform import Platform
-from conf_t.engine import (
+from conf_t.session import (
     LESSON_STATUS_COMPLETED,
     LESSON_STATUS_IN_PROGRESS,
     LESSON_STATUS_NOT_STARTED,
-)
-from conf_t.session import (
     Session,
     TURN_CORRECT,
     TURN_HINT,
@@ -36,6 +25,7 @@ from conf_t.session import (
     TURN_INCORRECT,
     TURN_LEAVE,
     TURN_SKIPPED,
+    TurnResult,
     practice_summary,
 )
 
@@ -58,10 +48,24 @@ def interrupt_message(*, review: bool) -> str:
     return "Practice aborted."
 
 
-def review_correct_message(*, first_try: bool) -> str:
-    if first_try:
+def daily_review_heading(count: int) -> tuple[str, str]:
+    """Title and description for a Due Review sitting. The words stay as they are."""
+    return (
+        f"Daily Review ({count} due)",
+        (
+            f"Spaced repetition review for {count} due command(s). "
+            "First-try correct answers clear the task from your queue."
+        ),
+    )
+
+
+def review_correct_message(result: TurnResult) -> str:
+    """Review copy for a correct line. The words follow that showing's result."""
+    if result.left_the_drill:
         return "✓ Correct! This Task left the drill."
-    return "✓ Correct, but not first-try — rescheduled for later review"
+    if result.rescheduled:
+        return "✓ Correct, but not first-try — rescheduled for later review"
+    return "✓ Correct!"
 
 
 class ConfTCLI:
@@ -120,14 +124,21 @@ class ConfTCLI:
         ])
         return choices
 
-    def _dispatch_menu(self, choice: str) -> bool:
+    def _dispatch_menu(
+        self, choice: str, lessons: list[Lesson] | None = None
+    ) -> bool:
         """Run the action for a stable menu value. A label is not an action."""
+        if choice == MENU_STATS:
+            if lessons is None:
+                self.view_stats()
+            else:
+                self.view_stats(lessons=lessons)
+            return True
         actions = {
             MENU_DUE_REVIEW: self.daily_review_menu,
             MENU_CONTINUE: self.run_continue,
             MENU_PRACTICE: self.practice_lessons_menu,
             MENU_FAILED_DRILL: self.review_failed_menu,
-            MENU_STATS: self.view_stats,
             MENU_RESET: self.reset_progress_menu,
             MENU_CREATE: self.create_lesson_menu,
         }
@@ -142,7 +153,7 @@ class ConfTCLI:
         platform: str | None = None,
         tags: str | None = None,
     ) -> None:
-        tag_list = parse_tags_csv(tags)
+        tag_list = self.catalog.parse_tags(tags)
         lessons = self._lessons(platform=platform, tags=tag_list)
 
         if not lessons:
@@ -193,13 +204,13 @@ class ConfTCLI:
         console.print(f"\n[dim]{len(lessons)} lesson(s) shown[/]")
 
     def _prompt_tag_filter(self, lessons: list[Lesson], context: str) -> list[Lesson]:
-        available_tags = collect_all_tags(lessons)
+        available_tags = self.catalog.topic_tags(lessons)
         if not available_tags:
             return lessons
 
         choices = [questionary.Choice("All topics", value="__all__")]
         for tag in available_tags:
-            count = sum(1 for lesson in lessons if tag in {t.lower() for t in lesson.tags})
+            count = len(self.catalog.narrow_by_topics(lessons, [tag]))
             choices.append(questionary.Choice(f"{tag} ({count})", value=tag))
         choices.append(questionary.Choice("Custom tags (comma-separated)", value="__custom__"))
 
@@ -212,16 +223,16 @@ class ConfTCLI:
             return lessons
         if selected == "__custom__":
             raw = questionary.text("Enter tags (comma-separated, e.g. vlan,ospf):").ask()
-            tag_list = parse_tags_csv(raw)
+            tag_list = self.catalog.parse_tags(raw)
             if not tag_list:
                 return lessons
-            filtered = filter_lessons_by_tags(lessons, tag_list)
+            filtered = self.catalog.narrow_by_topics(lessons, tag_list)
             if not filtered:
                 console.print("[yellow]No lessons match those tags. Showing all topics.[/]")
                 return lessons
             return filtered
 
-        filtered = filter_lessons_by_tags(lessons, [selected])
+        filtered = self.catalog.narrow_by_topics(lessons, [selected])
         return filtered if filtered else lessons
 
     def run_lesson_by_id(self, lesson_id: str) -> None:
@@ -281,33 +292,33 @@ class ConfTCLI:
         lessons = self._lessons()
         target = self.session.continue_target(lessons)
 
-        if not target:
+        if target is None:
             console.print("[bold red]No lessons found.[/]")
             return
 
-        if target.action == "daily_review":
-            due_count = len(self.session.due_review(lessons))
+        if isinstance(target, Lesson):
             console.print(
-                f"\n[bold yellow]Continuing:[/] [white]Daily Review[/] "
-                f"[dim]({due_count} task(s) due)[/]\n"
+                f"\n[bold yellow]Continuing:[/] [white]{target.title}[/] "
+                f"[dim]({target.platform})[/]\n"
             )
-            self.daily_review_menu(interactive=interactive)
+            tasks_to_run = self._choose_lesson_tasks(target)
+            if tasks_to_run is None:
+                return
+            self.run_practice_session(target, tasks_to_run=tasks_to_run)
             return
 
-        lesson_id = target.lesson_id
-        lesson = next((item for item in lessons if item.id == lesson_id), None)
-        if not lesson:
-            console.print(f"[red]Lesson not found: {lesson_id}[/]")
-            return
-
+        due_count = len(target)
         console.print(
-            f"\n[bold yellow]Continuing:[/] [white]{lesson.title}[/] "
-            f"[dim]({lesson.platform})[/]\n"
+            f"\n[bold yellow]Continuing:[/] [white]Daily Review[/] "
+            f"[dim]({due_count} task(s) due)[/]\n"
         )
-        tasks_to_run = self._choose_lesson_tasks(lesson)
-        if tasks_to_run is None:
-            return
-        self.run_practice_session(lesson, tasks_to_run=tasks_to_run)
+        title, description = daily_review_heading(due_count)
+        self._run_review_session(
+            target,
+            title=title,
+            description=description,
+            interactive=interactive,
+        )
 
     def run(self):
         """Main application execution loop."""
@@ -340,7 +351,7 @@ class ConfTCLI:
                     console.print("\n[bold cyan]Thank you for training with Conf T! Keep practicing.[/]")
                     break
 
-                self._dispatch_menu(choice)
+                self._dispatch_menu(choice, lessons)
             except KeyboardInterrupt:
                 console.print("\n\n[bold yellow]Session interrupted. Returning to main menu.[/]")
                 continue
@@ -519,7 +530,7 @@ class ConfTCLI:
             console.print("[bold red]No lessons found in the database. Please add lessons to conf_t/lessons/.[/]")
             return
 
-        platforms = platform_names(lessons)
+        platforms = self.catalog.platform_choices(lessons)
         platform_choices = platforms + ["< Go Back"]
 
         selected_platform = questionary.select(
@@ -530,9 +541,7 @@ class ConfTCLI:
         if not selected_platform or selected_platform == "< Go Back":
             return
 
-        filtered_lessons = [
-            lesson for lesson in lessons if same_platform(lesson, selected_platform)
-        ]
+        filtered_lessons = self.catalog.lessons_on_platform(lessons, selected_platform)
         filtered_lessons = self._prompt_tag_filter(
             filtered_lessons, f"{selected_platform} lessons"
         )
@@ -561,28 +570,27 @@ class ConfTCLI:
             )
             lesson_choices.append(questionary.Choice(title="─────────────", value="__sep__", disabled=True))
 
-        for difficulty in sorted(DIFFICULTY_ORDER, key=lambda key: DIFFICULTY_ORDER[key]):
-            group = [lesson for lesson in filtered_lessons if lesson.difficulty == difficulty]
-            if not group:
-                continue
-            lesson_choices.append(
-                questionary.Choice(
-                    title=f"── {difficulty.title()} ──",
-                    value=f"__header_{difficulty}__",
-                    disabled=True,
+        previous_difficulty: str | None = None
+        for lesson in filtered_lessons:
+            if lesson.difficulty != previous_difficulty:
+                previous_difficulty = lesson.difficulty
+                lesson_choices.append(
+                    questionary.Choice(
+                        title=f"── {lesson.difficulty.title()} ──",
+                        value=f"__header_{lesson.difficulty}__",
+                        disabled=True,
+                    )
                 )
+            standing = self.session.lesson_standing(lesson)
+            missing = self.session.missing_prerequisite_titles(lesson, lessons)
+            label = self._format_lesson_choice_label(
+                lesson,
+                standing.status,
+                standing.passed,
+                failed_counts.get(lesson.id, 0),
+                not missing,
             )
-            for lesson in group:
-                standing = self.session.lesson_standing(lesson)
-                missing = self.session.missing_prerequisite_titles(lesson, lessons)
-                label = self._format_lesson_choice_label(
-                    lesson,
-                    standing.status,
-                    standing.passed,
-                    failed_counts.get(lesson.id, 0),
-                    not missing,
-                )
-                lesson_choices.append(questionary.Choice(title=label, value=lesson.id))
+            lesson_choices.append(questionary.Choice(title=label, value=lesson.id))
 
         lesson_choices.append(questionary.Choice(title="< Go Back", value="__back__"))
 
@@ -623,6 +631,12 @@ class ConfTCLI:
         """
         graded = []
         total = len(tasks)
+        if not review:
+            opened: set[str] = set()
+            for lesson, _task in tasks:
+                if lesson.id not in opened:
+                    self.session.mark_practice_opened(lesson)
+                    opened.add(lesson.id)
         for index, (lesson, task) in enumerate(tasks, 1):
             if review:
                 console.print(
@@ -689,7 +703,7 @@ class ConfTCLI:
 
                 if result.kind == TURN_CORRECT:
                     if review:
-                        heading = review_correct_message(first_try=result.first_try)
+                        heading = review_correct_message(result)
                     else:
                         heading = "✓ Correct!"
                     console.print(Panel(
@@ -721,8 +735,6 @@ class ConfTCLI:
         if not tasks_to_run:
             console.print("[yellow]No tasks to practice in this session.[/]")
             return
-
-        self.session.mark_practice_opened(lesson)
 
         title_text = f"Lesson: {lesson.title}"
         if len(tasks_to_run) < len(lesson.tasks):
@@ -798,13 +810,11 @@ class ConfTCLI:
                 questionary.press_any_key_to_continue().ask()
             return
 
+        title, description = daily_review_heading(len(tasks_to_review))
         self._run_review_session(
             tasks_to_review,
-            title=f"Daily Review ({len(tasks_to_review)} due)",
-            description=(
-                f"Spaced repetition review for {len(tasks_to_review)} due command(s). "
-                "First-try correct answers clear the task from your queue."
-            ),
+            title=title,
+            description=description,
             interactive=interactive,
         )
 
@@ -836,18 +846,29 @@ class ConfTCLI:
             interactive=interactive,
         )
 
-    def view_stats(self, interactive: bool = True) -> None:
-        """Displays user stats and accuracy summary."""
-        stats = self.session.stats()
+    def view_stats(
+        self,
+        interactive: bool = True,
+        lessons: list[Lesson] | None = None,
+    ) -> None:
+        """Show Learner stats.
+
+        Resolved due, failed-command, and completed-Lesson rows are printed
+        only when Lessons were supplied. This command does not read Lessons.
+        """
+        stats = self.session.stats(lessons)
         console.print("\n")
         
         overview = Table(title="[bold cyan]Global Performance Overview[/]", box=box.ROUNDED, border_style="cyan")
         overview.add_column("Metric", style="cyan")
         overview.add_column("Value", style="magenta")
 
-        overview.add_row("Completed Lessons", str(stats.completed_lessons))
-        overview.add_row("Due for Review", str(stats.due_count))
-        overview.add_row("Failed Commands Queue Size", str(stats.failed_queue_size))
+        if stats.completed_lessons is not None:
+            overview.add_row("Completed Lessons", str(stats.completed_lessons))
+        if stats.due_count is not None:
+            overview.add_row("Due for Review", str(stats.due_count))
+        if stats.failed_queue_size is not None:
+            overview.add_row("Failed Commands Queue Size", str(stats.failed_queue_size))
         overview.add_row("Total Attempts Registered", str(stats.total_attempts))
         overview.add_row("First-Try Correct Commands", str(stats.correct_first_try))
         overview.add_row("Skipped Commands", str(stats.skipped))

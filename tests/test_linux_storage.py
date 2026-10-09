@@ -61,22 +61,20 @@ def test_completed_old_lesson_resumes_only_new_filesystem_task(
             old, task, TaskResult.FIRST_TRY_PASS,
         )
     assert session.lesson_standing(old).status == LESSON_STATUS_COMPLETED
-    assert session.stats().completed_lessons == 1
+    assert session.stats([old]).completed_lessons == 1
 
     # Reload the real updated catalog without touching the progress file.
     updated = _lesson()
     returning = Session(progress_path=progress_path)
-    assert returning.stats().completed_lessons == 1
     standing = returning.lesson_standing(updated)
     assert standing.status == LESSON_STATUS_IN_PROGRESS
     assert standing.passed == 10
     assert standing.total == 11
     resumed = returning.resume_tasks(updated)
     assert [task.id for task in resumed] == [NEW_TASK_ID]
+    assert returning.stats([updated]).completed_lessons == 0
     target = returning.continue_target([updated])
-    assert target is not None
-    assert target.action == "lesson"
-    assert target.lesson_id == updated.id
+    assert target is updated
     result = returning.submit(
         updated, resumed[0], "sudo mkfs.ext4 /dev/vg_data/lv_apps"
     )

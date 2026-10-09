@@ -11,7 +11,6 @@ from conf_t.acceptance import validate_input
 from conf_t.catalog import Catalog
 from conf_t.models import Lesson, Task
 from conf_t.session import (
-    ContinueTarget,
     LESSON_STATUS_COMPLETED,
     LESSON_STATUS_IN_PROGRESS,
     Session,
@@ -227,9 +226,7 @@ def test_returning_learner_keeps_old_passes_and_resumes_reload(
     assert [task.id for task in returning.resume_tasks(repaired)] == [
         reload_id
     ]
-    assert returning.continue_target([repaired]) == ContinueTarget(
-        action="lesson", lesson_id="linux_firewall"
-    )
+    assert returning.continue_target([repaired]) is repaired
     assert returning.due_review([repaired]) == []
 
 

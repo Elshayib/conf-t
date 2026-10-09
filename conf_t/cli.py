@@ -48,6 +48,17 @@ def interrupt_message(*, review: bool) -> str:
     return "Practice aborted."
 
 
+def daily_review_heading(count: int) -> tuple[str, str]:
+    """Title and description for a Due Review sitting. The words stay as they are."""
+    return (
+        f"Daily Review ({count} due)",
+        (
+            f"Spaced repetition review for {count} due command(s). "
+            "First-try correct answers clear the task from your queue."
+        ),
+    )
+
+
 def review_correct_message(result: TurnResult) -> str:
     """Review copy for a correct line. The words follow that showing's result."""
     if result.left_the_drill:
@@ -301,13 +312,11 @@ class ConfTCLI:
             f"\n[bold yellow]Continuing:[/] [white]Daily Review[/] "
             f"[dim]({due_count} task(s) due)[/]\n"
         )
+        title, description = daily_review_heading(due_count)
         self._run_review_session(
             target,
-            title=f"Daily Review ({due_count} due)",
-            description=(
-                f"Spaced repetition review for {due_count} due command(s). "
-                "First-try correct answers clear the task from your queue."
-            ),
+            title=title,
+            description=description,
             interactive=interactive,
         )
 
@@ -801,13 +810,11 @@ class ConfTCLI:
                 questionary.press_any_key_to_continue().ask()
             return
 
+        title, description = daily_review_heading(len(tasks_to_review))
         self._run_review_session(
             tasks_to_review,
-            title=f"Daily Review ({len(tasks_to_review)} due)",
-            description=(
-                f"Spaced repetition review for {len(tasks_to_review)} due command(s). "
-                "First-try correct answers clear the task from your queue."
-            ),
+            title=title,
+            description=description,
             interactive=interactive,
         )
 
@@ -844,7 +851,7 @@ class ConfTCLI:
         interactive: bool = True,
         lessons: list[Lesson] | None = None,
     ) -> None:
-        """Displays user stats and accuracy summary.
+        """Show Learner stats.
 
         Resolved due, failed-command, and completed-Lesson rows are printed
         only when Lessons were supplied. This command does not read Lessons.

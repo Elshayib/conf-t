@@ -201,7 +201,7 @@ def test_practice_menu_offers_an_unknown_difficulty_in_catalog_order(
         def ask(self) -> str:
             return self._value
 
-    def select(message: str, *, choices, **kwargs):
+    def select(message: str, *, choices: list, **kwargs: object) -> _Answer:
         if message == "Choose a platform:":
             return _Answer("Linux")
         seen.extend(choice.title for choice in choices)
@@ -244,23 +244,25 @@ def test_continue_opens_the_due_review_it_already_chose(
         "conf_t.cli.console",
         Console(file=buffer, force_terminal=False, no_color=True, highlight=False),
     )
-    captured: dict[str, object] = {}
+    captured: dict[str, list[tuple[Lesson, Task]]] = {}
 
-    def run_review(tasks, **kwargs):
+    def run_review(tasks: list[tuple[Lesson, Task]], **kwargs: object) -> None:
         captured["tasks"] = tasks
 
     due_calls = {"n": 0}
     original_due = session.due_review
 
-    def counting(lessons):
+    def counting(lessons: list[Lesson]) -> list[tuple[Lesson, Task]]:
         due_calls["n"] += 1
         return original_due(lessons)
 
     session.due_review = counting
-    chosen: dict[str, object] = {}
+    chosen: dict[str, list[tuple[Lesson, Task]] | Lesson | None] = {}
     original_continue = session.continue_target
 
-    def wrapping(lessons, **kwargs):
+    def wrapping(
+        lessons: list[Lesson], **kwargs: object
+    ) -> list[tuple[Lesson, Task]] | Lesson | None:
         chosen["value"] = original_continue(lessons, **kwargs)
         return chosen["value"]
 

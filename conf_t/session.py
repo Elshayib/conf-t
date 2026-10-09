@@ -353,11 +353,7 @@ class Session:
         failed_queue_size: int | None = None
         if lessons is not None:
             for lesson in lessons:
-                standing = self.lesson_standing(lesson)
-                self._progress.set_lesson_completed(
-                    lesson.id,
-                    standing.status == LESSON_STATUS_COMPLETED,
-                )
+                self._sync_completion(lesson)
             completed = sum(
                 1
                 for lesson in lessons

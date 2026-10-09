@@ -265,7 +265,7 @@ class ProgressManager:
         record.next_review_at = due_at.isoformat()
         return record
 
-    def _place_for(
+    def _drill_place_for(
         self, result: TaskResult, prior: Optional[TaskProgress]
     ) -> Optional[int]:
         if result is TaskResult.FIRST_TRY_PASS:
@@ -339,12 +339,10 @@ class ProgressManager:
         task_id: str,
         result: TaskResult,
     ) -> None:
-        if not isinstance(result, TaskResult):
-            result = TaskResult(result)
         prior = self._read_record(task_id)
         self.mark_lesson_attempted(lesson_id)
         record = self._record_for_result(lesson_id, result, prior)
-        record.drill_place = self._place_for(result, prior)
+        record.drill_place = self._drill_place_for(result, prior)
         self._write_record(task_id, record)
         self._data["total_attempts"] += 1
 

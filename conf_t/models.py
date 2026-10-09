@@ -11,6 +11,7 @@ class TaskResult(str, Enum):
     INCORRECT = "incorrect"
     SKIP = "skip"
 
+
 @dataclass
 class Task:
     id: str
@@ -130,7 +131,7 @@ class TaskProgress:
         if self.next_review_at:
             result["next_review_at"] = self.next_review_at
         # The progress file stays at its current version, so the place keeps
-        # the drill_seq key already stored on Task records.
+        # the drill_seq key already stored on the progress record.
         if self.drill_place is not None:
             result["drill_seq"] = self.drill_place
         return result

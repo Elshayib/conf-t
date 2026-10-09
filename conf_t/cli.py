@@ -1005,10 +1005,15 @@ class ConfTCLI:
             tasks=tasks
         )
 
-        success = self.catalog.save_lesson(new_lesson)
-        if success:
-            console.print(f"\n[bold green]✔ Success! Lesson '{title}' has been saved to the database.[/]\n")
+        try:
+            written = self.catalog.save_lesson(new_lesson)
+        except CatalogRefusal as refusal:
+            console.print(f"\n[bold red]✗ {refusal.path.name}[/]")
+            console.print(f"[dim]{refusal}[/]\n")
         else:
-            console.print("\n[bold red]✗ Error: Could not write the lesson to the directory.[/]\n")
+            if written:
+                console.print(f"\n[bold green]✔ Success! Lesson '{title}' has been saved to the database.[/]\n")
+            else:
+                console.print("\n[bold red]✗ Error: Could not write the lesson to the directory.[/]\n")
 
         questionary.press_any_key_to_continue().ask()

@@ -7,7 +7,7 @@ from pathlib import Path
 
 import pytest
 
-from conf_t.catalog import Catalog
+from conf_t.catalog import Catalog, CatalogRefusal
 from conf_t.models import Lesson, Task
 
 
@@ -246,11 +246,45 @@ def _command(task_id: str, expected: str = "^true$") -> Task:
     return Task(id=task_id, prompt="Run it", prefix="$", expected=expected)
 
 
+def _shared_task(task_id: str = "shared__one") -> dict:
+    return {
+        "id": task_id,
+        "prompt": "Run it",
+        "prefix": "$",
+        "expected": "^true$",
+    }
+
+
 def test_save_refuses_a_regex_that_does_not_compile(tmp_path: Path) -> None:
+    oracle = tmp_path / "oracle"
+    _write(
+        oracle,
+        "custom.json",
+        _lesson(
+            "custom",
+            title="Custom",
+            platform="Linux",
+            tasks=[
+                {
+                    "id": "custom__one",
+                    "prompt": "Run it",
+                    "prefix": "$",
+                    "expected": "[unterminated",
+                }
+            ],
+        ),
+    )
+    with pytest.raises(CatalogRefusal) as read_exc:
+        Catalog(oracle).lessons()
+
     catalog = Catalog(tmp_path)
     lesson = _model("custom", [_command("custom__one", "[unterminated")])
+    with pytest.raises(CatalogRefusal) as save_exc:
+        catalog.save_lesson(lesson)
 
-    assert catalog.save_lesson(lesson) is False
+    assert str(save_exc.value) == "custom.json: expected regex does not compile"
+    assert str(save_exc.value) == str(read_exc.value)
+    assert save_exc.value.path.name == "custom.json"
     assert list(tmp_path.glob("*.json")) == []
     assert catalog.lessons() == []
 
@@ -259,21 +293,132 @@ def test_save_refuses_a_reused_task_id(tmp_path: Path) -> None:
     catalog = Catalog(tmp_path)
     assert catalog.save_lesson(_model("first", [_command("shared__one")])) is True
 
+    oracle = tmp_path / "oracle"
+    _write(
+        oracle,
+        "first.json",
+        _lesson("first", title="First", platform="Linux", tasks=[_shared_task()]),
+    )
+    _write(
+        oracle,
+        "second.json",
+        _lesson(
+            "second",
+            title="Second",
+            platform="Linux",
+            tasks=[_shared_task(), _shared_task("second__other")],
+        ),
+    )
+    with pytest.raises(CatalogRefusal) as read_exc:
+        Catalog(oracle).lessons()
+
     reused = _model(
         "second",
         [_command("shared__one"), _command("second__other")],
     )
-    assert catalog.save_lesson(reused) is False
+    with pytest.raises(CatalogRefusal) as save_exc:
+        catalog.save_lesson(reused)
+
+    assert str(save_exc.value) == (
+        "second.json: duplicate task id 'shared__one' is also in first.json"
+    )
+    assert str(save_exc.value) == str(read_exc.value)
     assert catalog.get_lesson_by_id("second") is None
     assert [lesson.id for lesson in catalog.lessons()] == ["first"]
 
 
+def test_save_refuses_a_reused_task_id_when_the_new_file_sorts_first(
+    tmp_path: Path,
+) -> None:
+    catalog = Catalog(tmp_path)
+    assert catalog.save_lesson(_model("zzz", [_command("shared__one")])) is True
+
+    oracle = tmp_path / "oracle"
+    _write(
+        oracle,
+        "aaa.json",
+        _lesson("aaa", title="Aaa", platform="Linux", tasks=[_shared_task()]),
+    )
+    _write(
+        oracle,
+        "zzz.json",
+        _lesson("zzz", title="Zzz", platform="Linux", tasks=[_shared_task()]),
+    )
+    with pytest.raises(CatalogRefusal) as read_exc:
+        Catalog(oracle).lessons()
+
+    with pytest.raises(CatalogRefusal) as save_exc:
+        catalog.save_lesson(_model("aaa", [_command("shared__one")]))
+
+    assert str(save_exc.value) == (
+        "zzz.json: duplicate task id 'shared__one' is also in aaa.json"
+    )
+    assert str(save_exc.value) == str(read_exc.value)
+    assert catalog.get_lesson_by_id("aaa") is None
+    assert [lesson.id for lesson in catalog.lessons()] == ["zzz"]
+
+
 def test_save_refuses_duplicate_task_ids_inside_the_lesson(tmp_path: Path) -> None:
+    oracle = tmp_path / "oracle"
+    _write(
+        oracle,
+        "custom.json",
+        _lesson(
+            "custom",
+            title="Custom",
+            platform="Linux",
+            tasks=[_shared_task("custom__one"), _shared_task("custom__one")],
+        ),
+    )
+    with pytest.raises(CatalogRefusal) as read_exc:
+        Catalog(oracle).lessons()
+
     catalog = Catalog(tmp_path)
     lesson = _model("custom", [_command("custom__one"), _command("custom__one")])
+    with pytest.raises(CatalogRefusal) as save_exc:
+        catalog.save_lesson(lesson)
+
+    assert str(save_exc.value) == "custom.json: duplicate task id 'custom__one'"
+    assert str(save_exc.value) == str(read_exc.value)
+    assert list(tmp_path.glob("*.json")) == []
+    assert catalog.lessons() == []
+
+
+def test_save_refuses_a_lesson_that_will_not_parse(tmp_path: Path) -> None:
+    class Unparsed(Lesson):
+        def to_dict(self) -> dict:
+            return {"title": "Only a title"}
+
+    oracle = tmp_path / "oracle"
+    (oracle / "custom.json").parent.mkdir()
+    (oracle / "custom.json").write_text('{"title": "Only a title"}', encoding="utf-8")
+    with pytest.raises(CatalogRefusal) as read_exc:
+        Catalog(oracle).lessons()
+
+    catalog = Catalog(tmp_path)
+    lesson = Unparsed(
+        id="custom",
+        title="Custom",
+        platform="Linux",
+        description="Desc",
+        tasks=[_command("custom__one")],
+    )
+    with pytest.raises(CatalogRefusal) as save_exc:
+        catalog.save_lesson(lesson)
+
+    assert str(save_exc.value) == "custom.json: file does not parse as a Lesson"
+    assert str(save_exc.value) == str(read_exc.value)
+    assert list(tmp_path.glob("*.json")) == []
+
+
+def test_save_reports_a_disk_failure_without_a_refusal(tmp_path: Path) -> None:
+    blocked = tmp_path / "lessons"
+    blocked.write_text("not a directory", encoding="utf-8")
+    catalog = Catalog(blocked)
+    lesson = _model("custom", [_command("custom__one")])
 
     assert catalog.save_lesson(lesson) is False
-    assert catalog.lessons() == []
+    assert blocked.read_text(encoding="utf-8") == "not a directory"
 
 
 def test_save_keeps_a_lesson_that_passes_and_lists_it(tmp_path: Path) -> None:

@@ -112,7 +112,11 @@ class Catalog:
         return None
 
     def save_lesson(self, lesson: Lesson) -> bool:
-        """Save a Lesson file when the catalog would accept it on the next read."""
+        """Write the Lesson file when the next read would accept it.
+
+        A Lesson the next read would refuse raises that same refusal and
+        writes nothing. A disk failure returns False and is not a refusal.
+        """
         if not self.lessons_dir.exists():
             try:
                 self.lessons_dir.mkdir(parents=True, exist_ok=True)
@@ -121,55 +125,46 @@ class Catalog:
 
         destination = self.lessons_dir / f"{lesson.id}.json"
         try:
-            self._reject_unsavable(lesson, destination)
-        except CatalogRefusal:
-            return False
-
-        try:
-            with open(destination, "w", encoding="utf-8") as handle:
-                json.dump(lesson.to_dict(), handle, indent=4)
-            return True
-        except OSError:
-            return False
-
-    def _reject_unsavable(self, lesson: Lesson, destination: Path) -> None:
-        try:
-            payload = json.loads(json.dumps(lesson.to_dict()))
-            parsed = Lesson.from_dict(payload)
-        except (TypeError, ValueError, KeyError, json.JSONDecodeError) as exc:
+            text = json.dumps(lesson.to_dict(), indent=4)
+        except (TypeError, ValueError) as exc:
             raise CatalogRefusal(
                 destination, "file does not parse as a Lesson"
             ) from exc
 
-        seen: set[str] = set()
-        for task in parsed.tasks:
-            if task.id in seen:
-                raise CatalogRefusal(destination, f"duplicate task id '{task.id}'")
-            seen.add(task.id)
-            self._require_expected(destination, task.expected)
+        self._read_all(pending={destination: text})
 
-        for other in self._read_all():
-            if other.id == lesson.id:
-                continue
-            for task in other.tasks:
-                if task.id in seen:
-                    raise CatalogRefusal(
-                        destination,
-                        f"duplicate task id '{task.id}'",
-                    )
+        try:
+            with open(destination, "w", encoding="utf-8") as handle:
+                handle.write(text)
+            return True
+        except OSError:
+            return False
 
-    def _read_all(self) -> list[Lesson]:
-        if not self.lessons_dir.exists() or not self.lessons_dir.is_dir():
-            return []
+    def _read_all(self, pending: Optional[dict[Path, str]] = None) -> list[Lesson]:
+        pending = pending or {}
+        if self.lessons_dir.exists() and self.lessons_dir.is_dir():
+            files = list(self.lessons_dir.glob("*.json"))
+        else:
+            files = []
+
+        pending_by_name = {
+            path.name.casefold(): (path, text) for path, text in pending.items()
+        }
+        present = {path.name.casefold() for path in files}
+        for name, (path, _text) in pending_by_name.items():
+            if name not in present:
+                files.append(path)
+        files.sort(key=lambda path: path.name.casefold())
 
         lessons: list[Lesson] = []
         seen_task_ids: dict[str, Path] = {}
-        files = sorted(
-            self.lessons_dir.glob("*.json"),
-            key=lambda path: path.name.casefold(),
-        )
         for file_path in files:
-            lesson = self._read_lesson(file_path)
+            overlay = pending_by_name.get(file_path.name.casefold())
+            if overlay is not None:
+                file_path, text = overlay
+                lesson = self._lesson_from_text(file_path, text)
+            else:
+                lesson = self._read_lesson(file_path)
             for task in lesson.tasks:
                 previous = seen_task_ids.get(task.id)
                 if previous is not None:
@@ -187,14 +182,20 @@ class Catalog:
 
     def _read_lesson(self, file_path: Path) -> Lesson:
         try:
-            data = json.loads(file_path.read_text(encoding="utf-8"))
+            text = file_path.read_text(encoding="utf-8")
+        except (OSError, UnicodeDecodeError) as exc:
+            raise CatalogRefusal(file_path, "file does not parse as a Lesson") from exc
+        return self._lesson_from_text(file_path, text)
+
+    def _lesson_from_text(self, file_path: Path, text: str) -> Lesson:
+        try:
+            data = json.loads(text)
             if not isinstance(data, dict):
                 raise CatalogRefusal(file_path, "file does not parse as a Lesson")
             return Lesson.from_dict(data)
         except CatalogRefusal:
             raise
         except (
-            OSError,
             UnicodeDecodeError,
             json.JSONDecodeError,
             KeyError,

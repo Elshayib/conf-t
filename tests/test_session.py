@@ -842,14 +842,24 @@ def test_task_already_in_the_drill_keeps_its_place(tmp_path: Path) -> None:
     assert session.failed_queue([lesson]) == [(lesson, first), (lesson, second)]
 
 
-def test_arranged_first_try_pass_does_not_restore_the_showing(tmp_path: Path) -> None:
+def test_refused_first_try_place_keeps_the_miss_and_the_drill(tmp_path: Path) -> None:
     session = _session(tmp_path)
     lesson = _lesson(tasks=[_task("l1__a")])
     task = lesson.tasks[0]
     session.begin_task(task)
     assert session.submit(lesson, task, "nope").kind == TURN_INCORRECT
+    assert session.stats().total_attempts == 1
+    assert session.due_review([lesson]) == [(lesson, task)]
+    assert session.failed_queue([lesson]) == [(lesson, task)]
 
-    session.record_attempt(lesson, task, TaskResult.FIRST_TRY_PASS)
+    placed = session.record_attempt(lesson, task, TaskResult.FIRST_TRY_PASS)
+
+    assert placed is False
+    assert session.stats().total_attempts == 1
+    assert session.lesson_standing(lesson).passed == 0
+    assert session.due_review([lesson]) == [(lesson, task)]
+    assert session.failed_queue([lesson]) == [(lesson, task)]
+
     late = session.submit(lesson, task, "ok")
 
     assert late.kind == TURN_CORRECT
@@ -859,12 +869,20 @@ def test_arranged_first_try_pass_does_not_restore_the_showing(tmp_path: Path) ->
     assert session.failed_queue([lesson]) == [(lesson, task)]
 
 
-def test_arranged_incorrect_result_does_not_spend_the_showing(tmp_path: Path) -> None:
+def test_refused_miss_place_leaves_the_showing_first_try_eligible(
+    tmp_path: Path,
+) -> None:
     session = _session(tmp_path)
     lesson = _lesson(tasks=[_task("l1__a")])
     task = lesson.tasks[0]
     session.begin_task(task)
-    session.record_attempt(lesson, task, TaskResult.INCORRECT)
+
+    placed = session.record_attempt(lesson, task, TaskResult.INCORRECT)
+
+    assert placed is False
+    assert session.stats().total_attempts == 0
+    assert session.due_review([lesson]) == []
+    assert session.failed_queue([lesson]) == []
 
     passed = session.submit(lesson, task, "ok")
 
@@ -872,6 +890,87 @@ def test_arranged_incorrect_result_does_not_spend_the_showing(tmp_path: Path) ->
     assert passed.first_try is True
     assert session.due_review([lesson]) == []
     assert session.failed_queue([lesson]) == []
+    assert session.lesson_standing(lesson).passed == 1
+
+
+def test_place_for_another_task_is_allowed_while_a_showing_is_open(
+    tmp_path: Path,
+) -> None:
+    session = _session(tmp_path)
+    lesson = _lesson(tasks=[_task("l1__a"), _task("l1__b")])
+    shown, other = lesson.tasks
+    session.begin_task(shown)
+
+    placed = session.record_attempt(lesson, other, TaskResult.SKIP)
+
+    assert placed is True
+    assert session.due_review([lesson]) == [(lesson, other)]
+    assert session.failed_queue([lesson]) == [(lesson, other)]
+    assert session.stats().total_attempts == 1
+    assert session.stats().skipped == 1
+
+    passed = session.submit(lesson, shown, "ok")
+    assert passed.first_try is True
+    assert session.failed_queue([lesson]) == [(lesson, other)]
+
+
+def test_place_is_allowed_again_after_the_showing_ends(tmp_path: Path) -> None:
+    session = _session(tmp_path)
+    lesson = _lesson(tasks=[_task("l1__a"), _task("l1__b")])
+    finished, waiting = lesson.tasks
+    session.record_attempt(lesson, waiting, TaskResult.INCORRECT)
+    session.begin_task(finished)
+    assert session.submit(lesson, finished, "ok").first_try is True
+
+    placed = session.record_attempt(lesson, finished, TaskResult.INCORRECT)
+
+    assert placed is True
+    assert session.failed_queue([lesson]) == [
+        (lesson, waiting),
+        (lesson, finished),
+    ]
+    assert session.due_review([lesson]) == [
+        (lesson, waiting),
+        (lesson, finished),
+    ]
+
+
+def test_exit_word_keeps_the_showing_open(tmp_path: Path) -> None:
+    session = _session(tmp_path)
+    lesson = _lesson(tasks=[_task("l1__a")])
+    task = lesson.tasks[0]
+    session.begin_task(task)
+    assert session.submit(lesson, task, "nope").kind == TURN_INCORRECT
+
+    assert session.submit(lesson, task, "quit").kind == TURN_LEAVE
+    placed = session.record_attempt(lesson, task, TaskResult.FIRST_TRY_PASS)
+
+    assert placed is False
+    assert session.stats().total_attempts == 1
+    assert session.lesson_standing(lesson).passed == 0
+    assert session.failed_queue([lesson]) == [(lesson, task)]
+
+    late = session.submit(lesson, task, "ok")
+    assert late.first_try is False
+    assert session.failed_queue([lesson]) == [(lesson, task)]
+
+
+def test_leave_ends_the_showing_so_a_later_place_is_stored(tmp_path: Path) -> None:
+    session = _session(tmp_path)
+    lesson = _lesson(tasks=[_task("l1__a")])
+    task = lesson.tasks[0]
+    session.begin_task(task)
+    assert session.submit(lesson, task, "nope").kind == TURN_INCORRECT
+
+    session.end_showing(task)
+    placed = session.record_attempt(lesson, task, TaskResult.SKIP)
+
+    assert placed is True
+    assert session.stats().total_attempts == 2
+    assert session.stats().skipped == 1
+    assert session.lesson_standing(lesson).passed == 0
+    assert session.failed_queue([lesson]) == [(lesson, task)]
+    assert session.due_review([lesson]) == [(lesson, task)]
 
 
 def test_begin_task_restores_first_try_for_a_new_sitting(tmp_path: Path) -> None:

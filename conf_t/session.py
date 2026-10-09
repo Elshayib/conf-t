@@ -150,13 +150,19 @@ class Session:
         """
         self._progress = ProgressManager(filepath=progress_path, clock=clock)
         self._lost_first_try: set[str] = set()
+        self._open_showings: set[str] = set()
 
     def mark_practice_opened(self, lesson: Lesson) -> None:
         self._progress.mark_lesson_attempted(lesson.id)
 
     def begin_task(self, task: Task) -> None:
-        """Start a fresh confrontation with the Task for this sitting."""
+        """Start a fresh showing of the Task. This showing is first-try eligible."""
         self._lost_first_try.discard(task.id)
+        self._open_showings.add(task.id)
+
+    def end_showing(self, task: Task) -> None:
+        """The Learner left this showing. Nothing is recorded."""
+        self._open_showings.discard(task.id)
 
     def submit(self, lesson: Lesson, task: Task, line: str) -> TurnResult:
         cleaned = line.strip()
@@ -175,8 +181,7 @@ class Session:
         first_try = task.id not in self._lost_first_try
 
         if lowered == "skip":
-            self.record_attempt(lesson, task, TaskResult.SKIP)
-            self._lost_first_try.discard(task.id)
+            self._store_and_end_showing(lesson, task, TaskResult.SKIP)
             return TurnResult(
                 kind=TURN_SKIPPED,
                 explanation=task.explanation,
@@ -191,16 +196,16 @@ class Session:
                 if first_try
                 else TaskResult.CORRECT_NOT_FIRST_TRY
             )
-            self.record_attempt(lesson, task, result)
-            self._lost_first_try.discard(task.id)
+            self._store_and_end_showing(lesson, task, result)
             return TurnResult(
                 kind=TURN_CORRECT,
                 explanation=task.explanation,
                 first_try=first_try,
             )
 
-        self.record_attempt(lesson, task, TaskResult.INCORRECT)
+        self._store_result(lesson, task, TaskResult.INCORRECT)
         self._lost_first_try.add(task.id)
+        self._open_showings.add(task.id)
         return TurnResult(kind=TURN_INCORRECT, first_try=first_try)
 
     def record_attempt(
@@ -208,10 +213,20 @@ class Session:
         lesson: Lesson,
         task: Task,
         result: TaskResult,
-    ) -> None:
-        """Store one result. Does not change the showing in progress."""
+    ) -> bool:
+        """Place one stored result when this Task has no open showing.
+
+        Returns False when a showing is open. Nothing is written: the showing,
+        the stored result, and the lifetime totals stay as they were.
+        """
+        if task.id in self._open_showings:
+            return False
         if not isinstance(result, TaskResult):
             result = TaskResult(result)
+        self._store_result(lesson, task, result)
+        return True
+
+    def _store_result(self, lesson: Lesson, task: Task, result: TaskResult) -> None:
         self._progress.record_attempt(
             lesson_id=lesson.id,
             platform=Platform.of(lesson.platform).spelling,
@@ -219,6 +234,13 @@ class Session:
             result=result,
         )
         self._sync_completion(lesson)
+
+    def _store_and_end_showing(
+        self, lesson: Lesson, task: Task, result: TaskResult
+    ) -> None:
+        self._store_result(lesson, task, result)
+        self._lost_first_try.discard(task.id)
+        self._open_showings.discard(task.id)
 
     def continue_target(self, lessons: Sequence[Lesson]) -> ContinueTarget | None:
         """Choose where continue / the menu continue entry should send the Learner."""

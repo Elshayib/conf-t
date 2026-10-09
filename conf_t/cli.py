@@ -640,6 +640,7 @@ class ConfTCLI:
                 try:
                     user_input = console.input(f"{task.prefix} ")
                 except (KeyboardInterrupt, EOFError):
+                    self.session.end_showing(task)
                     console.print(f"\n[yellow]{interrupt_message(review=review)}[/]")
                     return None
 
@@ -655,6 +656,7 @@ class ConfTCLI:
                         else "Are you sure you want to exit this lesson?"
                     )
                     if questionary.confirm(question).ask():
+                        self.session.end_showing(task)
                         if not review:
                             console.print("[bold yellow]Exited practice session.[/]")
                         return None

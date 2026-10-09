@@ -41,7 +41,10 @@ def lesson_matches_tags(lesson: Lesson, tags: Sequence[str]) -> bool:
     if not tags:
         return True
     lesson_tags = {tag.lower() for tag in lesson.tags}
-    return all(tag in lesson_tags for tag in tags)
+    wanted = [tag.strip().lower() for tag in tags if tag and tag.strip()]
+    if not wanted:
+        return True
+    return all(tag in lesson_tags for tag in wanted)
 
 
 def filter_lessons_by_tags(
@@ -99,12 +102,35 @@ class Catalog:
         """
         loaded = self._read_all()
         if platform:
-            loaded = [lesson for lesson in loaded if same_platform(lesson, platform)]
-        wanted = [tag.strip().lower() for tag in (tags or []) if tag and tag.strip()]
-        return filter_lessons_by_tags(loaded, wanted)
+            loaded = self.lessons_on_platform(loaded, platform)
+        return self.narrow_by_topics(loaded, list(tags or []))
 
     def platforms(self) -> list[str]:
         return platform_names(self.lessons())
+
+    def platform_choices(self, lessons: Sequence[Lesson]) -> list[str]:
+        """Platform spellings for these Lessons. A known Platform is canonical."""
+        return platform_names(lessons)
+
+    def lessons_on_platform(
+        self, lessons: Sequence[Lesson], platform: str
+    ) -> list[Lesson]:
+        """Lessons whose Platform matches, in the order given."""
+        return [lesson for lesson in lessons if same_platform(lesson, platform)]
+
+    def topic_tags(self, lessons: Sequence[Lesson]) -> list[str]:
+        """Topic tags on these Lessons, lowercased, in one order."""
+        return collect_all_tags(lessons)
+
+    def parse_tags(self, tags: Optional[str]) -> list[str]:
+        """Comma-separated topic tags, stripped and lowercased."""
+        return parse_tags_csv(tags)
+
+    def narrow_by_topics(
+        self, lessons: Sequence[Lesson], tags: Sequence[str]
+    ) -> list[Lesson]:
+        """Lessons that carry every tag. Case does not matter. Order is kept."""
+        return filter_lessons_by_tags(lessons, tags)
 
     def get_lesson_by_id(self, lesson_id: str) -> Optional[Lesson]:
         for lesson in self.lessons():

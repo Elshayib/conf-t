@@ -111,6 +111,28 @@ def test_lessons_stay_ordered_by_difficulty_then_title(tmp_path: Path) -> None:
     ]
 
 
+def test_unknown_difficulty_sorts_after_known_ranks_then_by_title(tmp_path: Path) -> None:
+    _write(tmp_path, "z.json", _lesson("zebra", title="Zebra", platform="Linux", difficulty="advanced"))
+    _write(tmp_path, "b.json", _lesson("banana", title="Banana", platform="Linux"))
+    _write(
+        tmp_path,
+        "m.json",
+        _lesson("mango", title="Mango", platform="Linux", difficulty="expert"),
+    )
+    _write(
+        tmp_path,
+        "a.json",
+        _lesson("apple", title="Apple", platform="Linux", difficulty="expert"),
+    )
+
+    assert [lesson.id for lesson in Catalog(tmp_path).lessons()] == [
+        "banana",
+        "zebra",
+        "apple",
+        "mango",
+    ]
+
+
 def test_topic_tags_narrow_the_same_set(tmp_path: Path) -> None:
     _write(
         tmp_path,

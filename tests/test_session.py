@@ -9,7 +9,6 @@ from conf_t.session import (
     LESSON_STATUS_COMPLETED,
     LESSON_STATUS_IN_PROGRESS,
     LESSON_STATUS_NOT_STARTED,
-    ContinueTarget,
     Session,
     TaskResult,
     TURN_CORRECT,
@@ -299,8 +298,10 @@ def test_due_review_omits_a_gone_task_and_keeps_next_review_time_order(
         (full, middle),
     ]
     assert sitting.due_review([kept]) == [(kept, early), (kept, late)]
-    assert sitting.stats().due_count == 3
-    assert sitting.continue_target([kept]) == ContinueTarget(action="daily_review")
+    assert sitting.stats([kept]).due_count == len(sitting.due_review([kept]))
+    assert sitting.stats([full]).due_count == len(sitting.due_review([full]))
+    assert sitting.stats().due_count is None
+    assert sitting.continue_target([kept]) == sitting.due_review([kept])
 
 
 def test_failed_queue_omits_a_gone_task_and_keeps_drill_place(tmp_path: Path) -> None:
@@ -320,7 +321,9 @@ def test_failed_queue_omits_a_gone_task_and_keeps_drill_place(tmp_path: Path) ->
     ]
     assert session.failed_queue([kept]) == [(kept, first), (kept, third)]
     assert [task.id for _, task in session.due_review([kept])] == ["l1__a", "l1__c"]
-    assert session.stats().failed_queue_size == 3
+    assert session.stats([kept]).failed_queue_size == len(session.failed_queue([kept]))
+    assert session.stats([full]).failed_queue_size == len(session.failed_queue([full]))
+    assert session.stats().failed_queue_size is None
 
 
 def test_continue_opens_the_grown_lesson_when_no_resolvable_task_is_due(
@@ -330,25 +333,29 @@ def test_continue_opens_the_grown_lesson_when_no_resolvable_task_is_due(
     original = _lesson(tasks=[_task("l1__a"), _task("l1__b")])
     session.record_attempt(original, original.tasks[0], TaskResult.FIRST_TRY_PASS)
     session.record_attempt(original, original.tasks[1], TaskResult.FIRST_TRY_PASS)
-    assert session.stats().completed_lessons == 1
+    assert session.stats([original]).completed_lessons == 1
 
     ghost = _lesson("ghost", tasks=[_task("ghost__a")])
     session.record_attempt(ghost, ghost.tasks[0], TaskResult.INCORRECT)
 
     grown = _lesson(tasks=[*original.tasks, _task("l1__c")])
     standing = session.lesson_standing(grown)
-    assert session.stats().completed_lessons == 1
     assert standing.status == LESSON_STATUS_IN_PROGRESS
     assert standing.passed == 2
     assert standing.total == 3
+    assert session.stats([grown]).completed_lessons == 0
     assert [task.id for task in session.resume_tasks(grown)] == ["l1__c"]
     assert session.due_review([grown]) == []
     assert session.failed_queue([grown]) == []
-    assert session.continue_target([grown]) == ContinueTarget(
-        action="lesson", lesson_id="l1"
+    assert session.continue_target([grown]) is grown
+    assert session.stats([grown]).due_count == 0
+    assert session.stats([grown]).failed_queue_size == 0
+    assert session.stats([grown, ghost]).due_count == len(
+        session.due_review([grown, ghost])
     )
-    assert session.stats().due_count == 1
-    assert session.stats().failed_queue_size == 1
+    assert session.stats([grown, ghost]).failed_queue_size == len(
+        session.failed_queue([grown, ghost])
+    )
 
 
 def test_another_miss_or_skip_is_due_immediately(tmp_path: Path) -> None:
@@ -427,9 +434,12 @@ def test_stats_match_due_failed_and_lifetime_totals(tmp_path: Path) -> None:
     session.record_attempt(linux, linux.tasks[0], TaskResult.FIRST_TRY_PASS)
     session.record_attempt(linux, linux.tasks[1], TaskResult.INCORRECT)
     session.record_attempt(cisco, cisco.tasks[0], TaskResult.SKIP)
+    known = [linux, cisco]
 
-    stats = session.stats()
+    stats = session.stats(known)
     assert stats.completed_lessons == 0
+    assert stats.due_count == len(session.due_review(known))
+    assert stats.failed_queue_size == len(session.failed_queue(known))
     assert stats.due_count == 2
     assert stats.failed_queue_size == 2
     assert stats.total_attempts == 3
@@ -442,10 +452,18 @@ def test_stats_match_due_failed_and_lifetime_totals(tmp_path: Path) -> None:
     assert stats.by_platform["Cisco"].correct_first_try == 0
     assert stats.by_platform["Cisco"].skipped == 1
 
+    unresolved = session.stats()
+    assert unresolved.completed_lessons is None
+    assert unresolved.due_count is None
+    assert unresolved.failed_queue_size is None
+    assert unresolved.total_attempts == 3
+    assert unresolved.correct_first_try == 1
+    assert unresolved.skipped == 1
+
     session.record_attempt(linux, linux.tasks[1], TaskResult.FIRST_TRY_PASS)
-    assert session.stats().completed_lessons == 1
-    assert session.stats().due_count == 1
-    assert session.stats().failed_queue_size == 1
+    assert session.stats(known).completed_lessons == 1
+    assert session.stats(known).due_count == len(session.due_review(known))
+    assert session.stats(known).failed_queue_size == len(session.failed_queue(known))
 
 
 def test_linux_and_Linux_are_one_stats_row(tmp_path: Path) -> None:
@@ -536,13 +554,17 @@ def test_full_reset_clears_standing_drills_stats_and_welcome(tmp_path: Path) -> 
     assert session.due_review([lesson]) == []
     assert session.failed_queue([lesson]) == []
     stats = session.stats()
-    assert stats.completed_lessons == 0
-    assert stats.due_count == 0
-    assert stats.failed_queue_size == 0
+    assert stats.completed_lessons is None
+    assert stats.due_count is None
+    assert stats.failed_queue_size is None
     assert stats.total_attempts == 0
     assert stats.correct_first_try == 0
     assert stats.skipped == 0
     assert stats.by_platform == {}
+    resolved = session.stats([lesson])
+    assert resolved.completed_lessons == 0
+    assert resolved.due_count == 0
+    assert resolved.failed_queue_size == 0
     assert session.should_show_welcome() is True
 
 
@@ -601,10 +623,16 @@ def test_older_progress_file_yields_same_passed_due_and_failed(tmp_path: Path) -
         "open_l__skip",
     }
     assert session.lesson_standing(open_lesson).passed == 0
-    assert session.stats().due_count == 2
-    assert session.stats().failed_queue_size == 2
-    assert session.stats().total_attempts == 4
-    assert session.stats().completed_lessons == 1
+    assert session.lesson_standing(done).status != LESSON_STATUS_COMPLETED
+    stats = session.stats(known)
+    assert stats.due_count == len(session.due_review(known))
+    assert stats.failed_queue_size == len(session.failed_queue(known))
+    assert stats.due_count == 2
+    assert stats.failed_queue_size == 2
+    assert stats.completed_lessons == 0
+    assert stats.total_attempts == 4
+    assert session.stats().due_count is None
+    assert session.stats().completed_lessons is None
     assert "done_l" not in {lesson.id for lesson, _task in session.failed_queue(known)}
 
 
@@ -672,7 +700,9 @@ def test_old_file_first_try_pass_outranks_leftover_drill_entry(tmp_path: Path) -
     assert session.lesson_standing(lesson).passed == 1
 
     stats = session.stats()
-    assert stats.completed_lessons == 1
+    assert stats.completed_lessons is None
+    assert stats.due_count is None
+    assert stats.failed_queue_size is None
     assert stats.total_attempts == 8
     assert stats.correct_first_try == 3
     assert stats.skipped == 2
@@ -806,6 +836,8 @@ def test_first_graded_correct_passes_and_shows_explanation(tmp_path: Path) -> No
         kind=TURN_CORRECT,
         explanation="because ok",
         first_try=True,
+        left_the_drill=True,
+        rescheduled=False,
     )
     assert session.lesson_standing(lesson).passed == 1
     assert session.failed_queue([lesson]) == []
@@ -1145,6 +1177,8 @@ def test_review_first_try_pass_leaves_due_and_failed_queues(tmp_path: Path) -> N
 
     assert result.kind == TURN_CORRECT
     assert result.first_try is True
+    assert result.left_the_drill is True
+    assert result.rescheduled is False
     assert result.explanation == "e"
     assert session.due_review([lesson]) == []
     assert session.failed_queue([lesson]) == []
@@ -1162,6 +1196,8 @@ def test_review_late_pass_stays_in_failed_queue_and_is_not_due(tmp_path: Path) -
 
     assert late.kind == TURN_CORRECT
     assert late.first_try is False
+    assert late.left_the_drill is False
+    assert late.rescheduled is True
     assert late.explanation == "e"
     assert session.due_review([lesson]) == []
     assert session.failed_queue([lesson]) == [(lesson, task)]
@@ -1208,8 +1244,8 @@ def test_continue_sends_due_review_before_any_lesson(tmp_path: Path) -> None:
     )
 
     target = session.continue_target([open_lesson])
-    assert target == ContinueTarget(action="daily_review")
-    assert session.due_review([open_lesson])
+    assert target == [(open_lesson, open_lesson.tasks[0])]
+    assert target == session.due_review([open_lesson])
 
 
 def test_continue_resumes_last_unfinished_resumable_lesson(tmp_path: Path) -> None:
@@ -1220,7 +1256,7 @@ def test_continue_resumes_last_unfinished_resumable_lesson(tmp_path: Path) -> No
     session.mark_practice_opened(newer)
 
     target = session.continue_target([older, newer])
-    assert target == ContinueTarget(action="lesson", lesson_id="newer")
+    assert target is newer
 
 
 def test_continue_skips_completed_lesson_when_resuming(tmp_path: Path) -> None:
@@ -1233,7 +1269,7 @@ def test_continue_skips_completed_lesson_when_resuming(tmp_path: Path) -> None:
     assert session.lesson_standing(done).status == LESSON_STATUS_COMPLETED
 
     target = session.continue_target([done, open_lesson])
-    assert target == ContinueTarget(action="lesson", lesson_id="open")
+    assert target is open_lesson
 
 
 def test_continue_opens_recommended_when_nothing_unfinished(tmp_path: Path) -> None:
@@ -1249,7 +1285,7 @@ def test_continue_opens_recommended_when_nothing_unfinished(tmp_path: Path) -> N
     session.record_attempt(basic, basic.tasks[1], TaskResult.FIRST_TRY_PASS)
 
     target = session.continue_target([advanced, basic])
-    assert target == ContinueTarget(action="lesson", lesson_id="advanced")
+    assert target is advanced
 
 
 def test_recommended_within_platform_uses_full_catalog_for_prereqs(
@@ -1301,7 +1337,7 @@ def test_continue_recommended_skips_completed_and_unmet_prereqs(tmp_path: Path) 
 
     # alpha completed → skip; bravo prereqs met but intermediate; charlie beginner unfinished
     target = session.continue_target([bravo, charlie, alpha])
-    assert target == ContinueTarget(action="lesson", lesson_id="charlie")
+    assert target is charlie
 
 
 def test_continue_recommended_follows_path_order_by_title(tmp_path: Path) -> None:
@@ -1310,7 +1346,61 @@ def test_continue_recommended_follows_path_order_by_title(tmp_path: Path) -> Non
     apple = _lesson("apple", title="Apple", difficulty="beginner")
 
     target = session.continue_target([zebra, apple])
-    assert target == ContinueTarget(action="lesson", lesson_id="apple")
+    assert target is apple
+
+
+def test_continue_recommendation_uses_the_full_catalog_for_prerequisites(
+    tmp_path: Path,
+) -> None:
+    session = _session(tmp_path)
+    linux_basic = _lesson("linux_basic", title="Linux Basic", platform="Linux")
+    blocked = _lesson(
+        "blocked",
+        title="Alpha",
+        platform="Cisco",
+        prerequisites=["missing"],
+    )
+    ready = _lesson(
+        "ready",
+        title="Zulu",
+        platform="Cisco",
+        prerequisites=["linux_basic"],
+    )
+    session.record_attempt(linux_basic, linux_basic.tasks[0], TaskResult.FIRST_TRY_PASS)
+    session.record_attempt(linux_basic, linux_basic.tasks[1], TaskResult.FIRST_TRY_PASS)
+
+    assert session.continue_target([blocked, ready]) is blocked
+    assert (
+        session.continue_target(
+            [blocked, ready],
+            catalog=[linux_basic, blocked, ready],
+        )
+        is ready
+    )
+
+
+def test_continue_follows_catalog_order_past_an_unknown_difficulty(
+    tmp_path: Path,
+) -> None:
+    session = _session(tmp_path)
+    expert = _lesson("expert", title="Apple", difficulty="expert")
+    beginner = _lesson("beginner", title="Zebra", difficulty="beginner")
+    assert session.recommended_lesson([expert, beginner]) is beginner
+    assert session.continue_target([expert, beginner]) is beginner
+
+    locked_expert = _lesson(
+        "locked_expert",
+        title="Apple",
+        difficulty="expert",
+        prerequisites=["missing"],
+    )
+    locked_beginner = _lesson(
+        "locked_beginner",
+        title="Zebra",
+        difficulty="beginner",
+        prerequisites=["missing"],
+    )
+    assert session.continue_target([locked_expert, locked_beginner]) is locked_beginner
 
 
 def test_continue_opens_first_lesson_when_nothing_recommended(tmp_path: Path) -> None:
@@ -1329,7 +1419,7 @@ def test_continue_opens_first_lesson_when_nothing_recommended(tmp_path: Path) ->
     )
 
     target = session.continue_target([later, locked])
-    assert target == ContinueTarget(action="lesson", lesson_id="locked")
+    assert target is locked
 
 
 def test_continue_does_not_recommend_a_completed_lesson(tmp_path: Path) -> None:
@@ -1340,7 +1430,7 @@ def test_continue_does_not_recommend_a_completed_lesson(tmp_path: Path) -> None:
     session.record_attempt(done, done.tasks[1], TaskResult.FIRST_TRY_PASS)
 
     target = session.continue_target([done, next_lesson])
-    assert target == ContinueTarget(action="lesson", lesson_id="next")
+    assert target is next_lesson
 
 
 def test_continue_skips_empty_opened_lesson_when_resuming(tmp_path: Path) -> None:
@@ -1352,7 +1442,7 @@ def test_continue_skips_empty_opened_lesson_when_resuming(tmp_path: Path) -> Non
     session.mark_practice_opened(empty)
 
     target = session.continue_target([empty, real])
-    assert target == ContinueTarget(action="lesson", lesson_id="real")
+    assert target is real
 
 
 # --- resume, start over, prerequisites (#22) ---
@@ -1406,7 +1496,7 @@ def test_start_over_clears_lesson_records_failed_queue_and_completion(
     assert session.resume_tasks(lesson) == list(lesson.tasks)
     assert session.failed_queue([lesson]) == []
     assert session.due_review([lesson]) == []
-    assert session.stats().completed_lessons == 0
+    assert session.stats([lesson]).completed_lessons == 0
 
 
 def test_start_over_leaves_other_lessons_drills_and_completion(
@@ -1442,7 +1532,7 @@ def test_start_over_leaves_other_lessons_drills_and_completion(
     assert session.lesson_standing(keeper).passed == 2
     assert session.failed_queue(known) == [(drill, drill.tasks[0])]
     assert session.due_review(known) == [(drill, drill.tasks[0])]
-    assert session.stats().completed_lessons == 1
+    assert session.stats(known).completed_lessons == 1
     assert session.lesson_standing(target).passed == 0
     assert (target, target.tasks[1]) not in session.failed_queue(known)
 

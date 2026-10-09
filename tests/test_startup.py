@@ -13,6 +13,7 @@ from conf_t.catalog import Catalog
 from conf_t.cli import ConfTCLI
 from conf_t.main import main
 from conf_t.parser import build_parser
+from conf_t.models import TaskResult
 from conf_t.session import Session
 
 
@@ -140,7 +141,39 @@ def test_stats_open_when_a_lesson_file_is_bad(
     _install_fault(tmp_path, "parse")
     app = _app(tmp_path)
     app.run_from_args(build_parser().parse_args(["--stats"]))
-    assert "Completed Lessons" in output.getvalue()
+    text = output.getvalue()
+    assert "Total Attempts Registered" in text
+    assert "First-Try Correct Commands" in text
+    assert "Skipped Commands" in text
+    assert "Completed Lessons" not in text
+    assert "Due for Review" not in text
+    assert "Failed Commands Queue Size" not in text
+
+
+def test_stats_command_omits_counts_until_lessons_are_supplied(
+    tmp_path: Path,
+    output: io.StringIO,
+) -> None:
+    _write(tmp_path, "good.json", _lesson("good", title="Good", task_id="good__one"))
+    app = _app(tmp_path)
+    lesson = app.catalog.lessons()[0]
+    app.session.record_attempt(lesson, lesson.tasks[0], TaskResult.INCORRECT)
+
+    app.run_from_args(build_parser().parse_args(["--stats"]))
+    text = output.getvalue()
+    assert "Total Attempts Registered" in text
+    assert "Due for Review" not in text
+    assert "Completed Lessons" not in text
+    assert "Failed Commands Queue Size" not in text
+
+    output.seek(0)
+    output.truncate(0)
+    app.view_stats(interactive=False, lessons=[lesson])
+    shown = output.getvalue()
+    assert "Due for Review" in shown
+    assert "Completed Lessons" in shown
+    assert "Failed Commands Queue Size" in shown
+    assert "Total Attempts Registered" in shown
 
 
 def test_version_runs_when_a_lesson_file_is_bad(

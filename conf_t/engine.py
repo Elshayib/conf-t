@@ -195,6 +195,11 @@ class ProgressManager:
         try:
             with open(temporary, "w", encoding="utf-8") as handle:
                 json.dump(self._data, handle, indent=4)
+            # POSIX replace overwrites a read-only file when the directory is
+            # writable. Opening for write first keeps that file as it was.
+            if self.filepath.exists():
+                probe = os.open(self.filepath, os.O_WRONLY)
+                os.close(probe)
             os.replace(temporary, self.filepath)
             return True
         except OSError:

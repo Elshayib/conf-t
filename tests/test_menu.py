@@ -11,9 +11,17 @@ from conf_t.cli import (
     ConfTCLI,
     interrupt_message,
     review_correct_message,
+    unstored_attempt_lines,
 )
 from conf_t.models import Lesson, Task
-from conf_t.session import Session, TaskResult
+from conf_t.session import (
+    TURN_CORRECT,
+    TURN_INCORRECT,
+    TURN_SKIPPED,
+    Session,
+    TaskResult,
+    TurnResult,
+)
 
 
 def _app(tmp_path: Path, session: Session | None = None) -> ConfTCLI:
@@ -134,6 +142,40 @@ def test_menu_dispatch_follows_the_value_not_the_label(
 def test_interrupting_review_says_the_learner_left_review() -> None:
     assert interrupt_message(review=True) == "You left Review."
     assert interrupt_message(review=False) == "Practice aborted."
+
+
+def test_unstored_attempt_tells_the_learner_and_hides_the_answer() -> None:
+    secret = "why the command works"
+    command = "show ip interface brief"
+    buffer = io.StringIO()
+    printer = Console(file=buffer, force_terminal=False, no_color=True, highlight=False)
+    grades = {
+        TURN_CORRECT: "✓ Correct!",
+        TURN_INCORRECT: "✗ Incorrect command. Try again, or type 'hint' / 'skip' / 'exit'.",
+        TURN_SKIPPED: "Skipped.",
+    }
+
+    for kind, grade in grades.items():
+        result = TurnResult(
+            kind=kind,
+            stored=False,
+            explanation=secret,
+            readable_command=command,
+            left_the_drill=False,
+            rescheduled=False,
+        )
+        buffer.seek(0)
+        buffer.truncate(0)
+        printer.print(unstored_attempt_lines(result))
+        text = buffer.getvalue()
+        assert grade in text
+        assert "That attempt was not stored." in text
+        assert secret not in text
+        assert command not in text
+        if kind == TURN_CORRECT:
+            assert review_correct_message(result) == "✓ Correct!"
+            assert "left the drill" not in review_correct_message(result)
+            assert "rescheduled" not in review_correct_message(result)
 
 
 def test_review_sentence_follows_the_showing(tmp_path: Path) -> None:

@@ -1,6 +1,8 @@
+import copy
 import json
+import os
 from datetime import datetime, timedelta, timezone
-from typing import List, Dict, Any, NamedTuple, Optional
+from typing import Any, Callable, Dict, List, NamedTuple, Optional
 from pathlib import Path
 
 from conf_t.models import TaskProgress, TaskResult
@@ -187,12 +189,34 @@ class ProgressManager:
         data["progress_version"] = PROGRESS_VERSION
         return data
 
-    def save(self):
+    def save(self) -> bool:
+        """Write the whole history in one replace. A failure leaves the file as it was."""
+        temporary = self.filepath.with_name(self.filepath.name + ".tmp")
         try:
-            with open(self.filepath, "w", encoding="utf-8") as f:
-                json.dump(self._data, f, indent=4)
+            with open(temporary, "w", encoding="utf-8") as handle:
+                json.dump(self._data, handle, indent=4)
+            os.replace(temporary, self.filepath)
+            return True
         except OSError:
-            pass  # Fail silently if directory or permissions block writes
+            try:
+                temporary.unlink(missing_ok=True)
+            except OSError:
+                pass
+            return False
+
+    def commit(self, apply: Callable[[], None]) -> bool:
+        """Apply one history change and save it. A failed save restores memory."""
+        previous = copy.deepcopy(self._data)
+        try:
+            apply()
+            saved = self.save()
+        except BaseException:
+            self._data = previous
+            raise
+        if saved:
+            return True
+        self._data = previous
+        return False
 
     def mark_lesson_attempted(self, lesson_id: str):
         if lesson_id not in self._data["attempted_lessons"]:
@@ -328,8 +352,11 @@ class ProgressManager:
         task_id: str,
         result: TaskResult,
     ) -> None:
+        """Remember one attempt in memory. The caller saves the whole change."""
         prior = self._read_record(task_id)
-        self.mark_lesson_attempted(lesson_id)
+        attempted = self._data["attempted_lessons"]
+        if lesson_id not in attempted:
+            attempted.append(lesson_id)
         record = self._record_for_result(lesson_id, result, prior)
         record.drill_place = self._drill_place_for(result, prior)
         self._write_record(task_id, record)
@@ -352,15 +379,22 @@ class ProgressManager:
             self._data["correct_first_try"] += 1
             p_stats["correct_first_try"] += 1
 
-        self.save()
-
-    def set_lesson_completed(self, lesson_id: str, completed: bool) -> None:
+    def set_lesson_completed(
+        self,
+        lesson_id: str,
+        completed: bool,
+        *,
+        save: bool = True,
+    ) -> None:
         done = self._data.setdefault("completed_lessons", [])
+        changed = False
         if completed and lesson_id not in done:
             done.append(lesson_id)
-            self.save()
+            changed = True
         elif not completed and lesson_id in done:
             done.remove(lesson_id)
+            changed = True
+        if changed and save:
             self.save()
 
     def _next_drill_place(self) -> int:

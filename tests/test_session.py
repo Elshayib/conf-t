@@ -1,8 +1,10 @@
 """Session-module seam tests for standing, Review queues, stats, submit, continue, resume."""
 
+import json
+import os
+import stat
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
-import json
 
 from conf_t.models import Lesson, Task
 from conf_t.session import (
@@ -579,7 +581,9 @@ def test_welcome_shows_only_before_attempts_and_dismissal(tmp_path: Path) -> Non
     # Same progress file: dismissal persists
     assert fresh.should_show_welcome() is False
 
-    unused = _session(tmp_path / "other")
+    other = tmp_path / "other"
+    other.mkdir()
+    unused = _session(other)
     assert unused.should_show_welcome() is True
     lesson = _lesson(tasks=[_task("l1__a")])
     unused.record_attempt(lesson, lesson.tasks[0], TaskResult.FIRST_TRY_PASS)
@@ -1587,4 +1591,246 @@ def test_learner_can_start_when_prerequisites_are_missing(tmp_path: Path) -> Non
     assert result.first_try is True
     assert session.lesson_standing(advanced).status == LESSON_STATUS_IN_PROGRESS
     assert session.lesson_standing(advanced).passed == 1
+
+
+def _freeze(path: Path) -> None:
+    os.chmod(path, stat.S_IREAD)
+
+
+def _thaw(path: Path) -> None:
+    os.chmod(path, stat.S_IWRITE | stat.S_IREAD)
+
+
+def test_failed_save_of_a_correct_line_keeps_the_previous_history(
+    tmp_path: Path,
+) -> None:
+    path = tmp_path / "progress.json"
+    session = Session(progress_path=path)
+    prior = _lesson("prior")
+    session.record_attempt(prior, prior.tasks[0], TaskResult.INCORRECT)
+    before = path.read_bytes()
+    attempts = session.stats().total_attempts
+    lesson = _lesson(
+        "fresh",
+        tasks=[_task("fresh__a", explanation="secret why")],
+    )
+    task = lesson.tasks[0]
+    session.begin_task(task)
+
+    _freeze(path)
+    try:
+        result = session.submit(lesson, task, "ok")
+    finally:
+        _thaw(path)
+
+    assert result.kind == TURN_CORRECT
+    assert result.stored is False
+    assert result.explanation is None
+    assert result.readable_command is None
+    assert result.left_the_drill is False
+    assert result.rescheduled is False
+    assert result.first_try is True
+    assert path.read_bytes() == before
+    assert session.stats().total_attempts == attempts
+    assert session.stats().correct_first_try == 0
+    assert session.lesson_standing(lesson).status == LESSON_STATUS_NOT_STARTED
+    assert session.record_attempt(lesson, task, TaskResult.SKIP) is False
+
+    again = session.submit(lesson, task, "ok")
+
+    assert again.stored is True
+    assert again.kind == TURN_CORRECT
+    assert again.first_try is True
+    assert again.explanation == "secret why"
+    assert again.left_the_drill is True
+    assert again.rescheduled is False
+    assert session.lesson_standing(lesson).passed == 1
+    assert session.failed_queue([lesson]) == []
+    assert session.stats().total_attempts == attempts + 1
+    assert session.stats().correct_first_try == 1
+    stored = json.loads(path.read_text(encoding="utf-8"))
+    assert stored["attempted_lessons"] == ["prior", "fresh"]
+    assert stored["task_progress"]["fresh__a"]["passed_first_try"] is True
+    assert stored["total_attempts"] == attempts + 1
+    assert stored["correct_first_try"] == 1
+    assert stored["completed_lessons"] == ["fresh"]
+    assert not (tmp_path / "progress.json.tmp").exists()
+
+
+def test_unstored_miss_spends_first_try_on_this_showing(tmp_path: Path) -> None:
+    """Practice and Review share submit. An unsaved miss still spends first-try."""
+    path = tmp_path / "progress.json"
+    session = Session(progress_path=path)
+    other = _lesson("other")
+    session.record_attempt(other, other.tasks[0], TaskResult.SKIP)
+    before = path.read_bytes()
+    attempts = session.stats().total_attempts
+    lesson = _lesson("l1", tasks=[_task("l1__a", explanation="because")])
+    task = lesson.tasks[0]
+    session.begin_task(task)
+
+    _freeze(path)
+    try:
+        missed = session.submit(lesson, task, "nope")
+        assert session.submit(lesson, task, "nope").stored is False
+    finally:
+        _thaw(path)
+
+    assert missed.kind == TURN_INCORRECT
+    assert missed.stored is False
+    assert missed.first_try is True
+    assert missed.explanation is None
+    assert path.read_bytes() == before
+    assert session.stats().total_attempts == attempts
+    assert session.lesson_standing(lesson).status == LESSON_STATUS_NOT_STARTED
+    assert session.failed_queue([lesson]) == []
+
+    late = session.submit(lesson, task, "ok")
+
+    assert late.stored is True
+    assert late.kind == TURN_CORRECT
+    assert late.first_try is False
+    assert late.left_the_drill is False
+    assert late.rescheduled is True
+    assert late.explanation == "because"
+    assert session.lesson_standing(lesson).passed == 0
+    assert session.failed_queue([lesson]) == [(lesson, task)]
+    assert session.due_review([lesson]) == []
+    assert session.stats().total_attempts == attempts + 1
+    assert session.stats().correct_first_try == 0
+
+
+def test_unstored_skip_hides_the_command_and_stays_open(tmp_path: Path) -> None:
+    path = tmp_path / "progress.json"
+    session = Session(progress_path=path)
+    other = _lesson("other")
+    session.record_attempt(other, other.tasks[0], TaskResult.INCORRECT)
+    before = path.read_bytes()
+    attempts = session.stats().total_attempts
+    lesson = _lesson(
+        "l1",
+        tasks=[
+            _task(
+                "l1__a",
+                expected=r"^show\s+ip\s+interface\s+brief$",
+                aliases=["sh ip int br"],
+                explanation="brief interfaces",
+            )
+        ],
+    )
+    task = lesson.tasks[0]
+    session.begin_task(task)
+
+    _freeze(path)
+    try:
+        skipped = session.submit(lesson, task, "skip")
+    finally:
+        _thaw(path)
+
+    assert skipped.kind == TURN_SKIPPED
+    assert skipped.stored is False
+    assert skipped.explanation is None
+    assert skipped.readable_command is None
+    assert path.read_bytes() == before
+    assert session.stats().total_attempts == attempts
+    assert session.stats().skipped == 0
+    assert session.record_attempt(lesson, task, TaskResult.FIRST_TRY_PASS) is False
+
+    again = session.submit(lesson, task, "skip")
+
+    assert again.stored is True
+    assert again.kind == TURN_SKIPPED
+    assert again.readable_command == "sh ip int br"
+    assert again.explanation == "brief interfaces"
+    assert session.due_review([lesson]) == [(lesson, task)]
+    assert session.failed_queue([lesson]) == [(lesson, task)]
+    assert session.stats().skipped == 1
+    assert session.stats().total_attempts == attempts + 1
+
+
+def test_leave_after_an_unstored_miss_keeps_the_older_pass(tmp_path: Path) -> None:
+    path = tmp_path / "progress.json"
+    session = Session(progress_path=path)
+    lesson = _lesson("l1", tasks=[_task("l1__a")])
+    task = lesson.tasks[0]
+    session.begin_task(task)
+    assert session.submit(lesson, task, "ok").first_try is True
+    before = path.read_bytes()
+    attempts = session.stats().total_attempts
+
+    session.begin_task(task)
+    _freeze(path)
+    try:
+        missed = session.submit(lesson, task, "nope")
+    finally:
+        _thaw(path)
+
+    assert missed.stored is False
+    assert missed.kind == TURN_INCORRECT
+    session.end_showing(task)
+    assert path.read_bytes() == before
+    assert session.lesson_standing(lesson).passed == 1
+    assert session.failed_queue([lesson]) == []
+
+    reopened = Session(progress_path=path)
+    assert reopened.stats().total_attempts == attempts
+    assert reopened.lesson_standing(lesson).passed == 1
+    assert reopened.failed_queue([lesson]) == []
+    assert reopened.due_review([lesson]) == []
+    reopened.begin_task(task)
+    again = reopened.submit(lesson, task, "ok")
+    assert again.stored is True
+    assert again.first_try is True
+    assert again.left_the_drill is True
+    assert reopened.lesson_standing(lesson).passed == 1
+
+
+def test_failed_place_keeps_the_previous_history(tmp_path: Path) -> None:
+    path = tmp_path / "progress.json"
+    session = Session(progress_path=path)
+    lesson = _lesson()
+    session.record_attempt(lesson, lesson.tasks[0], TaskResult.INCORRECT)
+    before = path.read_bytes()
+    attempts = session.stats().total_attempts
+
+    _freeze(path)
+    try:
+        placed = session.record_attempt(lesson, lesson.tasks[1], TaskResult.SKIP)
+    finally:
+        _thaw(path)
+
+    assert placed is False
+    assert path.read_bytes() == before
+    assert not (tmp_path / "progress.json.tmp").exists()
+    assert session.stats().total_attempts == attempts
+    assert session.stats().skipped == 0
+    assert session.failed_queue([lesson]) == [(lesson, lesson.tasks[0])]
+
+
+def test_hint_blank_and_outside_place_still_write_nothing(tmp_path: Path) -> None:
+    path = tmp_path / "progress.json"
+    session = Session(progress_path=path)
+    lesson = _lesson(tasks=[_task("l1__a", hint="try ok"), _task("l1__b")])
+    shown, other = lesson.tasks
+    session.record_attempt(lesson, other, TaskResult.INCORRECT)
+    before = path.read_bytes()
+    session.begin_task(shown)
+
+    _freeze(path)
+    try:
+        assert session.submit(lesson, shown, "   ").kind == TURN_IGNORE
+        hinted = session.submit(lesson, shown, "hint")
+    finally:
+        _thaw(path)
+
+    placed = session.record_attempt(lesson, shown, TaskResult.SKIP)
+    assert hinted == TurnResult(kind=TURN_HINT, hint="try ok")
+    assert placed is False
+    assert path.read_bytes() == before
+    assert session.stats().total_attempts == 1
+
+    passed = session.submit(lesson, shown, "ok")
+    assert passed.stored is True
+    assert passed.first_try is True
+    assert passed.left_the_drill is True
 

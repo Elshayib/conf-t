@@ -86,6 +86,7 @@ class TurnResult:
     first_try: bool = False
     left_the_drill: bool = False
     rescheduled: bool = False
+    stored: bool = True
 
 
 def practice_summary(
@@ -182,7 +183,12 @@ class Session:
         first_try = task.id not in self._lost_first_try
 
         if lowered == "skip":
-            self._store_and_end_showing(lesson, task, TaskResult.SKIP)
+            if not self._store_and_end_showing(lesson, task, TaskResult.SKIP):
+                return TurnResult(
+                    kind=TURN_SKIPPED,
+                    first_try=first_try,
+                    stored=False,
+                )
             return TurnResult(
                 kind=TURN_SKIPPED,
                 explanation=task.explanation,
@@ -197,7 +203,12 @@ class Session:
                 if first_try
                 else TaskResult.CORRECT_NOT_FIRST_TRY
             )
-            self._store_and_end_showing(lesson, task, result)
+            if not self._store_and_end_showing(lesson, task, result):
+                return TurnResult(
+                    kind=TURN_CORRECT,
+                    first_try=first_try,
+                    stored=False,
+                )
             return TurnResult(
                 kind=TURN_CORRECT,
                 explanation=task.explanation,
@@ -206,9 +217,15 @@ class Session:
                 rescheduled=not first_try,
             )
 
-        self._store_result(lesson, task, TaskResult.INCORRECT)
+        stored = self._store_result(lesson, task, TaskResult.INCORRECT)
         self._lost_first_try.add(task.id)
         self._open_showings.add(task.id)
+        if not stored:
+            return TurnResult(
+                kind=TURN_INCORRECT,
+                first_try=first_try,
+                stored=False,
+            )
         return TurnResult(kind=TURN_INCORRECT, first_try=first_try)
 
     def record_attempt(
@@ -219,31 +236,44 @@ class Session:
     ) -> bool:
         """Place one stored result when this Task has no open showing.
 
-        Returns False when a showing is open. Nothing is written: the showing,
-        the stored result, and the lifetime totals stay as they were.
+        Returns False when a showing is open, or when the save does not land.
+        Nothing is written: the showing, the stored result, and the lifetime
+        totals stay as they were.
         """
         if task.id in self._open_showings:
             return False
         if not isinstance(result, TaskResult):
             result = TaskResult(result)
-        self._store_result(lesson, task, result)
-        return True
+        return self._store_result(lesson, task, result)
 
-    def _store_result(self, lesson: Lesson, task: Task, result: TaskResult) -> None:
-        self._progress.record_attempt(
-            lesson_id=lesson.id,
-            platform=Platform.of(lesson.platform).spelling,
-            task_id=task.id,
-            result=result,
-        )
-        self._sync_completion(lesson)
+    def _store_result(self, lesson: Lesson, task: Task, result: TaskResult) -> bool:
+        """One save for the attempt, the Lesson opened mark, and the totals."""
+
+        def apply() -> None:
+            self._progress.record_attempt(
+                lesson_id=lesson.id,
+                platform=Platform.of(lesson.platform).spelling,
+                task_id=task.id,
+                result=result,
+            )
+            standing = self.lesson_standing(lesson)
+            self._progress.set_lesson_completed(
+                lesson.id,
+                standing.status == LESSON_STATUS_COMPLETED,
+                save=False,
+            )
+
+        return self._progress.commit(apply)
 
     def _store_and_end_showing(
         self, lesson: Lesson, task: Task, result: TaskResult
-    ) -> None:
-        self._store_result(lesson, task, result)
+    ) -> bool:
+        if not self._store_result(lesson, task, result):
+            self._open_showings.add(task.id)
+            return False
         self._lost_first_try.discard(task.id)
         self._open_showings.discard(task.id)
+        return True
 
     def continue_target(
         self,

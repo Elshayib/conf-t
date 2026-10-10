@@ -68,6 +68,17 @@ def review_correct_message(result: TurnResult) -> str:
     return "✓ Correct!"
 
 
+def unstored_attempt_lines(result: TurnResult) -> str:
+    """Grade plus the not-stored sentence. The answer stays out of this text."""
+    if result.kind == TURN_CORRECT:
+        grade = "✓ Correct!"
+    elif result.kind == TURN_SKIPPED:
+        grade = "Skipped."
+    else:
+        grade = "✗ Incorrect command. Try again, or type 'hint' / 'skip' / 'exit'."
+    return f"{grade}\nThat attempt was not stored."
+
+
 class ConfTCLI:
     def __init__(
         self,
@@ -687,6 +698,10 @@ class ConfTCLI:
                         console.print("[dim yellow]No hint available.[/]")
                     else:
                         console.print("[dim yellow]No hint available for this task.[/]")
+                    continue
+
+                if not result.stored:
+                    console.print(unstored_attempt_lines(result))
                     continue
 
                 if not review:

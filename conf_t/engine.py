@@ -210,7 +210,7 @@ class ProgressManager:
         try:
             apply()
             saved = self.save()
-        except BaseException:
+        except Exception:
             self._data = previous
             raise
         if saved:
@@ -218,10 +218,16 @@ class ProgressManager:
         self._data = previous
         return False
 
-    def mark_lesson_attempted(self, lesson_id: str):
-        if lesson_id not in self._data["attempted_lessons"]:
-            self._data["attempted_lessons"].append(lesson_id)
+    def mark_lesson_attempted(self, lesson_id: str) -> None:
+        if self._remember_lesson_attempted(lesson_id):
             self.save()
+
+    def _remember_lesson_attempted(self, lesson_id: str) -> bool:
+        attempted = self._data["attempted_lessons"]
+        if lesson_id in attempted:
+            return False
+        attempted.append(lesson_id)
+        return True
 
     def _read_record(self, task_id: str) -> Optional[TaskProgress]:
         raw = self._data.get("task_progress", {}).get(task_id)
@@ -354,9 +360,7 @@ class ProgressManager:
     ) -> None:
         """Remember one attempt in memory. The caller saves the whole change."""
         prior = self._read_record(task_id)
-        attempted = self._data["attempted_lessons"]
-        if lesson_id not in attempted:
-            attempted.append(lesson_id)
+        self._remember_lesson_attempted(lesson_id)
         record = self._record_for_result(lesson_id, result, prior)
         record.drill_place = self._drill_place_for(result, prior)
         self._write_record(task_id, record)

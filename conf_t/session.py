@@ -256,12 +256,7 @@ class Session:
                 task_id=task.id,
                 result=result,
             )
-            standing = self.lesson_standing(lesson)
-            self._progress.set_lesson_completed(
-                lesson.id,
-                standing.status == LESSON_STATUS_COMPLETED,
-                save=False,
-            )
+            self._sync_completion(lesson, save=False)
 
         return self._progress.commit(apply)
 
@@ -457,9 +452,10 @@ class Session:
     def _has_progress(self, lesson: Lesson, task_ids: list[str]) -> bool:
         return self._progress.has_lesson_activity(lesson.id, task_ids)
 
-    def _sync_completion(self, lesson: Lesson) -> None:
+    def _sync_completion(self, lesson: Lesson, *, save: bool = True) -> None:
         standing = self.lesson_standing(lesson)
         self._progress.set_lesson_completed(
             lesson.id,
             standing.status == LESSON_STATUS_COMPLETED,
+            save=save,
         )

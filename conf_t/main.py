@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 import sys
 
-from conf_t.cli import ConfTCLI
+from conf_t.cli import ConfTCLI, LearnerAlreadyTold
 from conf_t.parser import build_parser, has_cli_action
 
 
@@ -15,6 +15,8 @@ def main(argv: list[str] | None = None) -> None:
             app.run_from_args(args)
         else:
             app.run()
+    except LearnerAlreadyTold:
+        sys.exit(1)
     except (KeyboardInterrupt, SystemExit):
         print("\nExiting Conf T...")
         sys.exit(0)

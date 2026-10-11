@@ -6,11 +6,14 @@ import stat
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
+import pytest
+
 from conf_t.models import Lesson, Task
 from conf_t.session import (
     LESSON_STATUS_COMPLETED,
     LESSON_STATUS_IN_PROGRESS,
     LESSON_STATUS_NOT_STARTED,
+    ProgressRefusal,
     Session,
     TaskResult,
     TURN_CORRECT,
@@ -1601,6 +1604,62 @@ def _thaw(path: Path) -> None:
     os.chmod(path, stat.S_IWRITE | stat.S_IREAD)
 
 
+class _DeniedRead:
+    """Hold a real file so the process cannot open it, then give it back."""
+
+    def __init__(self, path: Path) -> None:
+        self.path = path
+        self._handle: int | None = None
+
+    def __enter__(self) -> "_DeniedRead":
+        if os.name == "nt":
+            self._handle = _lock_against_open(self.path)
+        else:
+            os.chmod(self.path, 0)
+        return self
+
+    def __exit__(self, *args: object) -> None:
+        if self._handle is None:
+            os.chmod(self.path, stat.S_IWRITE | stat.S_IREAD)
+            return
+        import ctypes
+
+        ctypes.windll.kernel32.CloseHandle(self._handle)
+        self._handle = None
+
+
+def _lock_against_open(path: Path) -> int:
+    import ctypes
+    from ctypes import wintypes
+
+    generic_read = 0x80000000
+    open_existing = 3
+    file_attribute_normal = 0x80
+    create_file = ctypes.windll.kernel32.CreateFileW
+    create_file.argtypes = [
+        wintypes.LPCWSTR,
+        wintypes.DWORD,
+        wintypes.DWORD,
+        wintypes.LPVOID,
+        wintypes.DWORD,
+        wintypes.DWORD,
+        wintypes.HANDLE,
+    ]
+    create_file.restype = wintypes.HANDLE
+    handle = create_file(
+        str(path),
+        generic_read,
+        0,
+        None,
+        open_existing,
+        file_attribute_normal,
+        None,
+    )
+    if handle == wintypes.HANDLE(-1).value:
+        raise OSError(f"could not lock {path}")
+    return int(handle)
+
+
 def test_failed_save_of_a_correct_line_keeps_the_previous_history(
     tmp_path: Path,
 ) -> None:
@@ -1833,4 +1892,83 @@ def test_hint_blank_and_outside_place_still_write_nothing(tmp_path: Path) -> Non
     assert passed.stored is True
     assert passed.first_try is True
     assert passed.left_the_drill is True
+
+
+def test_missing_progress_file_stays_a_new_learner_until_stored(
+    tmp_path: Path,
+) -> None:
+    """A missing file is a new Learner. The first stored result creates it."""
+    path = tmp_path / "progress.json"
+    session = Session(progress_path=path)
+    lesson = _lesson(tasks=[_task("l1__a")])
+
+    assert not path.exists()
+    assert session.stats().total_attempts == 0
+    assert session.stats().correct_first_try == 0
+    assert session.stats().skipped == 0
+    assert session.lesson_standing(lesson).status == LESSON_STATUS_NOT_STARTED
+    assert not path.exists()
+
+    stored = session.record_attempt(lesson, lesson.tasks[0], TaskResult.INCORRECT)
+
+    assert stored is True
+    assert path.is_file()
+    reopened = Session(progress_path=path)
+    assert reopened.stats().total_attempts == 1
+    assert reopened.stats().correct_first_try == 0
+    assert reopened.failed_queue([lesson]) == [(lesson, lesson.tasks[0])]
+    assert reopened.lesson_standing(lesson).passed == 0
+
+
+def test_truncated_progress_file_is_left_untouched(tmp_path: Path) -> None:
+    """A present file that cannot be read is not opened as an empty history."""
+    path = tmp_path / "progress.json"
+    payload = b'{"progress_version": 5, "task_progress":'
+    path.write_bytes(payload)
+
+    with pytest.raises(ProgressRefusal) as exc:
+        Session(progress_path=path)
+
+    refusal = exc.value
+    assert refusal.action == "opening"
+    assert refusal.path == path
+    assert path.read_bytes() == payload
+    assert not (tmp_path / "progress.json.tmp").exists()
+
+
+def test_unopenable_progress_file_is_left_untouched(
+    tmp_path: Path,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    """A file the process cannot open is the same refusal as truncated contents."""
+    path = tmp_path / "progress.json"
+    payload = b'{"progress_version": 5, "kept": true}'
+    path.write_bytes(payload)
+
+    with _DeniedRead(path):
+        with pytest.raises(ProgressRefusal) as exc:
+            Session(progress_path=path)
+
+    captured = capsys.readouterr()
+    assert exc.value.action == "opening"
+    assert exc.value.path == path
+    assert "Cannot open progress." not in captured.out
+    assert "Cannot open progress." not in captured.err
+    assert path.read_bytes() == payload
+    assert not (tmp_path / "progress.json.tmp").exists()
+
+
+def test_undecodable_progress_file_is_left_untouched(tmp_path: Path) -> None:
+    """Bytes that are not text are the same refusal as a truncated file."""
+    path = tmp_path / "progress.json"
+    payload = b"\xff\xfe{"
+    path.write_bytes(payload)
+
+    with pytest.raises(ProgressRefusal) as exc:
+        Session(progress_path=path)
+
+    assert exc.value.action == "opening"
+    assert exc.value.path == path
+    assert path.read_bytes() == payload
+    assert not (tmp_path / "progress.json.tmp").exists()
 

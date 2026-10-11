@@ -2,6 +2,8 @@ from __future__ import annotations
 
 import os
 import sys
+from typing import NoReturn
+
 import questionary
 from rich.console import Console
 from rich.panel import Panel
@@ -18,6 +20,7 @@ from conf_t.session import (
     LESSON_STATUS_COMPLETED,
     LESSON_STATUS_IN_PROGRESS,
     LESSON_STATUS_NOT_STARTED,
+    ProgressRefusal,
     Session,
     TURN_CORRECT,
     TURN_HINT,
@@ -39,6 +42,20 @@ MENU_STATS = "stats"
 MENU_RESET = "reset"
 MENU_CREATE = "create"
 MENU_EXIT = "exit"
+
+
+class LearnerAlreadyTold(Exception):
+    """The Learner was already told.
+
+    The process entry exits 1 and prints nothing else.
+    """
+
+
+def _tell_unreadable_progress(refusal: ProgressRefusal) -> NoReturn:
+    """Name the progress file, then signal that the Learner was already told."""
+    console.print("[bold red]Cannot open progress.[/]")
+    console.print(str(refusal.path), markup=False, highlight=False, soft_wrap=True)
+    raise LearnerAlreadyTold()
 
 
 def interrupt_message(*, review: bool) -> str:
@@ -86,7 +103,13 @@ class ConfTCLI:
         session: Session | None = None,
     ) -> None:
         self.catalog = catalog if catalog is not None else Catalog()
-        self.session = session if session is not None else Session()
+        if session is not None:
+            self.session = session
+        else:
+            try:
+                self.session = Session()
+            except ProgressRefusal as refusal:
+                _tell_unreadable_progress(refusal)
 
     def _lessons(
         self,

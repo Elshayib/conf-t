@@ -5,7 +5,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path
-from typing import Optional, Sequence
+from typing import Literal, Optional, Sequence
 
 from conf_t.acceptance import format_display_answer, validate_input
 from conf_t.catalog import sort_lessons_by_curriculum
@@ -16,6 +16,7 @@ from conf_t.engine import (
     LESSON_STATUS_NOT_STARTED,
     PlatformLifetime,
     ProgressManager,
+    UnreadableProgress,
 )
 from conf_t.models import Lesson, SessionStats, Task, TaskResult
 
@@ -39,11 +40,21 @@ __all__ = [
     "LessonStanding",
     "LearnerStats",
     "PlatformTotals",
+    "ProgressRefusal",
     "Session",
     "TaskResult",
     "TurnResult",
     "practice_summary",
 ]
+
+
+class ProgressRefusal(Exception):
+    """Progress cannot be opened or saved. The file is left as it was."""
+
+    def __init__(self, path: Path, *, action: Literal["opening", "saving"]) -> None:
+        self.path = Path(path)
+        self.action = action
+        super().__init__(str(self.path))
 
 
 @dataclass(frozen=True)
@@ -146,11 +157,18 @@ class Session:
     ) -> None:
         """Open progress.
 
+        A missing file is a new Learner. The file is created on the first
+        stored result. A present file that cannot be read raises
+        ProgressRefusal and is left as it was.
+
         `clock`, when given, is the fixed time for every review check in this
         session. When omitted, each check uses the current time. A Learner
         does not set the clock.
         """
-        self._progress = ProgressManager(filepath=progress_path, clock=clock)
+        try:
+            self._progress = ProgressManager(filepath=progress_path, clock=clock)
+        except UnreadableProgress as unread:
+            raise ProgressRefusal(unread.path, action="opening") from unread
         self._lost_first_try: set[str] = set()
         self._open_showings: set[str] = set()
 

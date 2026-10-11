@@ -55,6 +55,14 @@ class LifetimeStats(NamedTuple):
     by_platform: Dict[str, PlatformLifetime]
 
 
+class UnreadableProgress(Exception):
+    """The progress file is present, but its history cannot be read."""
+
+    def __init__(self, path: Path) -> None:
+        self.path = Path(path)
+        super().__init__(str(self.path))
+
+
 class ProgressManager:
     """One Task history on disk: file, migration, and review times."""
     def __init__(
@@ -88,24 +96,22 @@ class ProgressManager:
         if not self.filepath.exists():
             return self._default_structure(), False
         try:
-            with open(self.filepath, "r", encoding="utf-8") as f:
-                data = json.load(f)
-                original_version = data.get("progress_version", 1)
-                had_drill_list = "failed_tasks" in data
-                defaults = self._default_structure()
-                for key, value in defaults.items():
-                    if key not in data and key not in ("progress_version", "task_progress"):
-                        data[key] = value
-                data = self._migrate_if_needed(data, original_version)
-                for key, value in defaults.items():
-                    if key not in data:
-                        data[key] = value
-                migrated = (
-                    original_version < PROGRESS_VERSION or had_drill_list
-                )
-                return data, migrated
-        except (json.JSONDecodeError, OSError):
-            return self._default_structure(), False
+            with open(self.filepath, "r", encoding="utf-8") as handle:
+                data = json.load(handle)
+        except (json.JSONDecodeError, OSError, UnicodeDecodeError) as exc:
+            raise UnreadableProgress(self.filepath) from exc
+        original_version = data.get("progress_version", 1)
+        had_drill_list = "failed_tasks" in data
+        defaults = self._default_structure()
+        for key, value in defaults.items():
+            if key not in data and key not in ("progress_version", "task_progress"):
+                data[key] = value
+        data = self._migrate_if_needed(data, original_version)
+        for key, value in defaults.items():
+            if key not in data:
+                data[key] = value
+        migrated = original_version < PROGRESS_VERSION or had_drill_list
+        return data, migrated
 
     def _default_structure(self) -> Dict[str, Any]:
         return {

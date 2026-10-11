@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import io
 import json
+from contextlib import nullcontext
 from pathlib import Path
 
 import pytest
@@ -15,6 +16,7 @@ from conf_t.main import main
 from conf_t.parser import build_parser
 from conf_t.models import TaskResult
 from conf_t.session import Session
+from tests.test_session import _DeniedRead
 
 
 def _write(directory: Path, filename: str, body: dict) -> None:
@@ -250,3 +252,119 @@ def test_shape_problems_do_not_stop_the_lesson_list(
     app = _app(tmp_path)
     app.run_from_args(build_parser().parse_args(["--list"]))
     assert "Shape Problems" in output.getvalue()
+
+
+_PROGRESS_COMMANDS = (
+    [],
+    ["--list"],
+    ["--stats"],
+    ["--continue"],
+    ["--review"],
+    ["--review-all"],
+    ["--lesson", "cisco_basic"],
+)
+
+
+def _point_cli_at(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    progress: Path,
+    *,
+    broken_lesson: bool,
+) -> None:
+    lessons = tmp_path / "lessons"
+    lessons.mkdir()
+    if broken_lesson:
+        (lessons / "broken.json").write_text("{", encoding="utf-8")
+    monkeypatch.setattr(
+        "conf_t.cli.Catalog",
+        lambda lessons_dir=None: Catalog(lessons),
+    )
+    monkeypatch.setattr(
+        "conf_t.cli.Session",
+        lambda *args, **kwargs: Session(progress_path=progress),
+    )
+
+
+@pytest.mark.parametrize("fault", ["truncated", "unopenable"])
+@pytest.mark.parametrize("argv", _PROGRESS_COMMANDS)
+def test_unreadable_progress_stops_without_the_leave_line(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    output: io.StringIO,
+    capsys: pytest.CaptureFixture[str],
+    fault: str,
+    argv: list[str],
+) -> None:
+    progress = tmp_path / "progress.json"
+    payload = (
+        b'{"progress_version": 5, "task_progress":'
+        if fault == "truncated"
+        else b'{"progress_version": 5, "kept": true}'
+    )
+    progress.write_bytes(payload)
+    _point_cli_at(tmp_path, monkeypatch, progress, broken_lesson=True)
+    denied = _DeniedRead(progress) if fault == "unopenable" else nullcontext()
+
+    with denied:
+        with pytest.raises(SystemExit) as exc:
+            main(argv)
+
+    assert exc.value.code == 1
+    text = output.getvalue()
+    assert "Cannot open progress." in text
+    assert str(progress) in text
+    captured = capsys.readouterr()
+    assert "Exiting Conf T..." not in captured.out
+    assert "Exiting Conf T..." not in captured.err
+    assert "Cannot open lessons." not in text
+    assert "Lesson not found" not in text
+    assert progress.read_bytes() == payload
+
+
+def test_version_exits_without_opening_progress_or_lessons(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    output: io.StringIO,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    progress = tmp_path / "progress.json"
+    payload = b'{"progress_version": 5, "task_progress":'
+    progress.write_bytes(payload)
+    _point_cli_at(tmp_path, monkeypatch, progress, broken_lesson=True)
+
+    with pytest.raises(SystemExit) as exc:
+        main(["--version"])
+
+    assert exc.value.code == 0
+    captured = capsys.readouterr()
+    assert "conf-t" in captured.out
+    assert "Exiting Conf T..." not in captured.out
+    assert "Exiting Conf T..." not in captured.err
+    text = output.getvalue()
+    assert "Cannot open progress." not in text
+    assert "Cannot open lessons." not in text
+    assert progress.read_bytes() == payload
+
+
+def test_interrupt_at_the_process_entry_prints_the_leave_line(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    output: io.StringIO,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    progress = tmp_path / "progress.json"
+    _point_cli_at(tmp_path, monkeypatch, progress, broken_lesson=False)
+
+    def _interrupt(self: ConfTCLI, args: object) -> None:
+        raise KeyboardInterrupt
+
+    monkeypatch.setattr("conf_t.cli.ConfTCLI.run_from_args", _interrupt)
+
+    with pytest.raises(SystemExit) as exc:
+        main(["--stats"])
+
+    assert exc.value.code == 0
+    captured = capsys.readouterr()
+    assert "Exiting Conf T..." in captured.out
+    assert "Cannot open progress." not in output.getvalue()

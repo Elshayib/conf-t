@@ -538,3 +538,150 @@ def test_failed_stats_rewrite_shows_first_try_counts_and_does_not_exit(
     assert "Due for Review" in text
     assert "Failed Commands Queue Size" in text
     assert path.read_bytes() == before
+
+def _use_isolated_files(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> Path:
+    lessons = tmp_path / "lessons"
+    lessons.mkdir()
+    monkeypatch.setattr("conf_t.cli.Catalog", lambda lessons_dir=None: Catalog(lessons))
+    monkeypatch.setattr(
+        "conf_t.cli.Session",
+        lambda *args, **kwargs: Session(tmp_path / "progress.json"),
+    )
+    return lessons
+
+
+def _block_prompts(monkeypatch: pytest.MonkeyPatch) -> list[str]:
+    """Answer prompts without waiting, and record each menu prompt."""
+    opened: list[str] = []
+
+    class _Answer:
+        def ask(self) -> None:
+            return None
+
+    def select(*args: object, **kwargs: object) -> _Answer:
+        opened.append(str(args[0]) if args else "")
+        return _Answer()
+
+    def ask_nothing(*args: object, **kwargs: object) -> _Answer:
+        return _Answer()
+
+    def no_input(prompt: str = "") -> str:
+        raise EOFError
+
+    monkeypatch.setattr("conf_t.cli.questionary.select", select)
+    monkeypatch.setattr("conf_t.cli.questionary.confirm", ask_nothing)
+    monkeypatch.setattr("conf_t.cli.questionary.text", ask_nothing)
+    monkeypatch.setattr("conf_t.cli.questionary.press_any_key_to_continue", ask_nothing)
+    monkeypatch.setattr("conf_t.cli.console.input", no_input)
+    return opened
+
+
+@pytest.mark.parametrize(
+    ("argv", "shown"),
+    [
+        (
+            ["--stats", "--continue", "--review", "--review-all", "--lesson", "alpha", "--list"],
+            "lesson(s) shown",
+        ),
+        (
+            ["--continue", "--review", "--review-all", "--lesson", "alpha", "--stats"],
+            "Total Attempts Registered",
+        ),
+        (
+            ["--review", "--review-all", "--lesson", "alpha", "--continue"],
+            "Continuing:",
+        ),
+        (
+            ["--review-all", "--lesson", "alpha", "--review"],
+            "No tasks due for review",
+        ),
+        (
+            ["--lesson", "alpha", "--review-all"],
+            "no failed commands to review",
+        ),
+        (
+            ["--lesson", "alpha"],
+            "tasks passed",
+        ),
+    ],
+)
+def test_first_set_command_flag_runs_and_the_others_are_ignored(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    output: io.StringIO,
+    argv: list[str],
+    shown: str,
+) -> None:
+    lessons = _use_isolated_files(monkeypatch, tmp_path)
+    _write(lessons, "alpha.json", _lesson("alpha", title="Alpha", task_id="alpha__one"))
+    opened = _block_prompts(monkeypatch)
+
+    main(argv)
+
+    text = output.getvalue()
+    markers = (
+        "lesson(s) shown",
+        "Total Attempts Registered",
+        "Continuing:",
+        "No tasks due for review",
+        "no failed commands to review",
+        "tasks passed",
+    )
+    for marker in markers:
+        assert (marker in text) == (marker == shown), marker
+    assert opened == []
+
+
+@pytest.mark.parametrize(
+    "argv",
+    [
+        [],
+        ["--platform", "Cisco"],
+        ["--tags", "vlan"],
+        ["--platform", "Cisco", "--tags", "vlan,ospf"],
+    ],
+)
+def test_menu_opens_when_no_command_flag_is_set(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    output: io.StringIO,
+    argv: list[str],
+) -> None:
+    lessons = _use_isolated_files(monkeypatch, tmp_path)
+    _write(lessons, "alpha.json", _lesson("alpha", title="Alpha", task_id="alpha__one"))
+    opened = _block_prompts(monkeypatch)
+
+    main(argv)
+
+    text = output.getvalue()
+    assert opened == ["Select an option:"]
+    assert "Welcome to Conf T" in text
+    assert "lesson(s) shown" not in text
+    assert "Total Attempts Registered" not in text
+    assert "Continuing:" not in text
+    assert "No tasks due for review" not in text
+    assert "no failed commands to review" not in text
+    assert "tasks passed" not in text
+
+
+def test_stats_still_runs_when_lessons_cannot_be_read(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    output: io.StringIO,
+) -> None:
+    lessons = _use_isolated_files(monkeypatch, tmp_path)
+    _install_fault(lessons, "parse")
+    opened = _block_prompts(monkeypatch)
+
+    main(["--continue", "--review", "--review-all", "--lesson", "alpha", "--stats"])
+
+    text = output.getvalue()
+    assert "Total Attempts Registered" in text
+    assert "First-Try Correct Commands" in text
+    assert "Skipped Commands" in text
+    assert "Cannot open lessons" not in text
+    assert "Continuing:" not in text
+    assert "No tasks due for review" not in text
+    assert "no failed commands to review" not in text
+    assert "Lesson not found" not in text
+    assert opened == []

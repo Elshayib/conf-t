@@ -2,7 +2,7 @@
 import sys
 
 from conf_t.cli import ConfTCLI, LearnerAlreadyTold
-from conf_t.parser import build_parser, has_cli_action
+from conf_t.parser import build_parser
 
 
 def main(argv: list[str] | None = None) -> None:
@@ -11,9 +11,7 @@ def main(argv: list[str] | None = None) -> None:
 
     try:
         app = ConfTCLI()
-        if has_cli_action(args):
-            app.run_from_args(args)
-        else:
+        if not app.run_from_args(args):
             app.run()
     except LearnerAlreadyTold:
         sys.exit(1)

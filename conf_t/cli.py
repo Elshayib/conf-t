@@ -1,10 +1,11 @@
 from __future__ import annotations
 
+import argparse
 import os
 import sys
+from collections.abc import Callable
 from pathlib import Path
 from typing import NoReturn
-
 import questionary
 from rich.console import Console
 from rich.panel import Panel
@@ -41,6 +42,26 @@ from conf_t.session import (
 )
 
 console = Console()
+
+
+def _ordered_actions(
+    args: argparse.Namespace,
+) -> tuple[tuple[object, Callable[["ConfTCLI"], None]], ...]:
+    """List, stats, continue, review, review-all, then lesson."""
+    return (
+        (args.list, lambda app: app.list_lessons(args.platform, args.tags)),
+        (args.stats, lambda app: app.view_stats(interactive=False)),
+        (args.continue_session, lambda app: app.run_continue(interactive=False)),
+        (args.review, lambda app: app.daily_review_menu(interactive=False)),
+        (args.review_all, lambda app: app.review_failed_menu(interactive=False)),
+        (args.lesson, lambda app: app.run_lesson_by_id(args.lesson)),
+    )
+
+
+def has_cli_action(args: argparse.Namespace) -> bool:
+    """True when one of the command flags is set."""
+    return any(is_set for is_set, _run in _ordered_actions(args))
+
 
 MENU_DUE_REVIEW = "due_review"
 MENU_CONTINUE = "continue"
@@ -299,25 +320,13 @@ class ConfTCLI:
             return
         self.run_practice_session(lesson, tasks_to_run=tasks_to_run)
 
-    def run_from_args(self, args) -> None:
-        if args.list:
-            self.list_lessons(args.platform, args.tags)
-            return
-        if args.stats:
-            self.view_stats(interactive=False)
-            return
-        if args.continue_session:
-            self.run_continue(interactive=False)
-            return
-        if args.review:
-            self.daily_review_menu(interactive=False)
-            return
-        if args.review_all:
-            self.review_failed_menu(interactive=False)
-            return
-        if args.lesson:
-            self.run_lesson_by_id(args.lesson)
-            return
+    def run_from_args(self, args: argparse.Namespace) -> bool:
+        """Run the first set command flag. False means the menu should open."""
+        for is_set, run in _ordered_actions(args):
+            if is_set:
+                run(self)
+                return True
+        return False
 
     def show_first_run_welcome(self) -> None:
         if not self.session.should_show_welcome():

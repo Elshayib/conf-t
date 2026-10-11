@@ -17,6 +17,7 @@ from conf_t.engine import (
     PlatformLifetime,
     ProgressManager,
     UnreadableProgress,
+    UnsavedProgress,
 )
 from conf_t.models import Lesson, SessionStats, Task, TaskResult
 
@@ -199,7 +200,9 @@ class Session:
 
         A missing file is a new Learner. The file is created on the first
         stored result. A present file that cannot be read raises
-        ProgressRefusal and is left as it was.
+        ProgressRefusal with action "opening" and is left as it was. An old
+        file whose rewrite cannot be saved raises ProgressRefusal with action
+        "saving" and is left as it was.
 
         `clock`, when given, is the fixed time for every review check in this
         session. When omitted, each check uses the current time. A Learner
@@ -209,6 +212,8 @@ class Session:
             self._progress = ProgressManager(filepath=progress_path, clock=clock)
         except UnreadableProgress as unread:
             raise ProgressRefusal(unread.path, action="opening") from unread
+        except UnsavedProgress as unsaved:
+            raise ProgressRefusal(unsaved.path, action="saving") from unsaved
         self._lost_first_try: set[str] = set()
         self._open_showings: set[str] = set()
 

@@ -87,6 +87,12 @@ def _tell_unreadable_progress(refusal: ProgressRefusal) -> NoReturn:
     raise LearnerAlreadyTold()
 
 
+def _tell_unsaved_progress(path: Path) -> NoReturn:
+    """Name the progress file, then signal that the Learner was already told."""
+    tell_cannot_save_progress(path)
+    raise LearnerAlreadyTold()
+
+
 def interrupt_message(*, review: bool) -> str:
     """What an interrupt says. Review names Review; Practice keeps its line."""
     if review:
@@ -144,7 +150,10 @@ class ConfTCLI:
             try:
                 self.session = Session()
             except ProgressRefusal as refusal:
-                _tell_unreadable_progress(refusal)
+                if refusal.action == "saving":
+                    _tell_unsaved_progress(refusal.path)
+                else:
+                    _tell_unreadable_progress(refusal)
 
     def _lessons(
         self,

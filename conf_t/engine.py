@@ -63,6 +63,14 @@ class UnreadableProgress(Exception):
         super().__init__(str(self.path))
 
 
+class UnsavedProgress(Exception):
+    """An old progress file was read, but its rewrite could not be saved."""
+
+    def __init__(self, path: Path) -> None:
+        self.path = Path(path)
+        super().__init__(str(self.path))
+
+
 class ProgressManager:
     """One Task history on disk: file, migration, and review times."""
     def __init__(
@@ -77,8 +85,8 @@ class ProgressManager:
             self.filepath = Path(filepath)
         self._clock = clock
         self._data, migrated = self._load_data()
-        if migrated:
-            self.save()
+        if migrated and not self.save():
+            raise UnsavedProgress(self.filepath)
 
     def _now(self) -> datetime:
         if self._clock is not None:

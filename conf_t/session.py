@@ -217,8 +217,9 @@ class Session:
         self._lost_first_try: set[str] = set()
         self._open_showings: set[str] = set()
 
-    def mark_practice_opened(self, lesson: Lesson) -> None:
-        self._progress.mark_lesson_attempted(lesson.id)
+    def mark_practice_opened(self, lesson: Lesson) -> bool:
+        """Remember that this Lesson was opened. False means that save failed."""
+        return self._progress.mark_lesson_attempted(lesson.id)
 
     def begin_task(self, task: Task) -> None:
         """Start a fresh showing of the Task. This showing is first-try eligible."""

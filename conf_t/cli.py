@@ -325,7 +325,11 @@ class ConfTCLI:
         tasks_to_run = self._choose_lesson_tasks(lesson)
         if tasks_to_run is None:
             return
-        self.run_practice_session(lesson, tasks_to_run=tasks_to_run)
+        self.run_practice_session(
+            lesson,
+            tasks_to_run=tasks_to_run,
+            stay_on_menu=False,
+        )
 
     def run_from_args(self, args: argparse.Namespace) -> bool:
         """Run the first set command flag. False means the menu should open."""
@@ -362,17 +366,31 @@ class ConfTCLI:
             return
 
         if isinstance(target, Lesson):
+            tasks_to_run = self._choose_lesson_tasks(target)
+            if tasks_to_run is None:
+                return
+            if tasks_to_run and not self._mark_lessons_opened(
+                [target],
+                stay_on_menu=interactive,
+            ):
+                return
             console.print(
                 f"\n[bold yellow]Continuing:[/] [white]{target.title}[/] "
                 f"[dim]({target.platform})[/]\n"
             )
-            tasks_to_run = self._choose_lesson_tasks(target)
-            if tasks_to_run is None:
-                return
-            self.run_practice_session(target, tasks_to_run=tasks_to_run)
+            self.run_practice_session(
+                target,
+                tasks_to_run=tasks_to_run,
+                stay_on_menu=interactive,
+            )
             return
 
         due_count = len(target)
+        if not self._mark_lessons_opened(
+            [lesson for lesson, _task in target],
+            stay_on_menu=interactive,
+        ):
+            return
         console.print(
             f"\n[bold yellow]Continuing:[/] [white]Daily Review[/] "
             f"[dim]({due_count} task(s) due)[/]\n"
@@ -705,12 +723,6 @@ class ConfTCLI:
         """
         graded = []
         total = len(tasks)
-        if not review:
-            opened: set[str] = set()
-            for lesson, _task in tasks:
-                if lesson.id not in opened:
-                    self.session.mark_practice_opened(lesson)
-                    opened.add(lesson.id)
         for index, (lesson, task) in enumerate(tasks, 1):
             if review:
                 console.print(
@@ -799,10 +811,36 @@ class ConfTCLI:
 
         return graded
 
+    def _mark_lessons_opened(
+        self,
+        lessons: list[Lesson],
+        *,
+        stay_on_menu: bool,
+    ) -> bool:
+        """Save Lesson opened before a sitting. False means it did not start.
+
+        A menu failure stays on the menu. A flag failure tells the Learner,
+        then raises LearnerAlreadyTold.
+        """
+        seen: set[str] = set()
+        for lesson in lessons:
+            if lesson.id in seen:
+                continue
+            seen.add(lesson.id)
+            if self.session.mark_practice_opened(lesson):
+                continue
+            tell_cannot_save_progress(self.session.progress_path)
+            if stay_on_menu:
+                return False
+            raise LearnerAlreadyTold()
+        return True
+
     def run_practice_session(
         self,
         lesson: Lesson,
         tasks_to_run: list[Task] | None = None,
+        *,
+        stay_on_menu: bool = True,
     ) -> None:
         """
         Runs the interactive prompt loop for a Practice sitting.
@@ -812,6 +850,9 @@ class ConfTCLI:
 
         if not tasks_to_run:
             console.print("[yellow]No tasks to practice in this session.[/]")
+            return
+
+        if not self._mark_lessons_opened([lesson], stay_on_menu=stay_on_menu):
             return
 
         title_text = f"Lesson: {lesson.title}"
@@ -863,6 +904,12 @@ class ConfTCLI:
             console.print("[red]Could not load review tasks. The source lesson files might have changed.[/]")
             return
 
+        if not self._mark_lessons_opened(
+            [lesson for lesson, _task in tasks_to_review],
+            stay_on_menu=interactive,
+        ):
+            return
+
         console.print("\n")
         console.print(Panel(
             f"[bold white]{description}[/]\n\n"
@@ -912,7 +959,12 @@ class ConfTCLI:
             confirm = questionary.confirm("Start practicing all failed commands?").ask()
             if not confirm:
                 return
-        else:
+        if not self._mark_lessons_opened(
+            [lesson for lesson, _task in tasks_to_review],
+            stay_on_menu=interactive,
+        ):
+            return
+        if not interactive:
             console.print(
                 f"\n[yellow]Reviewing {len(tasks_to_review)} failed command(s) from the queue.[/]"
             )

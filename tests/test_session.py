@@ -1666,6 +1666,66 @@ def _lock_against_open(path: Path) -> int:
     return int(handle)
 
 
+def test_failed_lesson_opened_keeps_the_previous_history(
+    tmp_path: Path,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    """Opening a Lesson writes nothing when that save cannot land."""
+    path = tmp_path / "progress.json"
+    session = Session(progress_path=path)
+    prior = _lesson("prior")
+    session.record_attempt(prior, prior.tasks[0], TaskResult.INCORRECT)
+    session.dismiss_welcome()
+    before = path.read_bytes()
+    attempts = session.stats().total_attempts
+    lesson = _lesson("fresh")
+
+    _freeze(path)
+    try:
+        saved = session.mark_practice_opened(lesson)
+    finally:
+        _thaw(path)
+
+    captured = capsys.readouterr()
+    assert saved is False
+    assert path.read_bytes() == before
+    assert not (tmp_path / "progress.json.tmp").exists()
+    assert session.lesson_standing(lesson).status == LESSON_STATUS_NOT_STARTED
+    assert session.stats().total_attempts == attempts
+    assert captured.out == ""
+    assert captured.err == ""
+
+    reopened = Session(progress_path=path)
+    assert reopened.lesson_standing(lesson).status == LESSON_STATUS_NOT_STARTED
+    assert reopened.stats().total_attempts == attempts
+    assert reopened.lesson_standing(prior).status == LESSON_STATUS_IN_PROGRESS
+
+    again = session.mark_practice_opened(lesson)
+    assert again is True
+    assert session.lesson_standing(lesson).status == LESSON_STATUS_IN_PROGRESS
+    stored = json.loads(path.read_text(encoding="utf-8"))
+    assert stored["attempted_lessons"] == ["prior", "fresh"]
+    assert stored["total_attempts"] == attempts
+
+
+def test_opening_an_already_opened_lesson_does_not_write(tmp_path: Path) -> None:
+    path = tmp_path / "progress.json"
+    session = Session(progress_path=path)
+    lesson = _lesson()
+    assert session.mark_practice_opened(lesson) is True
+    before = path.read_bytes()
+
+    _freeze(path)
+    try:
+        saved = session.mark_practice_opened(lesson)
+    finally:
+        _thaw(path)
+
+    assert saved is True
+    assert path.read_bytes() == before
+    assert session.lesson_standing(lesson).status == LESSON_STATUS_IN_PROGRESS
+
+
 def test_failed_save_of_a_correct_line_keeps_the_previous_history(
     tmp_path: Path,
 ) -> None:

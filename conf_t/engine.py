@@ -237,9 +237,15 @@ class ProgressManager:
         self._data = previous
         return False
 
-    def mark_lesson_attempted(self, lesson_id: str) -> None:
-        if self._remember_lesson_attempted(lesson_id):
-            self.save()
+    def mark_lesson_attempted(self, lesson_id: str) -> bool:
+        """Record that the Lesson was opened. False means that save failed."""
+        if lesson_id in self._data.get("attempted_lessons", []):
+            return True
+
+        def apply() -> None:
+            self._remember_lesson_attempted(lesson_id)
+
+        return self.commit(apply)
 
     def _remember_lesson_attempted(self, lesson_id: str) -> bool:
         attempted = self._data["attempted_lessons"]

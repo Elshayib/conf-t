@@ -892,3 +892,281 @@ def test_stats_still_runs_when_lessons_cannot_be_read(
     assert "no failed commands to review" not in text
     assert "Lesson not found" not in text
     assert opened == []
+
+
+def test_lesson_flag_does_not_start_when_the_lesson_cannot_be_opened(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    output: io.StringIO,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    progress = tmp_path / "progress.json"
+    Session(progress_path=progress).dismiss_welcome()
+    before = progress.read_bytes()
+    _point_cli_at(tmp_path, monkeypatch, progress, broken_lesson=False)
+    _write(
+        tmp_path / "lessons",
+        "kept.json",
+        _lesson("kept", title="Kept", task_id="kept__one"),
+    )
+    monkeypatch.setattr(
+        "conf_t.cli.console.input",
+        lambda prompt="": (_ for _ in ()).throw(AssertionError("sitting started")),
+    )
+
+    _freeze(progress)
+    try:
+        with pytest.raises(SystemExit) as exc:
+            main(["--lesson", "kept"])
+    finally:
+        _thaw(progress)
+
+    assert exc.value.code == 1
+    text = output.getvalue()
+    assert "Cannot save progress." in text
+    assert str(progress) in text
+    assert "Type 'hint'" not in text
+    captured = capsys.readouterr()
+    assert "Exiting Conf T..." not in captured.out
+    assert "Exiting Conf T..." not in captured.err
+    assert progress.read_bytes() == before
+
+
+def _refuse_sitting_input(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(
+        "conf_t.cli.console.input",
+        lambda prompt="": (_ for _ in ()).throw(AssertionError("sitting started")),
+    )
+
+
+def test_continue_flag_does_not_start_when_the_lesson_cannot_be_opened(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    output: io.StringIO,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    progress = tmp_path / "progress.json"
+    Session(progress_path=progress).dismiss_welcome()
+    before = progress.read_bytes()
+    _point_cli_at(tmp_path, monkeypatch, progress, broken_lesson=False)
+    _write(
+        tmp_path / "lessons",
+        "kept.json",
+        _lesson("kept", title="Kept", task_id="kept__one"),
+    )
+    _refuse_sitting_input(monkeypatch)
+
+    _freeze(progress)
+    try:
+        with pytest.raises(SystemExit) as exc:
+            main(["--continue"])
+    finally:
+        _thaw(progress)
+
+    assert exc.value.code == 1
+    text = output.getvalue()
+    assert "Cannot save progress." in text
+    assert str(progress) in text
+    assert "Type 'hint'" not in text
+    assert "Continuing:" not in text
+    captured = capsys.readouterr()
+    assert "Exiting Conf T..." not in captured.out
+    assert "Exiting Conf T..." not in captured.err
+    assert progress.read_bytes() == before
+
+
+def _history_due_but_not_opened(tmp_path: Path) -> Path:
+    """A due Task whose Lesson is not yet recorded as opened.
+
+    A recorded line also records the Lesson as opened. Drop that mark so
+    the next sitting has to save it.
+    """
+    lessons = tmp_path / "lessons"
+    lessons.mkdir()
+    _write(lessons, "kept.json", _lesson("kept", title="Kept", task_id="kept__one"))
+    progress = tmp_path / "progress.json"
+    lesson = Catalog(lessons).lessons()[0]
+    session = Session(progress_path=progress)
+    session.record_attempt(lesson, lesson.tasks[0], TaskResult.INCORRECT)
+    session.dismiss_welcome()
+    stored = json.loads(progress.read_text(encoding="utf-8"))
+    stored["attempted_lessons"] = []
+    progress.write_text(json.dumps(stored), encoding="utf-8")
+    return progress
+
+
+@pytest.mark.parametrize("argv", [["--review"], ["--review-all"], ["--continue"]])
+def test_review_flags_do_not_start_when_the_lesson_cannot_be_opened(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    output: io.StringIO,
+    capsys: pytest.CaptureFixture[str],
+    argv: list[str],
+) -> None:
+    progress = _history_due_but_not_opened(tmp_path)
+    before = progress.read_bytes()
+    monkeypatch.setattr(
+        "conf_t.cli.Catalog",
+        lambda lessons_dir=None: Catalog(tmp_path / "lessons"),
+    )
+    monkeypatch.setattr(
+        "conf_t.cli.Session",
+        lambda *args, **kwargs: Session(progress_path=progress),
+    )
+    _refuse_sitting_input(monkeypatch)
+
+    _freeze(progress)
+    try:
+        with pytest.raises(SystemExit) as exc:
+            main(argv)
+    finally:
+        _thaw(progress)
+
+    assert exc.value.code == 1
+    text = output.getvalue()
+    assert "Cannot save progress." in text
+    assert str(progress) in text
+    assert "Type 'hint'" not in text
+    assert "Continuing:" not in text
+    assert "Reviewing" not in text
+    captured = capsys.readouterr()
+    assert "Exiting Conf T..." not in captured.out
+    assert "Exiting Conf T..." not in captured.err
+    assert progress.read_bytes() == before
+
+
+def test_menu_stays_when_a_lesson_cannot_be_opened(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    output: io.StringIO,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    progress = tmp_path / "progress.json"
+    Session(progress_path=progress).dismiss_welcome()
+    before = progress.read_bytes()
+    _point_cli_at(tmp_path, monkeypatch, progress, broken_lesson=False)
+    _write(
+        tmp_path / "lessons",
+        "kept.json",
+        _lesson("kept", title="Kept", task_id="kept__one"),
+    )
+    _script_menu(monkeypatch, ["practice", "Linux", "kept", "exit"])
+    _refuse_sitting_input(monkeypatch)
+
+    _freeze(progress)
+    try:
+        with pytest.raises(SystemExit) as exc:
+            main([])
+    finally:
+        _thaw(progress)
+
+    assert exc.value.code == 0
+    text = output.getvalue()
+    assert "Cannot save progress." in text
+    assert str(progress) in text
+    assert "Thank you for training with Conf T" in text
+    assert "Type 'hint'" not in text
+    captured = capsys.readouterr()
+    assert "Exiting Conf T..." in captured.out
+    assert progress.read_bytes() == before
+
+
+@pytest.mark.parametrize(
+    "choice",
+    ["continue", "due_review", "failed_drill"],
+)
+def test_menu_stays_when_continue_or_review_cannot_be_opened(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    output: io.StringIO,
+    capsys: pytest.CaptureFixture[str],
+    choice: str,
+) -> None:
+    progress = _history_due_but_not_opened(tmp_path)
+    before = progress.read_bytes()
+    monkeypatch.setattr(
+        "conf_t.cli.Catalog",
+        lambda lessons_dir=None: Catalog(tmp_path / "lessons"),
+    )
+    monkeypatch.setattr(
+        "conf_t.cli.Session",
+        lambda *args, **kwargs: Session(progress_path=progress),
+    )
+    _script_menu(monkeypatch, [choice, "exit"])
+    _refuse_sitting_input(monkeypatch)
+
+    _freeze(progress)
+    try:
+        with pytest.raises(SystemExit) as exc:
+            main([])
+    finally:
+        _thaw(progress)
+
+    assert exc.value.code == 0
+    text = output.getvalue()
+    assert "Cannot save progress." in text
+    assert str(progress) in text
+    assert "Thank you for training with Conf T" in text
+    assert "Type 'hint'" not in text
+    captured = capsys.readouterr()
+    assert "Exiting Conf T..." in captured.out
+    assert progress.read_bytes() == before
+
+
+@pytest.mark.parametrize("argv", [["--lesson", "kept"], ["--review"], ["--review-all"]])
+def test_failed_line_stays_on_the_open_showing(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    output: io.StringIO,
+    capsys: pytest.CaptureFixture[str],
+    argv: list[str],
+) -> None:
+    lessons = tmp_path / "lessons"
+    lessons.mkdir()
+    _write(lessons, "kept.json", _lesson("kept", title="Kept", task_id="kept__one"))
+    progress = tmp_path / "progress.json"
+    lesson = Catalog(lessons).lessons()[0]
+    session = Session(progress_path=progress)
+    session.record_attempt(lesson, lesson.tasks[0], TaskResult.INCORRECT)
+    session.dismiss_welcome()
+    before = progress.read_bytes()
+    monkeypatch.setattr(
+        "conf_t.cli.Catalog",
+        lambda lessons_dir=None: Catalog(lessons),
+    )
+    monkeypatch.setattr(
+        "conf_t.cli.Session",
+        lambda *args, **kwargs: Session(progress_path=progress),
+    )
+    lines = iter(["true", "exit"])
+    prompts: list[str] = []
+
+    def answer(prompt: str = "") -> str:
+        prompts.append(prompt)
+        return next(lines)
+
+    monkeypatch.setattr("conf_t.cli.console.input", answer)
+    monkeypatch.setattr(
+        "conf_t.cli.questionary.select",
+        lambda *args, **kwargs: _Answer("resume"),
+    )
+    monkeypatch.setattr(
+        "conf_t.cli.questionary.confirm",
+        lambda *args, **kwargs: _Answer(True),
+    )
+
+    _freeze(progress)
+    try:
+        main(argv)
+    finally:
+        _thaw(progress)
+
+    text = output.getvalue()
+    assert prompts == ["$ ", "$ "]
+    assert "That attempt was not stored." in text
+    assert "Cannot save progress." not in text
+    assert "✓ Correct!" in text
+    captured = capsys.readouterr()
+    assert "Exiting Conf T..." not in captured.out
+    assert "Exiting Conf T..." not in captured.err
+    assert progress.read_bytes() == before

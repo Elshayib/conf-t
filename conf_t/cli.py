@@ -1,8 +1,6 @@
 from __future__ import annotations
 
 import argparse
-import os
-import sys
 from collections.abc import Callable
 from pathlib import Path
 from typing import NoReturn
@@ -167,7 +165,7 @@ class ConfTCLI:
                 f"[bold red]Cannot open lessons.[/] Problem in [bold]{refusal.path.name}[/]."
             )
             console.print(f"[dim]{refusal}[/]")
-            sys.exit(1)
+            raise LearnerAlreadyTold() from refusal
 
     def _main_menu_choices(
         self, lessons: list[Lesson] | None = None
@@ -319,7 +317,7 @@ class ConfTCLI:
         if not lesson:
             console.print(f"[bold red]Lesson not found:[/] {lesson_id}")
             console.print("[dim]Use --list to see available lesson IDs.[/]")
-            sys.exit(1)
+            raise LearnerAlreadyTold()
 
         if not self._confirm_lesson_start(lesson, lessons):
             return
@@ -409,7 +407,7 @@ class ConfTCLI:
                         ('highlighted', 'fg:#00ffff bold'),
                         ('selected', 'fg:#00ff00'),
                     ])
-                ).ask()
+                ).unsafe_ask()
 
                 if not choice:
                     break

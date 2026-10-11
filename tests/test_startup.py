@@ -324,6 +324,52 @@ def test_unreadable_progress_stops_without_the_leave_line(
     assert progress.read_bytes() == payload
 
 
+@pytest.mark.parametrize("argv", _PROGRESS_COMMANDS)
+def test_unrewritable_old_progress_stops_without_the_leave_line(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    output: io.StringIO,
+    capsys: pytest.CaptureFixture[str],
+    argv: list[str],
+) -> None:
+    progress = tmp_path / "progress.json"
+    payload = json.dumps(
+        {
+            "progress_version": 4,
+            "total_attempts": 2,
+            "task_progress": {
+                "open_l__miss": {
+                    "lesson_id": "open_l",
+                    "status": "failed",
+                    "passed_first_try": False,
+                    "attempts": 1,
+                }
+            },
+        }
+    ).encode()
+    progress.write_bytes(payload)
+    _point_cli_at(tmp_path, monkeypatch, progress, broken_lesson=True)
+
+    _freeze(progress)
+    try:
+        with pytest.raises(SystemExit) as exc:
+            main(argv)
+    finally:
+        _thaw(progress)
+
+    assert exc.value.code == 1
+    text = output.getvalue()
+    assert "Cannot save progress." in text
+    assert "Cannot open progress." not in text
+    assert str(progress) in text
+    captured = capsys.readouterr()
+    assert "Exiting Conf T..." not in captured.out
+    assert "Exiting Conf T..." not in captured.err
+    assert "Cannot open lessons." not in text
+    assert "Lesson not found" not in text
+    assert progress.read_bytes() == payload
+
+
 def test_version_exits_without_opening_progress_or_lessons(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,

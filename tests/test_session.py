@@ -2072,6 +2072,75 @@ def test_undecodable_progress_file_is_left_untouched(tmp_path: Path) -> None:
     assert not (tmp_path / "progress.json.tmp").exists()
 
 
+@pytest.mark.parametrize(
+    "legacy",
+    [
+        {
+            "progress_version": 4,
+            "total_attempts": 2,
+            "task_progress": {
+                "open_l__miss": {
+                    "lesson_id": "open_l",
+                    "status": "failed",
+                    "passed_first_try": False,
+                    "attempts": 1,
+                }
+            },
+        },
+        {
+            "progress_version": 5,
+            "total_attempts": 1,
+            "failed_tasks": [
+                {"lesson_id": "open_l", "task_id": "open_l__only"},
+            ],
+        },
+    ],
+)
+def test_old_progress_file_that_cannot_be_rewritten_is_left_untouched(
+    tmp_path: Path,
+    capsys: pytest.CaptureFixture[str],
+    legacy: dict,
+) -> None:
+    """An old file whose rewrite cannot be saved is a saving refusal."""
+    path = tmp_path / "progress.json"
+    payload = json.dumps(legacy).encode()
+    path.write_bytes(payload)
+
+    _freeze(path)
+    try:
+        with pytest.raises(ProgressRefusal) as exc:
+            Session(progress_path=path)
+    finally:
+        _thaw(path)
+
+    captured = capsys.readouterr()
+    assert exc.value.action == "saving"
+    assert exc.value.path == path
+    assert "Cannot save progress." not in captured.out
+    assert "Cannot save progress." not in captured.err
+    assert "Cannot open progress." not in captured.out
+    assert "Cannot open progress." not in captured.err
+    assert path.read_bytes() == payload
+    assert not (tmp_path / "progress.json.tmp").exists()
+
+
+def test_current_progress_file_is_not_rewritten_at_open(tmp_path: Path) -> None:
+    """A current file that does not migrate stays as it was, even if unwritable."""
+    path = tmp_path / "progress.json"
+    payload = b'{"progress_version": 5, "total_attempts": 3}'
+    path.write_bytes(payload)
+
+    _freeze(path)
+    try:
+        session = Session(progress_path=path)
+        assert session.stats().total_attempts == 3
+    finally:
+        _thaw(path)
+
+    assert path.read_bytes() == payload
+    assert not (tmp_path / "progress.json.tmp").exists()
+
+
 # --- Practice continuation (#58) ---
 
 

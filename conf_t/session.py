@@ -88,6 +88,7 @@ class LearnerStats:
 
     Due, failed-command, and completed-Lesson counts are present only when
     the caller supplied Lessons. They are then the resolved sitting and standing.
+    progress_saved is false when the completion rewrite did not land.
     """
 
     completed_lessons: int | None
@@ -97,6 +98,7 @@ class LearnerStats:
     correct_first_try: int
     skipped: int
     by_platform: dict[str, PlatformTotals]
+    progress_saved: bool = True
 
 
 @dataclass(frozen=True)
@@ -432,9 +434,11 @@ class Session:
         completed: int | None = None
         due_count: int | None = None
         failed_queue_size: int | None = None
+        progress_saved = True
         if lessons is not None:
             for lesson in lessons:
-                self._sync_completion(lesson)
+                if not self._sync_completion(lesson):
+                    progress_saved = False
             completed = sum(
                 1
                 for lesson in lessons
@@ -450,16 +454,23 @@ class Session:
             correct_first_try=stored.correct_first_try,
             skipped=stored.skipped,
             by_platform=by_platform,
+            progress_saved=progress_saved,
         )
 
-    def reset_all(self) -> None:
-        self._progress.reset_progress()
+    def reset_all(self) -> bool:
+        """Clear stored history. False means the save failed and nothing changed."""
+        return self._progress.reset_progress()
+
+    @property
+    def progress_path(self) -> Path:
+        return self._progress.filepath
 
     def should_show_welcome(self) -> bool:
         return self._progress.should_show_welcome()
 
-    def dismiss_welcome(self) -> None:
-        self._progress.dismiss_welcome()
+    def dismiss_welcome(self) -> bool:
+        """Store that the welcome was dismissed. False leaves it able to show again."""
+        return self._progress.dismiss_welcome()
 
     def lesson_standing(self, lesson: Lesson) -> LessonStanding:
         task_ids = [task.id for task in lesson.tasks]
@@ -553,9 +564,9 @@ class Session:
     def _has_progress(self, lesson: Lesson, task_ids: list[str]) -> bool:
         return self._progress.has_lesson_activity(lesson.id, task_ids)
 
-    def _sync_completion(self, lesson: Lesson, *, save: bool = True) -> None:
+    def _sync_completion(self, lesson: Lesson, *, save: bool = True) -> bool:
         standing = self.lesson_standing(lesson)
-        self._progress.set_lesson_completed(
+        return self._progress.set_lesson_completed(
             lesson.id,
             standing.status == LESSON_STATUS_COMPLETED,
             save=save,

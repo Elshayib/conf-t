@@ -4,6 +4,8 @@ from __future__ import annotations
 
 import io
 import json
+import os
+import stat
 from contextlib import nullcontext
 from pathlib import Path
 
@@ -368,3 +370,171 @@ def test_interrupt_at_the_process_entry_prints_the_leave_line(
     captured = capsys.readouterr()
     assert "Exiting Conf T..." in captured.out
     assert "Cannot open progress." not in output.getvalue()
+
+
+def _freeze(path: Path) -> None:
+    os.chmod(path, stat.S_IREAD)
+
+
+def _thaw(path: Path) -> None:
+    os.chmod(path, stat.S_IWRITE | stat.S_IREAD)
+
+
+class _Answer:
+    def __init__(self, value: object) -> None:
+        self._value = value
+
+    def ask(self) -> object:
+        return self._value
+
+
+def _script_menu(
+    monkeypatch: pytest.MonkeyPatch,
+    choices: list[str],
+    *,
+    confirmed: bool = True,
+) -> None:
+    pending = iter(choices)
+    monkeypatch.setattr(
+        "conf_t.cli.questionary.select",
+        lambda *args, **kwargs: _Answer(next(pending)),
+    )
+    monkeypatch.setattr(
+        "conf_t.cli.questionary.confirm",
+        lambda *args, **kwargs: _Answer(confirmed),
+    )
+    monkeypatch.setattr(
+        "conf_t.cli.questionary.press_any_key_to_continue",
+        lambda *args, **kwargs: _Answer(None),
+    )
+    monkeypatch.setattr(
+        "conf_t.cli.sys.exit",
+        lambda code=0: (_ for _ in ()).throw(AssertionError(f"exited {code}")),
+    )
+
+
+def _cli(tmp_path: Path) -> ConfTCLI:
+    lessons_dir = tmp_path / "lessons"
+    lessons_dir.mkdir()
+    return ConfTCLI(
+        catalog=Catalog(lessons_dir),
+        session=Session(tmp_path / "progress.json"),
+    )
+
+
+def test_failed_reset_stays_on_the_menu_and_does_not_claim_success(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    output: io.StringIO,
+) -> None:
+    app = _cli(tmp_path)
+    _write(
+        tmp_path / "lessons",
+        "kept.json",
+        _lesson("kept", title="Kept", task_id="kept__one"),
+    )
+    lesson = app.catalog.lessons()[0]
+    app.session.record_attempt(lesson, lesson.tasks[0], TaskResult.INCORRECT)
+    app.session.dismiss_welcome()
+    path = tmp_path / "progress.json"
+    before = path.read_bytes()
+    _script_menu(monkeypatch, ["reset", "exit"])
+
+    _freeze(path)
+    try:
+        app.run()
+    finally:
+        _thaw(path)
+
+    text = output.getvalue()
+    assert "Cannot save progress." in text
+    assert str(path) in text
+    assert "reset successfully" not in text
+    assert "Thank you for training with Conf T" in text
+    assert path.read_bytes() == before
+
+
+def test_failed_welcome_dismissal_lets_this_launch_continue(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    output: io.StringIO,
+) -> None:
+    app = _cli(tmp_path)
+    _write(
+        tmp_path / "lessons",
+        "kept.json",
+        _lesson("kept", title="Kept", task_id="kept__one"),
+    )
+    app.session.dismiss_welcome()
+    app.session.reset_all()
+    path = tmp_path / "progress.json"
+    before = path.read_bytes()
+    assert app.session.should_show_welcome() is True
+    _script_menu(monkeypatch, ["exit"])
+
+    _freeze(path)
+    try:
+        app.run()
+    finally:
+        _thaw(path)
+
+    text = output.getvalue()
+    assert "Welcome!" in text
+    assert "Cannot save progress." in text
+    assert str(path) in text
+    assert "Thank you for training with Conf T" in text
+    assert path.read_bytes() == before
+    assert Session(progress_path=path).should_show_welcome() is True
+
+
+def _kept_lesson(*task_ids: str) -> dict:
+    body = _lesson("kept", title="Kept", task_id=task_ids[0])
+    body["tasks"] = [
+        {
+            "id": task_id,
+            "prompt": "Run it",
+            "prefix": "$",
+            "expected": "^true$",
+        }
+        for task_id in task_ids
+    ]
+    return body
+
+
+def test_failed_stats_rewrite_shows_first_try_counts_and_does_not_exit(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    output: io.StringIO,
+) -> None:
+    app = _cli(tmp_path)
+    lessons_dir = tmp_path / "lessons"
+    _write(lessons_dir, "kept.json", _kept_lesson("kept__a", "kept__b"))
+    lesson = app.catalog.lessons()[0]
+    app.session.record_attempt(lesson, lesson.tasks[0], TaskResult.FIRST_TRY_PASS)
+    app.session.record_attempt(lesson, lesson.tasks[1], TaskResult.FIRST_TRY_PASS)
+    app.session.dismiss_welcome()
+    path = tmp_path / "progress.json"
+    before = path.read_bytes()
+    _write(lessons_dir, "kept.json", _kept_lesson("kept__a", "kept__b", "kept__c"))
+    _script_menu(monkeypatch, ["stats", "exit"])
+
+    _freeze(path)
+    try:
+        app.run()
+    finally:
+        _thaw(path)
+
+    text = output.getvalue()
+    assert "Cannot save progress." in text
+    assert str(path) in text
+    assert "Thank you for training with Conf T" in text
+    completed = next(line for line in text.splitlines() if "Completed Lessons" in line)
+    attempts = next(line for line in text.splitlines() if "Total Attempts Registered" in line)
+    first_try = next(line for line in text.splitlines() if "First-Try Correct Commands" in line)
+    assert "0" in completed
+    assert "1" not in completed
+    assert "2" in attempts
+    assert "2" in first_try
+    assert "Due for Review" in text
+    assert "Failed Commands Queue Size" in text
+    assert path.read_bytes() == before

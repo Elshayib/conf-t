@@ -1850,6 +1850,99 @@ def test_leave_after_an_unstored_miss_keeps_the_older_pass(tmp_path: Path) -> No
     assert reopened.lesson_standing(lesson).passed == 1
 
 
+def test_failed_reset_keeps_the_previous_history(tmp_path: Path) -> None:
+    path = tmp_path / "progress.json"
+    session = Session(progress_path=path)
+    lesson = _lesson(tasks=[_task("l1__a")])
+    task = lesson.tasks[0]
+    session.record_attempt(lesson, task, TaskResult.INCORRECT)
+    session.dismiss_welcome()
+    before = path.read_bytes()
+    attempts = session.stats().total_attempts
+
+    _freeze(path)
+    try:
+        saved = session.reset_all()
+    finally:
+        _thaw(path)
+
+    assert saved is False
+    assert path.read_bytes() == before
+    assert session.stats().total_attempts == attempts
+    assert session.stats().correct_first_try == 0
+    assert session.should_show_welcome() is False
+    assert session.lesson_standing(lesson).status == LESSON_STATUS_IN_PROGRESS
+    assert session.due_review([lesson]) == [(lesson, task)]
+    assert session.failed_queue([lesson]) == [(lesson, task)]
+
+    reopened = Session(progress_path=path)
+    assert reopened.stats().total_attempts == attempts
+    assert reopened.should_show_welcome() is False
+    assert reopened.due_review([lesson]) == [(lesson, task)]
+    assert reopened.failed_queue([lesson]) == [(lesson, task)]
+
+
+def test_failed_welcome_dismissal_keeps_the_welcome(tmp_path: Path) -> None:
+    path = tmp_path / "progress.json"
+    session = Session(progress_path=path)
+    session.dismiss_welcome()
+    session.reset_all()
+    before = path.read_bytes()
+    assert session.should_show_welcome() is True
+
+    _freeze(path)
+    try:
+        saved = session.dismiss_welcome()
+    finally:
+        _thaw(path)
+
+    assert saved is False
+    assert path.read_bytes() == before
+    assert session.should_show_welcome() is True
+    assert session.stats().total_attempts == 0
+
+    reopened = Session(progress_path=path)
+    assert reopened.should_show_welcome() is True
+
+
+def test_failed_completion_rewrite_keeps_the_previous_history(
+    tmp_path: Path,
+) -> None:
+    path = tmp_path / "progress.json"
+    session = Session(progress_path=path)
+    original = _lesson(tasks=[_task("l1__a"), _task("l1__b")])
+    session.record_attempt(original, original.tasks[0], TaskResult.FIRST_TRY_PASS)
+    session.record_attempt(original, original.tasks[1], TaskResult.FIRST_TRY_PASS)
+    before = path.read_bytes()
+    attempts = session.stats().total_attempts
+    grown = _lesson(tasks=[*original.tasks, _task("l1__c")])
+
+    _freeze(path)
+    try:
+        stats = session.stats([grown])
+    finally:
+        _thaw(path)
+
+    assert stats.progress_saved is False
+    assert stats.completed_lessons == 0
+    assert stats.due_count == 0
+    assert stats.failed_queue_size == 0
+    assert stats.total_attempts == attempts
+    assert stats.correct_first_try == 2
+    assert path.read_bytes() == before
+    assert session.lesson_standing(grown).passed == 2
+    assert session.lesson_standing(grown).total == 3
+
+    again = session.stats([grown])
+    assert again.progress_saved is True
+    assert again.completed_lessons == 0
+    assert again.total_attempts == attempts
+    rewritten = json.loads(path.read_text(encoding="utf-8"))
+    assert rewritten["completed_lessons"] == []
+    assert rewritten["total_attempts"] == attempts
+    assert rewritten["correct_first_try"] == 2
+
+
 def test_failed_place_keeps_the_previous_history(tmp_path: Path) -> None:
     path = tmp_path / "progress.json"
     session = Session(progress_path=path)

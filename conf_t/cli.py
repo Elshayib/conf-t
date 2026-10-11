@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import os
 import sys
+from pathlib import Path
 from typing import NoReturn
 
 import questionary
@@ -90,6 +91,12 @@ def review_correct_message(result: TurnResult) -> str:
     if result.rescheduled:
         return "✓ Correct, but not first-try — rescheduled for later review"
     return "✓ Correct!"
+
+
+def tell_cannot_save_progress(path: Path) -> None:
+    """Tell the Learner a save failed, and name the progress file."""
+    console.print("[bold red]Cannot save progress.[/]")
+    console.print(str(path), markup=False, highlight=False, soft_wrap=True)
 
 
 def unstored_attempt_lines(result: TurnResult) -> str:
@@ -327,7 +334,8 @@ class ConfTCLI:
             border_style="green",
             box=box.ROUNDED,
         ))
-        self.session.dismiss_welcome()
+        if not self.session.dismiss_welcome():
+            tell_cannot_save_progress(self.session.progress_path)
 
     def run_continue(self, interactive: bool = True) -> None:
         lessons = self._lessons()
@@ -948,6 +956,9 @@ class ConfTCLI:
         else:
             console.print("\n[dim yellow]No platform stats recorded yet. Complete some lessons to view platform breakdowns.[/]\n")
 
+        if not stats.progress_saved:
+            tell_cannot_save_progress(self.session.progress_path)
+
         if interactive:
             questionary.press_any_key_to_continue().ask()
 
@@ -959,8 +970,10 @@ class ConfTCLI:
         ).ask()
         
         if confirm:
-            self.session.reset_all()
-            console.print("[bold green]✔ All progress and statistics have been reset successfully.[/]\n")
+            if self.session.reset_all():
+                console.print("[bold green]✔ All progress and statistics have been reset successfully.[/]\n")
+            else:
+                tell_cannot_save_progress(self.session.progress_path)
         else:
             console.print("[yellow]Reset cancelled.[/]\n")
             

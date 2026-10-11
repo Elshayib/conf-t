@@ -400,17 +400,24 @@ class ProgressManager:
         completed: bool,
         *,
         save: bool = True,
-    ) -> None:
+    ) -> bool:
+        """Match the stored completion list to standing. False means that save failed."""
         done = self._data.setdefault("completed_lessons", [])
-        changed = False
-        if completed and lesson_id not in done:
-            done.append(lesson_id)
-            changed = True
-        elif not completed and lesson_id in done:
-            done.remove(lesson_id)
-            changed = True
-        if changed and save:
-            self.save()
+        if completed == (lesson_id in done):
+            return True
+
+        def apply() -> None:
+            current = self._data.setdefault("completed_lessons", [])
+            if completed:
+                if lesson_id not in current:
+                    current.append(lesson_id)
+            elif lesson_id in current:
+                current.remove(lesson_id)
+
+        if not save:
+            apply()
+            return True
+        return self.commit(apply)
 
     def _next_drill_place(self) -> int:
         highest = 0
@@ -460,9 +467,12 @@ class ProgressManager:
             return False
         return int(self._data.get("total_attempts", 0)) == 0
 
-    def dismiss_welcome(self) -> None:
+    def dismiss_welcome(self) -> bool:
+        """Remember that the welcome was dismissed. A failed save leaves it showing."""
+        return self.commit(self._mark_welcome_dismissed)
+
+    def _mark_welcome_dismissed(self) -> None:
         self._data["onboarding_complete"] = True
-        self.save()
 
     def lifetime_stats(self) -> LifetimeStats:
         by_platform: Dict[str, PlatformLifetime] = {}
@@ -482,6 +492,9 @@ class ProgressManager:
             by_platform=by_platform,
         )
 
-    def reset_progress(self):
+    def reset_progress(self) -> bool:
+        """Replace the history with an empty one. A failed save keeps the old history."""
+        return self.commit(self._clear_history)
+
+    def _clear_history(self) -> None:
         self._data = self._default_structure()
-        self.save()

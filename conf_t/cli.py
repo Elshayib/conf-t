@@ -17,9 +17,16 @@ from conf_t.models import Lesson, Task
 from conf_t.catalog import Catalog, CatalogRefusal
 from conf_t.platform import Platform
 from conf_t.session import (
+    ANSWER_PICK,
+    ANSWER_RESUME,
+    ANSWER_START_OVER,
     LESSON_STATUS_COMPLETED,
     LESSON_STATUS_IN_PROGRESS,
     LESSON_STATUS_NOT_STARTED,
+    PracticeAgain,
+    PracticeChoice,
+    PracticePick,
+    PracticeTasks,
     ProgressRefusal,
     Session,
     TURN_CORRECT,
@@ -445,27 +452,24 @@ class ConfTCLI:
         return label
 
     def _choose_lesson_tasks(self, lesson: Lesson) -> list[Task] | None:
+        report = self.session.practice_continuation(lesson)
+        if isinstance(report, PracticeTasks):
+            return list(report.tasks)
+
         standing = self.session.lesson_standing(lesson)
-
-        if standing.total == 0:
-            return []
-
-        if standing.status == LESSON_STATUS_COMPLETED:
+        if isinstance(report, PracticeAgain):
             practice_again = questionary.confirm(
                 f"All {standing.total} tasks passed. Practice this lesson again from the start?",
                 default=True,
             ).ask()
             if not practice_again:
                 return None
-            self.session.start_over(lesson)
-            return list(lesson.tasks)
+            return self.session.commit_practice_continuation(
+                lesson, ANSWER_START_OVER
+            )
 
-        can_resume = (
-            standing.status == LESSON_STATUS_IN_PROGRESS
-            and standing.passed < standing.total
-        )
-        if not can_resume:
-            return list(lesson.tasks)
+        if not isinstance(report, PracticeChoice):
+            return None
 
         choice = questionary.select(
             f"Progress: {standing.passed}/{standing.total} tasks passed. How do you want to continue?",
@@ -480,41 +484,53 @@ class ConfTCLI:
         if not choice or choice == "cancel":
             return None
         if choice == "restart":
-            self.session.start_over(lesson)
-            return list(lesson.tasks)
+            return self.session.commit_practice_continuation(
+                lesson, ANSWER_START_OVER
+            )
         if choice == "resume":
-            incomplete = self.session.resume_tasks(lesson)
+            incomplete = self.session.commit_practice_continuation(
+                lesson, ANSWER_RESUME
+            )
             if not incomplete:
                 console.print("[yellow]No incomplete tasks found.[/]")
                 return None
             return incomplete
         if choice == "pick":
-            return self._pick_lesson_start_task(lesson)
+            return self._pick_lesson_start_task(lesson, report.picks)
 
         return None
 
-    def _pick_lesson_start_task(self, lesson: Lesson) -> list[Task] | None:
-        resume_ids = {task.id for task in self.session.resume_tasks(lesson)}
+    def _pick_lesson_start_task(
+        self,
+        lesson: Lesson,
+        picks: tuple[PracticePick, ...],
+    ) -> list[Task] | None:
         task_choices = []
-        for index, task in enumerate(lesson.tasks):
-            status = "○" if task.id in resume_ids else "✓"
-            prompt_preview = task.prompt if len(task.prompt) <= 60 else f"{task.prompt[:57]}..."
+        for index, pick in enumerate(picks):
+            status = "✓" if pick.first_try_pass else "○"
+            prompt_preview = (
+                pick.task.prompt
+                if len(pick.task.prompt) <= 60
+                else f"{pick.task.prompt[:57]}..."
+            )
             task_choices.append(
                 questionary.Choice(
                     title=f"{status} Task {index + 1}: {prompt_preview}",
-                    value=index,
+                    value=pick.task.id,
                 )
             )
         task_choices.append(questionary.Choice(title="Cancel", value=-1))
 
-        selected_index = questionary.select(
+        selected = questionary.select(
             "Pick a task to start from:",
             choices=task_choices,
         ).ask()
 
-        if selected_index is None or selected_index == -1:
+        if selected is None or selected == -1:
             return None
-        return lesson.tasks[selected_index:]
+        return self.session.commit_practice_continuation(
+            lesson, ANSWER_PICK, selected
+        )
 
     def _confirm_lesson_start(self, lesson: Lesson, all_lessons: list[Lesson]) -> bool:
         lesson_map = {item.id: item for item in all_lessons}

@@ -27,10 +27,17 @@ TURN_SKIPPED = "skipped"
 TURN_CORRECT = "correct"
 TURN_INCORRECT = "incorrect"
 
+ANSWER_RESUME = "resume"
+ANSWER_START_OVER = "start_over"
+ANSWER_PICK = "pick"
+
 __all__ = [
     "LESSON_STATUS_COMPLETED",
     "LESSON_STATUS_IN_PROGRESS",
     "LESSON_STATUS_NOT_STARTED",
+    "ANSWER_PICK",
+    "ANSWER_RESUME",
+    "ANSWER_START_OVER",
     "TURN_CORRECT",
     "TURN_HINT",
     "TURN_IGNORE",
@@ -40,6 +47,10 @@ __all__ = [
     "LessonStanding",
     "LearnerStats",
     "PlatformTotals",
+    "PracticeAgain",
+    "PracticeChoice",
+    "PracticePick",
+    "PracticeTasks",
     "ProgressRefusal",
     "Session",
     "TaskResult",
@@ -86,6 +97,33 @@ class LearnerStats:
     correct_first_try: int
     skipped: int
     by_platform: dict[str, PlatformTotals]
+
+
+@dataclass(frozen=True)
+class PracticeTasks:
+    """No continuation question is pending. These Tasks are the sitting."""
+
+    tasks: tuple[Task, ...]
+
+
+@dataclass(frozen=True)
+class PracticeAgain:
+    """The Learner must confirm practicing this finished Lesson again."""
+
+
+@dataclass(frozen=True)
+class PracticePick:
+    """One Task on the pick list, in Lesson order."""
+
+    task: Task
+    first_try_pass: bool
+
+
+@dataclass(frozen=True)
+class PracticeChoice:
+    """The Learner must resume, start over, or pick a Task."""
+
+    picks: tuple[PracticePick, ...]
 
 
 @dataclass(frozen=True)
@@ -437,6 +475,51 @@ class Session:
             status = LESSON_STATUS_NOT_STARTED
 
         return LessonStanding(status=status, passed=passed, total=total)
+
+    def practice_continuation(
+        self, lesson: Lesson
+    ) -> PracticeTasks | PracticeAgain | PracticeChoice:
+        """The continuation question for this Lesson, or the Tasks to run."""
+        standing = self.lesson_standing(lesson)
+        if standing.total == 0 or standing.status == LESSON_STATUS_NOT_STARTED:
+            return PracticeTasks(tasks=tuple(lesson.tasks))
+        if standing.status == LESSON_STATUS_COMPLETED:
+            return PracticeAgain()
+        remaining = {task.id for task in self.resume_tasks(lesson)}
+        return PracticeChoice(
+            picks=tuple(
+                PracticePick(
+                    task=task,
+                    first_try_pass=task.id not in remaining,
+                )
+                for task in lesson.tasks
+            )
+        )
+
+    def commit_practice_continuation(
+        self,
+        lesson: Lesson,
+        answer: str,
+        task_id: str | None = None,
+    ) -> list[Task]:
+        """Commit resume, start over, or a picked Task. Cancel never calls this."""
+        if answer == ANSWER_RESUME:
+            return self.resume_tasks(lesson)
+        if answer == ANSWER_START_OVER:
+            self.start_over(lesson)
+            return list(lesson.tasks)
+        if answer == ANSWER_PICK:
+            return self._tasks_from_pick(lesson, task_id)
+        return []
+
+    def _tasks_from_pick(self, lesson: Lesson, task_id: str | None) -> list[Task]:
+        """Today's suffix: the picked Task and every later Task."""
+        if task_id is None:
+            return []
+        for index, task in enumerate(lesson.tasks):
+            if task.id == task_id:
+                return list(lesson.tasks[index:])
+        return []
 
     def resume_tasks(self, lesson: Lesson) -> list[Task]:
         """Tasks that are not first-try passes, in Lesson order."""

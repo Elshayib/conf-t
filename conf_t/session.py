@@ -52,6 +52,7 @@ __all__ = [
     "PracticeChoice",
     "PracticePick",
     "PracticeTasks",
+    "PracticeUnsaved",
     "ProgressRefusal",
     "Session",
     "TaskResult",
@@ -107,6 +108,14 @@ class PracticeTasks:
     """No continuation question is pending. These Tasks are the sitting."""
 
     tasks: tuple[Task, ...]
+
+
+@dataclass(frozen=True)
+class PracticeUnsaved:
+    """The Lesson clear did not land. The previous history stays.
+
+    This is not a sitting, not a cancellation, and not a Lesson with no Tasks.
+    """
 
 
 @dataclass(frozen=True)
@@ -518,12 +527,18 @@ class Session:
         lesson: Lesson,
         answer: str,
         task_id: str | None = None,
-    ) -> list[Task]:
-        """Commit resume, start over, or a picked Task. Cancel never calls this."""
+    ) -> list[Task] | PracticeUnsaved:
+        """Commit resume, start over, or a picked Task.
+
+        Cancel never calls this. A Lesson with no Tasks never calls this.
+        Start over returns PracticeUnsaved when the clear does not land,
+        and does not hand back that Lesson's Tasks.
+        """
         if answer == ANSWER_RESUME:
             return self.resume_tasks(lesson)
         if answer == ANSWER_START_OVER:
-            self.start_over(lesson)
+            if not self.start_over(lesson):
+                return PracticeUnsaved()
             return list(lesson.tasks)
         if answer == ANSWER_PICK:
             return self._tasks_from_pick(lesson, task_id)
@@ -551,10 +566,13 @@ class Session:
             task for task in lesson.tasks if not self._progress.is_task_passed(task.id)
         ]
 
-    def start_over(self, lesson: Lesson) -> None:
-        """Clear this Lesson's Task records, failed-queue entries, and completion."""
+    def start_over(self, lesson: Lesson) -> bool:
+        """Clear this Lesson's Task records and completion.
+
+        False means the save failed and the previous history stays.
+        """
         task_ids = [task.id for task in lesson.tasks]
-        self._progress.reset_lesson_progress(lesson.id, task_ids)
+        return self._progress.reset_lesson_progress(lesson.id, task_ids)
 
     def missing_prerequisite_titles(
         self, lesson: Lesson, lessons: Sequence[Lesson]

@@ -19,6 +19,7 @@ from conf_t.session import (
     PracticeAgain,
     PracticeChoice,
     PracticeTasks,
+    PracticeUnsaved,
     ProgressRefusal,
     Session,
     TaskResult,
@@ -2259,13 +2260,17 @@ def test_agreeing_to_practice_again_clears_that_lesson_and_runs_every_task(
     session.record_attempt(lesson, lesson.tasks[0], TaskResult.FIRST_TRY_PASS)
     session.record_attempt(lesson, lesson.tasks[1], TaskResult.FIRST_TRY_PASS)
     assert isinstance(session.practice_continuation(lesson), PracticeAgain)
+    attempts = session.stats().total_attempts
+    firsts = session.stats().correct_first_try
 
     tasks = session.commit_practice_continuation(lesson, ANSWER_START_OVER)
 
     assert [task.id for task in tasks] == ["l1__a", "l1__b"]
     standing = session.lesson_standing(lesson)
     assert standing.passed == 0
-    assert standing.status != LESSON_STATUS_COMPLETED
+    assert standing.status == LESSON_STATUS_IN_PROGRESS
+    assert session.stats().total_attempts == attempts
+    assert session.stats().correct_first_try == firsts
     assert session.failed_queue([lesson]) == []
     assert session.due_review([lesson]) == []
     assert session.stats([lesson]).completed_lessons == 0
@@ -2314,17 +2319,211 @@ def test_start_over_clears_only_that_lesson_and_runs_every_task(
     session.record_attempt(drill, drill.tasks[0], TaskResult.INCORRECT)
     known = [target, keeper, drill]
     assert isinstance(session.practice_continuation(target), PracticeChoice)
+    attempts = session.stats().total_attempts
+    firsts = session.stats().correct_first_try
 
     tasks = session.commit_practice_continuation(target, ANSWER_START_OVER)
 
     assert [task.id for task in tasks] == ["target__a", "target__b"]
+    assert session.lesson_standing(target).status == LESSON_STATUS_IN_PROGRESS
     assert session.lesson_standing(target).passed == 0
+    assert session.stats().total_attempts == attempts
+    assert session.stats().correct_first_try == firsts
     assert session.lesson_standing(keeper).status == LESSON_STATUS_COMPLETED
     assert session.lesson_standing(keeper).passed == 2
     assert session.failed_queue(known) == [(drill, drill.tasks[0])]
     assert session.due_review(known) == [(drill, drill.tasks[0])]
     assert session.stats(known).completed_lessons == 1
     assert (target, target.tasks[1]) not in session.failed_queue(known)
+
+
+def test_failed_start_over_keeps_passes_drill_and_due_review(
+    tmp_path: Path,
+) -> None:
+    """A clear that does not land leaves that Lesson, and the sitting is not cleared."""
+    path = tmp_path / "progress.json"
+    when = datetime(2026, 6, 1, tzinfo=timezone.utc)
+    session = _session_at(path, when)
+    target = _lesson("target", tasks=[_task("target__pass"), _task("target__due")])
+    keeper = _lesson("keeper", tasks=[_task("keeper__a"), _task("keeper__b")])
+    drill = _lesson("drill", tasks=[_task("drill__a")])
+    session.record_attempt(target, target.tasks[0], TaskResult.FIRST_TRY_PASS)
+    session.record_attempt(target, target.tasks[1], TaskResult.INCORRECT)
+    session.record_attempt(keeper, keeper.tasks[0], TaskResult.FIRST_TRY_PASS)
+    session.record_attempt(keeper, keeper.tasks[1], TaskResult.FIRST_TRY_PASS)
+    session.record_attempt(drill, drill.tasks[0], TaskResult.INCORRECT)
+    known = [target, keeper, drill]
+    before = path.read_bytes()
+    totals = session.stats(known)
+    assert isinstance(session.practice_continuation(target), PracticeChoice)
+    assert session.due_review(known) == [
+        (target, target.tasks[1]),
+        (drill, drill.tasks[0]),
+    ]
+    assert session.failed_queue(known) == [
+        (target, target.tasks[1]),
+        (drill, drill.tasks[0]),
+    ]
+
+    _freeze(path)
+    try:
+        committed = session.commit_practice_continuation(target, ANSWER_START_OVER)
+    finally:
+        _thaw(path)
+
+    assert isinstance(committed, PracticeUnsaved)
+    assert not isinstance(committed, list)
+    assert path.read_bytes() == before
+    assert not (tmp_path / "progress.json.tmp").exists()
+    assert session.lesson_standing(target).status == LESSON_STATUS_IN_PROGRESS
+    assert session.lesson_standing(target).passed == 1
+    assert session.lesson_standing(keeper).status == LESSON_STATUS_COMPLETED
+    assert session.lesson_standing(keeper).passed == 2
+    assert session.due_review(known) == [
+        (target, target.tasks[1]),
+        (drill, drill.tasks[0]),
+    ]
+    assert session.failed_queue(known) == [
+        (target, target.tasks[1]),
+        (drill, drill.tasks[0]),
+    ]
+    again = session.stats(known)
+    assert again.completed_lessons == totals.completed_lessons == 1
+    assert again.due_count == totals.due_count == 2
+    assert again.failed_queue_size == totals.failed_queue_size == 2
+    assert again.total_attempts == totals.total_attempts == 5
+    assert again.correct_first_try == totals.correct_first_try == 3
+    assert again.skipped == totals.skipped == 0
+
+    reopened = Session(progress_path=path, clock=when)
+    assert reopened.lesson_standing(target).passed == 1
+    assert reopened.lesson_standing(target).status == LESSON_STATUS_IN_PROGRESS
+    assert reopened.lesson_standing(keeper).status == LESSON_STATUS_COMPLETED
+    assert reopened.due_review(known) == [
+        (target, target.tasks[1]),
+        (drill, drill.tasks[0]),
+    ]
+    assert reopened.failed_queue(known) == [
+        (target, target.tasks[1]),
+        (drill, drill.tasks[0]),
+    ]
+    assert reopened.stats(known).completed_lessons == 1
+    assert reopened.stats(known).total_attempts == 5
+    assert isinstance(reopened.practice_continuation(target), PracticeChoice)
+
+
+def test_failed_practice_again_keeps_the_finished_lesson(tmp_path: Path) -> None:
+    """Agreeing to practice a finished Lesson again leaves it finished when the save fails."""
+    path = tmp_path / "progress.json"
+    when = datetime(2026, 6, 1, tzinfo=timezone.utc)
+    session = _session_at(path, when)
+    lesson = _lesson(tasks=[_task("l1__a"), _task("l1__b")])
+    other = _lesson("other", tasks=[_task("other__due")])
+    session.record_attempt(lesson, lesson.tasks[0], TaskResult.FIRST_TRY_PASS)
+    session.record_attempt(lesson, lesson.tasks[1], TaskResult.FIRST_TRY_PASS)
+    session.record_attempt(other, other.tasks[0], TaskResult.INCORRECT)
+    known = [lesson, other]
+    before = path.read_bytes()
+    attempts = session.stats().total_attempts
+    firsts = session.stats().correct_first_try
+    assert isinstance(session.practice_continuation(lesson), PracticeAgain)
+
+    _freeze(path)
+    try:
+        committed = session.commit_practice_continuation(lesson, ANSWER_START_OVER)
+    finally:
+        _thaw(path)
+
+    assert isinstance(committed, PracticeUnsaved)
+    assert path.read_bytes() == before
+    assert session.lesson_standing(lesson).status == LESSON_STATUS_COMPLETED
+    assert session.lesson_standing(lesson).passed == 2
+    assert isinstance(session.practice_continuation(lesson), PracticeAgain)
+    assert session.due_review(known) == [(other, other.tasks[0])]
+    assert session.failed_queue(known) == [(other, other.tasks[0])]
+    assert session.stats(known).completed_lessons == 1
+    assert session.stats().total_attempts == attempts
+    assert session.stats().correct_first_try == firsts
+
+    reopened = Session(progress_path=path, clock=when)
+    assert reopened.lesson_standing(lesson).status == LESSON_STATUS_COMPLETED
+    assert reopened.lesson_standing(lesson).passed == 2
+    assert reopened.due_review(known) == [(other, other.tasks[0])]
+    assert reopened.failed_queue(known) == [(other, other.tasks[0])]
+    assert reopened.stats(known).completed_lessons == 1
+    assert reopened.stats().total_attempts == attempts
+    assert reopened.stats().correct_first_try == firsts
+
+
+def test_later_stored_result_keeps_records_a_failed_clear_did_not_remove(
+    tmp_path: Path,
+) -> None:
+    """The next successful write must not persist a clear that never landed."""
+    path = tmp_path / "progress.json"
+    when = datetime(2026, 6, 1, tzinfo=timezone.utc)
+    session = _session_at(path, when)
+    target = _lesson("target", tasks=[_task("target__pass"), _task("target__due")])
+    keeper = _lesson("keeper", tasks=[_task("keeper__a"), _task("keeper__b")])
+    session.record_attempt(target, target.tasks[0], TaskResult.FIRST_TRY_PASS)
+    session.record_attempt(target, target.tasks[1], TaskResult.INCORRECT)
+    session.record_attempt(keeper, keeper.tasks[0], TaskResult.FIRST_TRY_PASS)
+    known = [target, keeper]
+    attempts = session.stats().total_attempts
+
+    _freeze(path)
+    try:
+        committed = session.commit_practice_continuation(target, ANSWER_START_OVER)
+    finally:
+        _thaw(path)
+
+    assert isinstance(committed, PracticeUnsaved)
+    assert session.lesson_standing(target).passed == 1
+    assert session.record_attempt(keeper, keeper.tasks[1], TaskResult.INCORRECT) is True
+
+    reopened = Session(progress_path=path, clock=when)
+    assert reopened.lesson_standing(target).status == LESSON_STATUS_IN_PROGRESS
+    assert reopened.lesson_standing(target).passed == 1
+    assert (target, target.tasks[1]) in reopened.due_review(known)
+    assert (target, target.tasks[1]) in reopened.failed_queue(known)
+    assert (target, target.tasks[0]) not in reopened.failed_queue(known)
+    assert reopened.lesson_standing(keeper).passed == 1
+    assert (keeper, keeper.tasks[1]) in reopened.due_review(known)
+    assert (keeper, keeper.tasks[1]) in reopened.failed_queue(known)
+    assert reopened.stats().total_attempts == attempts + 1
+    assert reopened.stats(known).completed_lessons == 0
+    assert reopened.stats().correct_first_try == 2
+
+
+def test_failed_clear_is_not_a_cancellation_or_an_empty_lesson(
+    tmp_path: Path,
+) -> None:
+    """Cancel never commits. An empty Lesson is a sitting with no Tasks. A failed clear is neither."""
+    path = tmp_path / "progress.json"
+    session = Session(progress_path=path)
+    lesson = _lesson(tasks=[_task("l1__a"), _task("l1__b")])
+    session.record_attempt(lesson, lesson.tasks[0], TaskResult.FIRST_TRY_PASS)
+    session.record_attempt(lesson, lesson.tasks[1], TaskResult.INCORRECT)
+    before = path.read_bytes()
+    assert isinstance(session.practice_continuation(lesson), PracticeChoice)
+    assert path.read_bytes() == before
+
+    _freeze(path)
+    try:
+        committed = session.commit_practice_continuation(lesson, ANSWER_START_OVER)
+    finally:
+        _thaw(path)
+
+    assert isinstance(committed, PracticeUnsaved)
+    assert committed != []
+    assert isinstance(session.practice_continuation(lesson), PracticeChoice)
+    assert path.read_bytes() == before
+
+    empty = _lesson("empty", tasks=[])
+    empty_report = session.practice_continuation(empty)
+    assert isinstance(empty_report, PracticeTasks)
+    assert empty_report.tasks == ()
+    assert not isinstance(empty_report, PracticeUnsaved)
+    assert not isinstance(committed, PracticeTasks)
 
 
 def test_pick_of_a_passed_task_includes_that_task(tmp_path: Path) -> None:

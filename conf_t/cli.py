@@ -27,6 +27,7 @@ from conf_t.session import (
     PracticeChoice,
     PracticePick,
     PracticeTasks,
+    PracticeUnsaved,
     ProgressRefusal,
     Session,
     TURN_CORRECT,
@@ -506,9 +507,7 @@ class ConfTCLI:
             ).ask()
             if not practice_again:
                 return None
-            return self.session.commit_practice_continuation(
-                lesson, ANSWER_START_OVER
-            )
+            return self._tasks_after_start_over(lesson)
 
         if not isinstance(report, PracticeChoice):
             return None
@@ -526,9 +525,7 @@ class ConfTCLI:
         if not choice or choice == "cancel":
             return None
         if choice == "restart":
-            return self.session.commit_practice_continuation(
-                lesson, ANSWER_START_OVER
-            )
+            return self._tasks_after_start_over(lesson)
         if choice == "resume":
             incomplete = self.session.commit_practice_continuation(
                 lesson, ANSWER_RESUME
@@ -541,6 +538,16 @@ class ConfTCLI:
             return self._pick_lesson_start_task(lesson, report.picks)
 
         return None
+
+    def _tasks_after_start_over(self, lesson: Lesson) -> list[Task] | None:
+        """The whole Lesson when the clear lands. A failed clear does not start."""
+        committed = self.session.commit_practice_continuation(
+            lesson, ANSWER_START_OVER
+        )
+        if isinstance(committed, PracticeUnsaved):
+            tell_cannot_save_progress(self.session.progress_path)
+            return None
+        return committed
 
     def _pick_lesson_start_task(
         self,

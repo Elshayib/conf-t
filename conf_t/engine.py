@@ -364,17 +364,24 @@ class ProgressManager:
             "incomplete": total - passed,
         }
 
-    def reset_lesson_progress(self, lesson_id: str, task_ids: List[str]) -> None:
-        task_id_set = set(task_ids)
-        self._data["task_progress"] = {
-            task_id: entry
-            for task_id, entry in self._data.get("task_progress", {}).items()
-            if task_id not in task_id_set
-        }
-        done = self._data.get("completed_lessons", [])
-        if lesson_id in done:
-            done.remove(lesson_id)
-        self.save()
+    def reset_lesson_progress(self, lesson_id: str, task_ids: List[str]) -> bool:
+        """Drop this Lesson's Task records and completion.
+
+        False means the save failed and memory matches the stored history.
+        """
+
+        def apply() -> None:
+            task_id_set = set(task_ids)
+            self._data["task_progress"] = {
+                task_id: entry
+                for task_id, entry in self._data.get("task_progress", {}).items()
+                if task_id not in task_id_set
+            }
+            done = self._data.get("completed_lessons", [])
+            if lesson_id in done:
+                done.remove(lesson_id)
+
+        return self.commit(apply)
 
     def record_attempt(
         self,

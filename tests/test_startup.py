@@ -1055,18 +1055,19 @@ def test_menu_stays_when_a_lesson_cannot_be_opened(
 
     _freeze(progress)
     try:
-        main([])
+        with pytest.raises(SystemExit) as exc:
+            main([])
     finally:
         _thaw(progress)
 
+    assert exc.value.code == 0
     text = output.getvalue()
     assert "Cannot save progress." in text
     assert str(progress) in text
     assert "Thank you for training with Conf T" in text
     assert "Type 'hint'" not in text
     captured = capsys.readouterr()
-    assert "Exiting Conf T..." not in captured.out
-    assert "Exiting Conf T..." not in captured.err
+    assert "Exiting Conf T..." in captured.out
     assert progress.read_bytes() == before
 
 
@@ -1096,18 +1097,19 @@ def test_menu_stays_when_continue_or_review_cannot_be_opened(
 
     _freeze(progress)
     try:
-        main([])
+        with pytest.raises(SystemExit) as exc:
+            main([])
     finally:
         _thaw(progress)
 
+    assert exc.value.code == 0
     text = output.getvalue()
     assert "Cannot save progress." in text
     assert str(progress) in text
     assert "Thank you for training with Conf T" in text
     assert "Type 'hint'" not in text
     captured = capsys.readouterr()
-    assert "Exiting Conf T..." not in captured.out
-    assert "Exiting Conf T..." not in captured.err
+    assert "Exiting Conf T..." in captured.out
     assert progress.read_bytes() == before
 
 

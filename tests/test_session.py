@@ -1,4 +1,4 @@
-"""Session-module seam tests for standing, Review queues, stats, submit, continue, resume."""
+"""Session-module seam tests for standing, Review queues, stats, submit, continue, resume, continuation."""
 
 import json
 import os
@@ -13,6 +13,12 @@ from conf_t.session import (
     LESSON_STATUS_COMPLETED,
     LESSON_STATUS_IN_PROGRESS,
     LESSON_STATUS_NOT_STARTED,
+    ANSWER_PICK,
+    ANSWER_RESUME,
+    ANSWER_START_OVER,
+    PracticeAgain,
+    PracticeChoice,
+    PracticeTasks,
     ProgressRefusal,
     Session,
     TaskResult,
@@ -1971,4 +1977,203 @@ def test_undecodable_progress_file_is_left_untouched(tmp_path: Path) -> None:
     assert exc.value.path == path
     assert path.read_bytes() == payload
     assert not (tmp_path / "progress.json.tmp").exists()
+
+
+# --- Practice continuation (#58) ---
+
+
+def test_not_started_lesson_runs_every_task_without_a_question(
+    tmp_path: Path,
+) -> None:
+    path = tmp_path / "progress.json"
+    session = Session(progress_path=path)
+    lesson = _lesson(tasks=[_task("l1__a"), _task("l1__b"), _task("l1__c")])
+
+    report = session.practice_continuation(lesson)
+
+    assert isinstance(report, PracticeTasks)
+    assert [task.id for task in report.tasks] == ["l1__a", "l1__b", "l1__c"]
+    assert not path.exists()
+
+
+def test_empty_lesson_runs_no_tasks_and_asks_nothing(tmp_path: Path) -> None:
+    path = tmp_path / "progress.json"
+    session = Session(progress_path=path)
+    lesson = _lesson("empty", tasks=[])
+    session.mark_practice_opened(lesson)
+    before = path.read_bytes()
+
+    report = session.practice_continuation(lesson)
+
+    assert isinstance(report, PracticeTasks)
+    assert report.tasks == ()
+    assert path.read_bytes() == before
+    assert session.lesson_standing(lesson).status == LESSON_STATUS_IN_PROGRESS
+
+
+def test_finished_lesson_asks_to_practice_again_and_decline_writes_nothing(
+    tmp_path: Path,
+) -> None:
+    path = tmp_path / "progress.json"
+    session = Session(progress_path=path)
+    lesson = _lesson(tasks=[_task("l1__a"), _task("l1__b")])
+    session.record_attempt(lesson, lesson.tasks[0], TaskResult.FIRST_TRY_PASS)
+    session.record_attempt(lesson, lesson.tasks[1], TaskResult.FIRST_TRY_PASS)
+    before = path.read_bytes()
+
+    report = session.practice_continuation(lesson)
+
+    assert isinstance(report, PracticeAgain)
+    assert path.read_bytes() == before
+    assert session.lesson_standing(lesson).status == LESSON_STATUS_COMPLETED
+    assert session.lesson_standing(lesson).passed == 2
+
+
+def test_agreeing_to_practice_again_clears_that_lesson_and_runs_every_task(
+    tmp_path: Path,
+) -> None:
+    session = _session(tmp_path)
+    lesson = _lesson(tasks=[_task("l1__a"), _task("l1__b")])
+    session.record_attempt(lesson, lesson.tasks[0], TaskResult.FIRST_TRY_PASS)
+    session.record_attempt(lesson, lesson.tasks[1], TaskResult.FIRST_TRY_PASS)
+    assert isinstance(session.practice_continuation(lesson), PracticeAgain)
+
+    tasks = session.commit_practice_continuation(lesson, ANSWER_START_OVER)
+
+    assert [task.id for task in tasks] == ["l1__a", "l1__b"]
+    standing = session.lesson_standing(lesson)
+    assert standing.passed == 0
+    assert standing.status != LESSON_STATUS_COMPLETED
+    assert session.failed_queue([lesson]) == []
+    assert session.due_review([lesson]) == []
+    assert session.stats([lesson]).completed_lessons == 0
+
+
+def test_resume_runs_only_tasks_with_no_first_try_pass_in_lesson_order(
+    tmp_path: Path,
+) -> None:
+    session = _session(tmp_path)
+    lesson = _lesson(
+        tasks=[_task("l1__a"), _task("l1__b"), _task("l1__c"), _task("l1__d")]
+    )
+    session.record_attempt(lesson, lesson.tasks[0], TaskResult.FIRST_TRY_PASS)
+    session.record_attempt(lesson, lesson.tasks[1], TaskResult.INCORRECT)
+    session.record_attempt(
+        lesson, lesson.tasks[1], TaskResult.CORRECT_NOT_FIRST_TRY
+    )
+    session.record_attempt(lesson, lesson.tasks[2], TaskResult.INCORRECT)
+
+    report = session.practice_continuation(lesson)
+
+    assert isinstance(report, PracticeChoice)
+    assert [(pick.task.id, pick.first_try_pass) for pick in report.picks] == [
+        ("l1__a", True),
+        ("l1__b", False),
+        ("l1__c", False),
+        ("l1__d", False),
+    ]
+
+    resumed = session.commit_practice_continuation(lesson, ANSWER_RESUME)
+
+    assert [task.id for task in resumed] == ["l1__b", "l1__c", "l1__d"]
+
+
+def test_start_over_clears_only_that_lesson_and_runs_every_task(
+    tmp_path: Path,
+) -> None:
+    session = _session(tmp_path)
+    target = _lesson("target", tasks=[_task("target__a"), _task("target__b")])
+    keeper = _lesson("keeper", tasks=[_task("keeper__a"), _task("keeper__b")])
+    drill = _lesson("drill", tasks=[_task("drill__a")])
+    session.record_attempt(target, target.tasks[0], TaskResult.FIRST_TRY_PASS)
+    session.record_attempt(target, target.tasks[1], TaskResult.INCORRECT)
+    session.record_attempt(keeper, keeper.tasks[0], TaskResult.FIRST_TRY_PASS)
+    session.record_attempt(keeper, keeper.tasks[1], TaskResult.FIRST_TRY_PASS)
+    session.record_attempt(drill, drill.tasks[0], TaskResult.INCORRECT)
+    known = [target, keeper, drill]
+    assert isinstance(session.practice_continuation(target), PracticeChoice)
+
+    tasks = session.commit_practice_continuation(target, ANSWER_START_OVER)
+
+    assert [task.id for task in tasks] == ["target__a", "target__b"]
+    assert session.lesson_standing(target).passed == 0
+    assert session.lesson_standing(keeper).status == LESSON_STATUS_COMPLETED
+    assert session.lesson_standing(keeper).passed == 2
+    assert session.failed_queue(known) == [(drill, drill.tasks[0])]
+    assert session.due_review(known) == [(drill, drill.tasks[0])]
+    assert session.stats(known).completed_lessons == 1
+    assert (target, target.tasks[1]) not in session.failed_queue(known)
+
+
+def test_pick_of_a_passed_task_includes_that_task(tmp_path: Path) -> None:
+    path = tmp_path / "progress.json"
+    session = Session(progress_path=path)
+    lesson = _lesson(
+        tasks=[_task("l1__a"), _task("l1__b"), _task("l1__c")]
+    )
+    session.record_attempt(lesson, lesson.tasks[0], TaskResult.INCORRECT)
+    session.record_attempt(lesson, lesson.tasks[1], TaskResult.FIRST_TRY_PASS)
+    before = path.read_bytes()
+    assert isinstance(session.practice_continuation(lesson), PracticeChoice)
+
+    picked = session.commit_practice_continuation(
+        lesson, ANSWER_PICK, "l1__b"
+    )
+
+    assert [task.id for task in picked] == ["l1__b", "l1__c"]
+    assert session.lesson_standing(lesson).passed == 1
+    assert path.read_bytes() == before
+
+
+def test_pick_still_includes_a_later_first_try_pass(tmp_path: Path) -> None:
+    session = _session(tmp_path)
+    lesson = _lesson(
+        tasks=[_task("l1__a"), _task("l1__b"), _task("l1__c"), _task("l1__d")]
+    )
+    session.record_attempt(lesson, lesson.tasks[0], TaskResult.INCORRECT)
+    session.record_attempt(lesson, lesson.tasks[2], TaskResult.FIRST_TRY_PASS)
+    session.record_attempt(lesson, lesson.tasks[3], TaskResult.FIRST_TRY_PASS)
+
+    picked = session.commit_practice_continuation(lesson, ANSWER_PICK, "l1__b")
+
+    assert [task.id for task in picked] == ["l1__b", "l1__c", "l1__d"]
+
+
+def test_unknown_task_id_returns_no_tasks_and_writes_nothing(
+    tmp_path: Path,
+) -> None:
+    path = tmp_path / "progress.json"
+    session = Session(progress_path=path)
+    lesson = _lesson(tasks=[_task("l1__a"), _task("l1__b")])
+    keeper = _lesson("keeper", tasks=[_task("keeper__a")])
+    session.record_attempt(lesson, lesson.tasks[0], TaskResult.FIRST_TRY_PASS)
+    session.record_attempt(lesson, lesson.tasks[1], TaskResult.INCORRECT)
+    session.record_attempt(keeper, keeper.tasks[0], TaskResult.INCORRECT)
+    before = path.read_bytes()
+
+    picked = session.commit_practice_continuation(lesson, ANSWER_PICK, "keeper__a")
+
+    assert picked == []
+    assert path.read_bytes() == before
+    assert session.lesson_standing(lesson).passed == 1
+    assert session.failed_queue([lesson, keeper]) == [
+        (lesson, lesson.tasks[1]),
+        (keeper, keeper.tasks[0]),
+    ]
+
+
+def test_cancel_leaves_the_continuation_uncommitted(tmp_path: Path) -> None:
+    path = tmp_path / "progress.json"
+    session = Session(progress_path=path)
+    lesson = _lesson(tasks=[_task("l1__a"), _task("l1__b")])
+    session.record_attempt(lesson, lesson.tasks[0], TaskResult.FIRST_TRY_PASS)
+    session.record_attempt(lesson, lesson.tasks[1], TaskResult.INCORRECT)
+    before = path.read_bytes()
+
+    report = session.practice_continuation(lesson)
+
+    assert isinstance(report, PracticeChoice)
+    assert path.read_bytes() == before
+    assert session.lesson_standing(lesson).passed == 1
+    assert session.failed_queue([lesson]) == [(lesson, lesson.tasks[1])]
 

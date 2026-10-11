@@ -63,14 +63,3 @@ def build_parser() -> argparse.ArgumentParser:
         "  pipx install conf-t            Easiest install (recommended)"
     )
     return parser
-
-
-def has_cli_action(args: argparse.Namespace) -> bool:
-    return bool(
-        args.list
-        or args.lesson
-        or args.review
-        or args.review_all
-        or args.stats
-        or args.continue_session
-    )

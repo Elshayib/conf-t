@@ -2,7 +2,8 @@ from __future__ import annotations
 
 import pytest
 
-from conf_t.parser import build_parser, has_cli_action
+from conf_t.cli import has_cli_action
+from conf_t.parser import build_parser
 
 
 @pytest.fixture

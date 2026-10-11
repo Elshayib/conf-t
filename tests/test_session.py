@@ -2218,18 +2218,53 @@ def test_pick_of_a_passed_task_includes_that_task(tmp_path: Path) -> None:
     assert path.read_bytes() == before
 
 
-def test_pick_still_includes_a_later_first_try_pass(tmp_path: Path) -> None:
-    session = _session(tmp_path)
+def test_pick_skips_later_first_try_passes(tmp_path: Path) -> None:
+    """The sitting is the chosen Task, then later Tasks with no first-try pass."""
+    path = tmp_path / "progress.json"
+    session = Session(progress_path=path)
     lesson = _lesson(
         tasks=[_task("l1__a"), _task("l1__b"), _task("l1__c"), _task("l1__d")]
     )
     session.record_attempt(lesson, lesson.tasks[0], TaskResult.INCORRECT)
     session.record_attempt(lesson, lesson.tasks[2], TaskResult.FIRST_TRY_PASS)
-    session.record_attempt(lesson, lesson.tasks[3], TaskResult.FIRST_TRY_PASS)
+    session.record_attempt(lesson, lesson.tasks[3], TaskResult.INCORRECT)
+    before = path.read_bytes()
 
     picked = session.commit_practice_continuation(lesson, ANSWER_PICK, "l1__b")
 
-    assert [task.id for task in picked] == ["l1__b", "l1__c", "l1__d"]
+    assert [task.id for task in picked] == ["l1__b", "l1__d"]
+    assert path.read_bytes() == before
+    assert session.lesson_standing(lesson).passed == 1
+
+
+def test_miss_on_a_task_chosen_again_removes_its_first_try_pass(
+    tmp_path: Path,
+) -> None:
+    """A miss on a Task the Learner picked to see again puts it back in Review."""
+    when = datetime(2026, 6, 1, tzinfo=timezone.utc)
+    session = _session_at(tmp_path / "progress.json", when)
+    lesson = _lesson(tasks=[_task("l1__a"), _task("l1__b")])
+    chosen = lesson.tasks[0]
+    other = lesson.tasks[1]
+    session.record_attempt(lesson, chosen, TaskResult.FIRST_TRY_PASS)
+    session.record_attempt(lesson, other, TaskResult.INCORRECT)
+
+    report = session.practice_continuation(lesson)
+    assert isinstance(report, PracticeChoice)
+    assert [(pick.task.id, pick.first_try_pass) for pick in report.picks] == [
+        ("l1__a", True),
+        ("l1__b", False),
+    ]
+    picked = session.commit_practice_continuation(lesson, ANSWER_PICK, "l1__a")
+    assert [task.id for task in picked] == ["l1__a", "l1__b"]
+
+    session.begin_task(chosen)
+    missed = session.submit(lesson, chosen, "nope")
+
+    assert missed.kind == TURN_INCORRECT
+    assert session.lesson_standing(lesson).passed == 0
+    assert session.due_review([lesson]) == [(lesson, chosen), (lesson, other)]
+    assert session.failed_queue([lesson]) == [(lesson, other), (lesson, chosen)]
 
 
 def test_unknown_task_id_returns_no_tasks_and_writes_nothing(

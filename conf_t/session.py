@@ -524,12 +524,19 @@ class Session:
         return []
 
     def _tasks_from_pick(self, lesson: Lesson, task_id: str | None) -> list[Task]:
-        """Today's suffix: the picked Task and every later Task."""
+        """The picked Task, then each later Task with no first-try pass."""
         if task_id is None:
             return []
         for index, task in enumerate(lesson.tasks):
             if task.id == task_id:
-                return list(lesson.tasks[index:])
+                return [
+                    task,
+                    *[
+                        later
+                        for later in lesson.tasks[index + 1 :]
+                        if not self._progress.is_task_passed(later.id)
+                    ],
+                ]
         return []
 
     def resume_tasks(self, lesson: Lesson) -> list[Task]:

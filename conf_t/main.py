@@ -13,6 +13,7 @@ def main(argv: list[str] | None = None) -> None:
         app = ConfTCLI()
         if not app.run_from_args(args):
             app.run()
+            raise SystemExit(0)
     except LearnerAlreadyTold:
         sys.exit(1)
     except (KeyboardInterrupt, SystemExit):

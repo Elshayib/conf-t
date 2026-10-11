@@ -69,14 +69,9 @@ def test_version_flag(parser):
     assert exc.value.code == 0
 
 
-def test_run_lesson_by_id_unknown_exits(monkeypatch):
-    from conf_t.cli import ConfTCLI
+def test_run_lesson_by_id_unknown_exits():
+    from conf_t.cli import ConfTCLI, LearnerAlreadyTold
 
     app = ConfTCLI()
-    monkeypatch.setattr(
-        "conf_t.cli.sys.exit",
-        lambda code: (_ for _ in ()).throw(SystemExit(code)),
-    )
-    with pytest.raises(SystemExit) as exc:
+    with pytest.raises(LearnerAlreadyTold):
         app.run_lesson_by_id("nonexistent_lesson_id_xyz")
-    assert exc.value.code == 1

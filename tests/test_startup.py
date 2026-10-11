@@ -62,10 +62,6 @@ def _install_fault(directory: Path, fault: str) -> str:
     raise AssertionError(fault)
 
 
-def _raise_exit(code: int = 0) -> None:
-    raise SystemExit(code)
-
-
 def _app(tmp_path: Path) -> ConfTCLI:
     return ConfTCLI(
         catalog=Catalog(tmp_path),
@@ -89,53 +85,64 @@ def test_reading_lessons_stops_and_names_the_file(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
     output: io.StringIO,
+    capsys: pytest.CaptureFixture[str],
     fault: str,
     command: str,
 ) -> None:
-    filename = _install_fault(tmp_path, fault)
-    monkeypatch.setattr("conf_t.cli.sys.exit", _raise_exit)
+    lessons = tmp_path / "lessons"
+    lessons.mkdir()
+    filename = _install_fault(lessons, fault)
+    monkeypatch.setattr("conf_t.cli.Catalog", lambda lessons_dir=None: Catalog(lessons))
+    monkeypatch.setattr(
+        "conf_t.cli.Session",
+        lambda *args, **kwargs: Session(tmp_path / "progress.json"),
+    )
     monkeypatch.setattr(
         "conf_t.cli.questionary.select",
         lambda *args, **kwargs: (_ for _ in ()).throw(AssertionError("menu opened")),
     )
-    app = _app(tmp_path)
+    argv = {
+        "menu": [],
+        "list": ["--list"],
+        "lesson": ["--lesson", "no_such_lesson"],
+        "continue": ["--continue"],
+        "review": ["--review"],
+        "review-all": ["--review-all"],
+    }[command]
 
     with pytest.raises(SystemExit) as exc:
-        if command == "menu":
-            app.run()
-        else:
-            argv = {
-                "list": ["--list"],
-                "lesson": ["--lesson", "no_such_lesson"],
-                "continue": ["--continue"],
-                "review": ["--review"],
-                "review-all": ["--review-all"],
-            }[command]
-            app.run_from_args(build_parser().parse_args(argv))
+        main(argv)
 
     assert exc.value.code == 1
     text = output.getvalue()
     assert filename in text
     assert "Lesson not found" not in text
+    captured = capsys.readouterr()
+    assert "Exiting Conf T..." not in captured.out
+    assert "Exiting Conf T..." not in captured.err
 
 
 def test_unknown_lesson_is_not_a_file_that_will_not_parse(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
     output: io.StringIO,
+    capsys: pytest.CaptureFixture[str],
 ) -> None:
-    _write(tmp_path, "real.json", _lesson("real", title="Real", task_id="real__one"))
-    monkeypatch.setattr("conf_t.cli.sys.exit", _raise_exit)
-    app = _app(tmp_path)
+    lessons = _use_isolated_files(monkeypatch, tmp_path)
+    _write(lessons, "real.json", _lesson("real", title="Real", task_id="real__one"))
 
     with pytest.raises(SystemExit) as exc:
-        app.run_from_args(build_parser().parse_args(["--lesson", "missing"]))
+        main(["--lesson", "missing"])
 
     assert exc.value.code == 1
     text = output.getvalue()
-    assert "Lesson not found" in text
+    assert "Lesson not found:" in text
     assert "missing" in text
+    assert "Use --list to see available lesson IDs." in text
     assert "does not parse" not in text
+    captured = capsys.readouterr()
+    assert "Exiting Conf T..." not in captured.out
+    assert "Exiting Conf T..." not in captured.err
 
 
 def test_stats_open_when_a_lesson_file_is_bad(
@@ -211,9 +218,12 @@ def test_list_stops_and_names_the_file(
     with pytest.raises(SystemExit) as exc:
         main(["--list"])
 
-    assert exc.value.code == 0
+    assert exc.value.code == 1
     assert "bad.json" in output.getvalue()
-    assert "Exiting Conf T..." in capsys.readouterr().out
+    assert "Cannot open lessons." in output.getvalue()
+    captured = capsys.readouterr()
+    assert "Exiting Conf T..." not in captured.out
+    assert "Exiting Conf T..." not in captured.err
 
 
 def test_shape_problems_do_not_stop_the_lesson_list(
@@ -246,10 +256,6 @@ def test_shape_problems_do_not_stop_the_lesson_list(
                 },
             ],
         },
-    )
-    monkeypatch.setattr(
-        "conf_t.cli.sys.exit",
-        lambda code=0: (_ for _ in ()).throw(AssertionError(f"exited {code}")),
     )
     app = _app(tmp_path)
     app.run_from_args(build_parser().parse_args(["--list"]))
@@ -395,6 +401,155 @@ def test_version_exits_without_opening_progress_or_lessons(
     assert progress.read_bytes() == payload
 
 
+def test_quitting_exits_0_and_prints_the_leave_line(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    output: io.StringIO,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    lessons = _use_isolated_files(monkeypatch, tmp_path)
+    _write(lessons, "alpha.json", _lesson("alpha", title="Alpha", task_id="alpha__one"))
+    monkeypatch.setattr(
+        "conf_t.cli.questionary.select",
+        lambda *args, **kwargs: _Answer("exit"),
+    )
+
+    with pytest.raises(SystemExit) as exc:
+        main([])
+
+    assert exc.value.code == 0
+    text = output.getvalue()
+    assert "Thank you for training with Conf T" in text
+    captured = capsys.readouterr()
+    assert "Exiting Conf T..." in captured.out
+    assert "Cannot open lessons." not in text
+    assert "Lesson not found" not in text
+
+
+def test_ctrl_c_on_the_menu_returns_to_the_menu(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    output: io.StringIO,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    lessons = _use_isolated_files(monkeypatch, tmp_path)
+    _write(lessons, "alpha.json", _lesson("alpha", title="Alpha", task_id="alpha__one"))
+    choices = iter(["interrupt", "exit"])
+
+    class _MenuQuestion:
+        """The menu must ask without swallowing Ctrl+C."""
+
+        def ask(self) -> str:
+            raise AssertionError("menu swallowed Ctrl+C")
+
+        def unsafe_ask(self) -> str:
+            choice = next(choices)
+            if choice == "interrupt":
+                raise KeyboardInterrupt
+            return choice
+
+    monkeypatch.setattr(
+        "conf_t.cli.questionary.select",
+        lambda *args, **kwargs: _MenuQuestion(),
+    )
+
+    with pytest.raises(SystemExit) as exc:
+        main([])
+
+    assert exc.value.code == 0
+    text = output.getvalue()
+    assert "Session interrupted. Returning to main menu." in text
+    assert "Thank you for training with Conf T" in text
+    assert "Practice aborted." not in text
+    assert "Exiting Conf T..." in capsys.readouterr().out
+
+
+def test_ctrl_c_during_a_sitting_leaves_that_sitting_only(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    output: io.StringIO,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    lessons = _use_isolated_files(monkeypatch, tmp_path)
+    _write(lessons, "alpha.json", _lesson("alpha", title="Alpha", task_id="alpha__one"))
+    choices = iter(["practice", "Linux", "alpha", "exit"])
+
+    monkeypatch.setattr(
+        "conf_t.cli.questionary.select",
+        lambda *args, **kwargs: _Answer(next(choices)),
+    )
+    monkeypatch.setattr(
+        "conf_t.cli.console.input",
+        lambda prompt="": (_ for _ in ()).throw(KeyboardInterrupt),
+    )
+
+    with pytest.raises(SystemExit) as exc:
+        main([])
+
+    assert exc.value.code == 0
+    text = output.getvalue()
+    assert "Practice aborted." in text
+    assert "Session interrupted. Returning to main menu." not in text
+    assert "Thank you for training with Conf T" in text
+    assert "Exiting Conf T..." in capsys.readouterr().out
+
+
+def test_catalog_refusal_while_saving_a_custom_lesson_stays_in_the_wizard(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    output: io.StringIO,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    lessons = _use_isolated_files(monkeypatch, tmp_path)
+    choices = iter(["create", "Linux", "exit"])
+    replies = iter([
+        "Broken",
+        "broken",
+        "Desc",
+        "Run it",
+        "[unterminated",
+        "",
+        "$",
+        "",
+        "",
+    ])
+    paused: list[str] = []
+
+    monkeypatch.setattr(
+        "conf_t.cli.questionary.select",
+        lambda *args, **kwargs: _Answer(next(choices)),
+    )
+    monkeypatch.setattr(
+        "conf_t.cli.questionary.text",
+        lambda *args, **kwargs: _Answer(next(replies)),
+    )
+    monkeypatch.setattr(
+        "conf_t.cli.questionary.confirm",
+        lambda *args, **kwargs: _Answer(False),
+    )
+
+    def pause(*args: object, **kwargs: object) -> _Answer:
+        paused.append("paused")
+        return _Answer(None)
+
+    monkeypatch.setattr("conf_t.cli.questionary.press_any_key_to_continue", pause)
+
+    with pytest.raises(SystemExit) as exc:
+        main([])
+
+    assert exc.value.code == 0
+    text = output.getvalue()
+    assert "broken.json" in text
+    assert "expected regex does not compile" in text
+    assert "Success" not in text
+    assert paused == ["paused"]
+    assert "Thank you for training with Conf T" in text
+    assert not (lessons / "broken.json").exists()
+    captured = capsys.readouterr()
+    assert "Exiting Conf T..." in captured.out
+    assert "Cannot open lessons." not in text
+
+
 def test_interrupt_at_the_process_entry_prints_the_leave_line(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
@@ -433,6 +588,9 @@ class _Answer:
     def ask(self) -> object:
         return self._value
 
+    def unsafe_ask(self) -> object:
+        return self._value
+
 
 def _script_menu(
     monkeypatch: pytest.MonkeyPatch,
@@ -452,10 +610,6 @@ def _script_menu(
     monkeypatch.setattr(
         "conf_t.cli.questionary.press_any_key_to_continue",
         lambda *args, **kwargs: _Answer(None),
-    )
-    monkeypatch.setattr(
-        "conf_t.cli.sys.exit",
-        lambda code=0: (_ for _ in ()).throw(AssertionError(f"exited {code}")),
     )
 
 
@@ -604,6 +758,9 @@ def _block_prompts(monkeypatch: pytest.MonkeyPatch) -> list[str]:
         def ask(self) -> None:
             return None
 
+        def unsafe_ask(self) -> None:
+            return None
+
     def select(*args: object, **kwargs: object) -> _Answer:
         opened.append(str(args[0]) if args else "")
         return _Answer()
@@ -691,17 +848,21 @@ def test_menu_opens_when_no_command_flag_is_set(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
     output: io.StringIO,
+    capsys: pytest.CaptureFixture[str],
     argv: list[str],
 ) -> None:
     lessons = _use_isolated_files(monkeypatch, tmp_path)
     _write(lessons, "alpha.json", _lesson("alpha", title="Alpha", task_id="alpha__one"))
     opened = _block_prompts(monkeypatch)
 
-    main(argv)
+    with pytest.raises(SystemExit) as exc:
+        main(argv)
 
+    assert exc.value.code == 0
     text = output.getvalue()
     assert opened == ["Select an option:"]
     assert "Welcome to Conf T" in text
+    assert "Exiting Conf T..." in capsys.readouterr().out
     assert "lesson(s) shown" not in text
     assert "Total Attempts Registered" not in text
     assert "Continuing:" not in text

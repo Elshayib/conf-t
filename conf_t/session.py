@@ -235,11 +235,27 @@ class Session:
         self._lost_first_try.discard(task.id)
         self._open_showings.add(task.id)
 
-    def end_showing(self, task: Task) -> None:
-        """The Learner left this showing. Nothing is recorded."""
-        self._open_showings.discard(task.id)
+    def submit(
+        self,
+        lesson: Lesson,
+        task: Task,
+        line: str = "",
+        *,
+        confirmed_leave: bool = False,
+        interrupt: bool = False,
+    ) -> TurnResult:
+        """Grade one line, or close the Showing on a confirmed leave or an interrupt.
 
-    def submit(self, lesson: Lesson, task: Task, line: str) -> TurnResult:
+        A confirmed leave and an interrupt store nothing. A leave word only
+        asks to leave, so the Showing stays open until one of those signals.
+        """
+        if confirmed_leave or interrupt:
+            self._open_showings.discard(task.id)
+            return TurnResult(kind=TURN_LEAVE)
+
+        if task.id not in self._open_showings:
+            self.begin_task(task)
+
         cleaned = line.strip()
         if not cleaned:
             return TurnResult(kind=TURN_IGNORE)

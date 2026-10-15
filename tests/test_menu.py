@@ -144,6 +144,103 @@ def test_interrupting_review_says_the_learner_left_review() -> None:
     assert interrupt_message(review=False) == "Practice aborted."
 
 
+def _one_task_lesson() -> tuple[Lesson, Task]:
+    lesson = Lesson(
+        id="l",
+        title="Lesson",
+        platform="Linux",
+        description="Desc",
+        tasks=[Task(id="l__one", prompt="Run it", prefix="$", expected="^ok$")],
+    )
+    return lesson, lesson.tasks[0]
+
+
+class _Confirm:
+    def __init__(self, answer: bool) -> None:
+        self.answer = answer
+
+    def ask(self) -> bool:
+        return self.answer
+
+
+@pytest.mark.parametrize("review", [False, True])
+@pytest.mark.parametrize("stop", [KeyboardInterrupt, EOFError])
+def test_sitting_interrupt_closes_so_a_later_result_can_land(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    review: bool,
+    stop: type[BaseException],
+) -> None:
+    """Practice and Review share the interrupt close. The test does not close."""
+    session = Session(tmp_path / "progress.json")
+    lesson, task = _one_task_lesson()
+    lines = iter(["nope"])
+
+    def answer(prompt: str = "") -> str:
+        try:
+            return next(lines)
+        except StopIteration:
+            raise stop
+
+    monkeypatch.setattr("conf_t.cli.console.input", answer)
+    finished = _app(tmp_path, session)._run_sitting([(lesson, task)], review=review)
+
+    assert finished is None
+    assert session.stats().total_attempts == 1
+    assert session.record_attempt(lesson, task, TaskResult.SKIP) is True
+    passed = session.submit(lesson, task, "ok")
+    assert passed.first_try is True
+    assert passed.left_the_drill is True
+    assert session.failed_queue([lesson]) == []
+    assert session.due_review([lesson]) == []
+
+
+@pytest.mark.parametrize("review", [False, True])
+def test_confirmed_leave_in_the_sitting_closes_without_a_separate_close(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    review: bool,
+) -> None:
+    session = Session(tmp_path / "progress.json")
+    lesson, task = _one_task_lesson()
+    lines = iter(["nope", "exit"])
+
+    monkeypatch.setattr("conf_t.cli.console.input", lambda prompt="": next(lines))
+    monkeypatch.setattr(
+        "conf_t.cli.questionary.confirm",
+        lambda *args, **kwargs: _Confirm(True),
+    )
+    finished = _app(tmp_path, session)._run_sitting([(lesson, task)], review=review)
+
+    assert finished is None
+    assert session.record_attempt(lesson, task, TaskResult.FIRST_TRY_PASS) is True
+    assert session.lesson_standing(lesson).passed == 1
+    assert session.failed_queue([lesson]) == []
+
+
+def test_cancelled_leave_in_the_sitting_keeps_this_showing(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    session = Session(tmp_path / "progress.json")
+    lesson, task = _one_task_lesson()
+    lines = iter(["nope", "quit", "ok"])
+
+    monkeypatch.setattr("conf_t.cli.console.input", lambda prompt="": next(lines))
+    monkeypatch.setattr(
+        "conf_t.cli.questionary.confirm",
+        lambda *args, **kwargs: _Confirm(False),
+    )
+    finished = _app(tmp_path, session)._run_sitting([(lesson, task)], review=False)
+
+    assert finished is not None
+    assert [result.kind for result in finished] == [TURN_INCORRECT, TURN_CORRECT]
+    assert finished[-1].first_try is False
+    assert session.lesson_standing(lesson).passed == 0
+    assert session.failed_queue([lesson]) == [(lesson, task)]
+    assert session.due_review([lesson]) == []
+
+
 def test_unstored_attempt_tells_the_learner_and_hides_the_answer() -> None:
     secret = "why the command works"
     command = "show ip interface brief"

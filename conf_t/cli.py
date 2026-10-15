@@ -741,13 +741,11 @@ class ConfTCLI:
                     f"\n[bold cyan]Task {index}/{total}:[/] "
                     f"[bold white]{task.prompt}[/]"
                 )
-            self.session.begin_task(task)
-
             while True:
                 try:
                     user_input = console.input(f"{task.prefix} ")
                 except (KeyboardInterrupt, EOFError):
-                    self.session.end_showing(task)
+                    self.session.submit(lesson, task, interrupt=True)
                     console.print(f"\n[yellow]{interrupt_message(review=review)}[/]")
                     return None
 
@@ -763,7 +761,7 @@ class ConfTCLI:
                         else "Are you sure you want to exit this lesson?"
                     )
                     if questionary.confirm(question).ask():
-                        self.session.end_showing(task)
+                        self.session.submit(lesson, task, confirmed_leave=True)
                         if not review:
                             console.print("[bold yellow]Exited practice session.[/]")
                         return None

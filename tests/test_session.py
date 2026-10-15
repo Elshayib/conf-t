@@ -1001,6 +1001,141 @@ def test_exit_word_keeps_the_showing_open(tmp_path: Path) -> None:
     assert session.failed_queue([lesson]) == [(lesson, task)]
 
 
+def test_confirmed_leave_closes_the_showing_and_stores_nothing(
+    tmp_path: Path,
+) -> None:
+    """A confirmed leave is one signal. The grade closes, and a later result can land."""
+    session = _session(tmp_path)
+    lesson = _lesson(tasks=[_task("l1__a")])
+    task = lesson.tasks[0]
+    missed = session.submit(lesson, task, "nope")
+    assert missed.kind == TURN_INCORRECT
+    assert session.record_attempt(lesson, task, TaskResult.SKIP) is False
+    attempts = session.stats().total_attempts
+
+    closed = session.submit(lesson, task, confirmed_leave=True)
+
+    assert closed.kind == TURN_LEAVE
+    assert closed.explanation is None
+    assert closed.readable_command is None
+    assert session.stats().total_attempts == attempts
+    assert session.stats().skipped == 0
+    assert session.failed_queue([lesson]) == [(lesson, task)]
+    placed = session.record_attempt(lesson, task, TaskResult.SKIP)
+    assert placed is True
+    assert session.stats().total_attempts == attempts + 1
+    assert session.stats().skipped == 1
+    assert session.failed_queue([lesson]) == [(lesson, task)]
+    assert session.due_review([lesson]) == [(lesson, task)]
+
+
+def test_interrupt_closes_the_showing_and_stores_nothing(tmp_path: Path) -> None:
+    """An interrupt at the prompt, including end of input, is the same close."""
+    session = _session(tmp_path)
+    lesson = _lesson(tasks=[_task("l1__a")])
+    task = lesson.tasks[0]
+    assert session.submit(lesson, task, "nope").kind == TURN_INCORRECT
+    attempts = session.stats().total_attempts
+    before = (tmp_path / "progress.json").read_bytes()
+
+    closed = session.submit(lesson, task, interrupt=True)
+
+    assert closed.kind == TURN_LEAVE
+    assert closed.explanation is None
+    assert closed.readable_command is None
+    assert session.stats().total_attempts == attempts
+    assert (tmp_path / "progress.json").read_bytes() == before
+    placed = session.record_attempt(lesson, task, TaskResult.SKIP)
+    assert placed is True
+    assert session.stats().skipped == 1
+    assert session.failed_queue([lesson]) == [(lesson, task)]
+
+
+def test_new_showing_after_an_interrupt_is_first_try_eligible(
+    tmp_path: Path,
+) -> None:
+    session = _session(tmp_path)
+    lesson = _lesson(tasks=[_task("l1__a")])
+    task = lesson.tasks[0]
+    assert session.submit(lesson, task, "nope").first_try is True
+    session.submit(lesson, task, interrupt=True)
+
+    passed = session.submit(lesson, task, "ok")
+
+    assert passed.first_try is True
+    assert passed.left_the_drill is True
+    assert session.failed_queue([lesson]) == []
+    assert session.due_review([lesson]) == []
+
+
+def test_blank_line_and_hint_keep_the_showing_open_and_store_nothing(
+    tmp_path: Path,
+) -> None:
+    session = _session(tmp_path)
+    lesson = _lesson(tasks=[_task("l1__a", hint="try ok"), _task("l1__b")])
+    shown, other = lesson.tasks
+
+    blank = session.submit(lesson, shown, "   ")
+    assert blank == TurnResult(kind=TURN_IGNORE)
+    assert session.record_attempt(lesson, shown, TaskResult.INCORRECT) is False
+
+    hinted = session.submit(lesson, shown, "hint")
+    assert hinted == TurnResult(kind=TURN_HINT, hint="try ok")
+    assert session.record_attempt(lesson, shown, TaskResult.SKIP) is False
+    placed = session.record_attempt(lesson, other, TaskResult.SKIP)
+    assert placed is True
+    assert session.stats().total_attempts == 1
+    assert session.stats().skipped == 1
+    assert session.failed_queue([lesson]) == [(lesson, other)]
+
+    passed = session.submit(lesson, shown, "ok")
+    assert passed.first_try is True
+    assert passed.left_the_drill is True
+    assert session.failed_queue([lesson]) == [(lesson, other)]
+
+
+def test_leave_word_keeps_the_showing_open_until_the_leave_is_confirmed(
+    tmp_path: Path,
+) -> None:
+    """Cancelling the leave is the absence of the close signal."""
+    session = _session(tmp_path)
+    lesson = _lesson(tasks=[_task("l1__a")])
+    task = lesson.tasks[0]
+    assert session.submit(lesson, task, "nope").kind == TURN_INCORRECT
+
+    assert session.submit(lesson, task, "exit") == TurnResult(kind=TURN_LEAVE)
+    assert session.submit(lesson, task, "quit") == TurnResult(kind=TURN_LEAVE)
+    assert session.record_attempt(lesson, task, TaskResult.FIRST_TRY_PASS) is False
+
+    late = session.submit(lesson, task, "ok")
+    assert late.first_try is False
+    assert late.rescheduled is True
+    assert session.lesson_standing(lesson).passed == 0
+    assert session.failed_queue([lesson]) == [(lesson, task)]
+    assert session.due_review([lesson]) == []
+
+
+def test_new_showing_after_a_confirmed_leave_is_first_try_eligible(
+    tmp_path: Path,
+) -> None:
+    """An earlier miss does not spoil a Showing that starts after the leave."""
+    session = _session(tmp_path)
+    lesson = _lesson(tasks=[_task("l1__a", explanation="because ok")])
+    task = lesson.tasks[0]
+    assert session.submit(lesson, task, "nope").kind == TURN_INCORRECT
+    session.submit(lesson, task, confirmed_leave=True)
+
+    passed = session.submit(lesson, task, "ok")
+
+    assert passed.kind == TURN_CORRECT
+    assert passed.first_try is True
+    assert passed.left_the_drill is True
+    assert passed.explanation == "because ok"
+    assert session.lesson_standing(lesson).passed == 1
+    assert session.failed_queue([lesson]) == []
+    assert session.due_review([lesson]) == []
+
+
 def test_leave_ends_the_showing_so_a_later_place_is_stored(tmp_path: Path) -> None:
     session = _session(tmp_path)
     lesson = _lesson(tasks=[_task("l1__a")])
@@ -1008,7 +1143,7 @@ def test_leave_ends_the_showing_so_a_later_place_is_stored(tmp_path: Path) -> No
     session.begin_task(task)
     assert session.submit(lesson, task, "nope").kind == TURN_INCORRECT
 
-    session.end_showing(task)
+    session.submit(lesson, task, confirmed_leave=True)
     placed = session.record_attempt(lesson, task, TaskResult.SKIP)
 
     assert placed is True
@@ -1893,7 +2028,7 @@ def test_leave_after_an_unstored_miss_keeps_the_older_pass(tmp_path: Path) -> No
 
     assert missed.stored is False
     assert missed.kind == TURN_INCORRECT
-    session.end_showing(task)
+    session.submit(lesson, task, confirmed_leave=True)
     assert path.read_bytes() == before
     assert session.lesson_standing(lesson).passed == 1
     assert session.failed_queue([lesson]) == []

@@ -37,7 +37,6 @@ from conf_t.session import (
     TURN_LEAVE,
     TURN_SKIPPED,
     TurnResult,
-    practice_summary,
 )
 
 console = Console()
@@ -723,12 +722,13 @@ class ConfTCLI:
         tasks: list[tuple[Lesson, Task]],
         *,
         review: bool,
-    ) -> list | None:
+    ) -> bool:
         """One turn loop for Practice and Review.
 
-        Returns the graded turns, or None when the Learner leaves.
+        True when every chosen Task is graded. False when the Learner leaves.
+        A finished Practice summary is that sitting's stored turns.
         """
-        graded = []
+        self.session.begin_sitting(tasks, review=review)
         total = len(tasks)
         for index, (lesson, task) in enumerate(tasks, 1):
             if review:
@@ -747,7 +747,7 @@ class ConfTCLI:
                 except (KeyboardInterrupt, EOFError):
                     self.session.submit(lesson, task, interrupt=True)
                     console.print(f"\n[yellow]{interrupt_message(review=review)}[/]")
-                    return None
+                    return False
 
                 result = self.session.submit(lesson, task, user_input)
 
@@ -764,7 +764,7 @@ class ConfTCLI:
                         self.session.submit(lesson, task, confirmed_leave=True)
                         if not review:
                             console.print("[bold yellow]Exited practice session.[/]")
-                        return None
+                        return False
                     continue
 
                 if result.kind == TURN_HINT:
@@ -783,9 +783,6 @@ class ConfTCLI:
                 if not result.stored:
                     console.print(unstored_attempt_lines(result))
                     continue
-
-                if not review:
-                    graded.append(result)
 
                 if result.kind == TURN_SKIPPED:
                     console.print(Panel(
@@ -814,7 +811,7 @@ class ConfTCLI:
                         "[bold red]✗ Incorrect command. Try again, or type 'hint' / 'skip' / 'exit'.[/]"
                     )
 
-        return graded
+        return True
 
     def _mark_lessons_opened(
         self,
@@ -874,14 +871,16 @@ class ConfTCLI:
             box=box.ROUNDED
         ))
 
-        stats_results = self._run_sitting(
+        finished = self._run_sitting(
             [(lesson, task) for task in tasks_to_run],
             review=False,
         )
-        if stats_results is None:
+        if not finished:
             return
 
-        stats = practice_summary(stats_results, total_tasks=len(tasks_to_run))
+        stats = self.session.finished_practice_summary()
+        if stats is None:
+            return
         accuracy = (stats.correct_first_try / stats.total_questions) * 100 if stats.total_questions > 0 else 0
         summary_table = Table(title="[bold yellow]Session Summary[/]", box=box.ROUNDED, border_style="cyan")
         summary_table.add_column("Metric", style="cyan")
@@ -925,7 +924,7 @@ class ConfTCLI:
         ))
 
         finished = self._run_sitting(tasks_to_review, review=True)
-        if finished is None:
+        if not finished:
             return
 
         console.print("\n[bold green]Review Session Completed![/]\n")

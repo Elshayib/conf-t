@@ -1276,6 +1276,177 @@ def test_practice_summary_comes_from_sitting_turn_results(tmp_path: Path) -> Non
     assert summary.total_attempts == 4
 
 
+def test_finished_practice_summary_counts_the_sitting_stored_turns(
+    tmp_path: Path,
+) -> None:
+    """The summary is this sitting's stored turns. The test does not hand them in."""
+    session = _session(tmp_path)
+    lesson = _lesson(
+        tasks=[
+            _task("l1__a"),
+            _task("l1__b"),
+            _task("l1__c"),
+        ]
+    )
+    first, second, third = lesson.tasks
+    session.begin_sitting(
+        [(lesson, first), (lesson, second), (lesson, third)],
+        review=False,
+    )
+
+    assert session.submit(lesson, first, "ok").kind == TURN_CORRECT
+    assert session.submit(lesson, second, "   ").kind == TURN_IGNORE
+    assert session.submit(lesson, second, "hint").kind == TURN_HINT
+    assert session.submit(lesson, second, "nope").kind == TURN_INCORRECT
+    assert session.submit(lesson, second, "ok").first_try is False
+    assert session.submit(lesson, third, "skip").kind == TURN_SKIPPED
+
+    summary = session.finished_practice_summary()
+
+    assert summary is not None
+    assert summary.total_questions == 3
+    assert summary.correct_first_try == 1
+    assert summary.skipped_count == 1
+    assert summary.total_attempts == 4
+
+
+def test_leave_or_interrupt_does_not_finish_the_practice_summary(
+    tmp_path: Path,
+) -> None:
+    """A confirmed leave or an interrupt stores nothing and does not summarize."""
+    lesson = _lesson(tasks=[_task("l1__a")])
+    task = lesson.tasks[0]
+
+    left = _session(tmp_path)
+    left.begin_sitting([(lesson, task)], review=False)
+    assert left.submit(lesson, task, "nope").kind == TURN_INCORRECT
+    assert left.submit(lesson, task, "exit").kind == TURN_LEAVE
+    assert left.finished_practice_summary() is None
+    left.submit(lesson, task, confirmed_leave=True)
+    assert left.finished_practice_summary() is None
+
+    stopped = Session(progress_path=tmp_path / "stopped.json")
+    stopped.begin_sitting([(lesson, task)], review=False)
+    stopped.submit(lesson, task, "nope")
+    stopped.submit(lesson, task, interrupt=True)
+    assert stopped.finished_practice_summary() is None
+
+    again = Session(progress_path=tmp_path / "again.json")
+    again.begin_sitting([(lesson, task)], review=False)
+    again.submit(lesson, task, "nope")
+    again.submit(lesson, task, confirmed_leave=True)
+    again.begin_sitting([(lesson, task)], review=False)
+    passed = again.submit(lesson, task, "ok")
+    summary = again.finished_practice_summary()
+
+    assert passed.first_try is True
+    assert summary is not None
+    assert summary.total_questions == 1
+    assert summary.correct_first_try == 1
+    assert summary.skipped_count == 0
+    assert summary.total_attempts == 1
+
+
+def test_review_sitting_does_not_produce_a_practice_summary(
+    tmp_path: Path,
+) -> None:
+    """Review opens and closes like Practice, and it does not summarize."""
+    lesson = _lesson(tasks=[_task("l1__a", explanation="because")])
+    task = lesson.tasks[0]
+
+    practice = _session(tmp_path)
+    practice.begin_sitting([(lesson, task)], review=False)
+    assert practice.submit(lesson, task, "nope").kind == TURN_INCORRECT
+    assert practice.record_attempt(lesson, task, TaskResult.SKIP) is False
+    finished = practice.submit(lesson, task, "ok")
+    summary = practice.finished_practice_summary()
+    assert finished.first_try is False
+    assert finished.explanation == "because"
+    assert summary is not None
+    assert summary.total_questions == 1
+    assert summary.correct_first_try == 0
+    assert summary.total_attempts == 2
+
+    review = Session(progress_path=tmp_path / "review.json")
+    review.begin_sitting([(lesson, task)], review=True)
+    assert review.submit(lesson, task, "nope").kind == TURN_INCORRECT
+    assert review.record_attempt(lesson, task, TaskResult.SKIP) is False
+    review.submit(lesson, task, confirmed_leave=True)
+    assert review.record_attempt(lesson, task, TaskResult.SKIP) is True
+    review.begin_sitting([(lesson, task)], review=True)
+    passed = review.submit(lesson, task, "ok")
+
+    assert passed.first_try is True
+    assert passed.explanation == "because"
+    assert review.finished_practice_summary() is None
+
+
+def test_unstored_line_stays_out_of_the_practice_summary(tmp_path: Path) -> None:
+    path = tmp_path / "progress.json"
+    session = Session(progress_path=path)
+    prior = _lesson("prior")
+    session.record_attempt(prior, prior.tasks[0], TaskResult.INCORRECT)
+    lesson = _lesson(tasks=[_task("l1__a")])
+    task = lesson.tasks[0]
+    session.begin_sitting([(lesson, task)], review=False)
+
+    _freeze(path)
+    try:
+        missed = session.submit(lesson, task, "nope")
+        assert session.finished_practice_summary() is None
+        skipped = session.submit(lesson, task, "skip")
+    finally:
+        _thaw(path)
+
+    assert missed.stored is False
+    assert skipped.stored is False
+    assert skipped.explanation is None
+    assert skipped.readable_command is None
+    assert session.finished_practice_summary() is None
+
+    stored = session.submit(lesson, task, "skip")
+    summary = session.finished_practice_summary()
+
+    assert stored.stored is True
+    assert stored.readable_command is not None
+    assert summary is not None
+    assert summary.total_questions == 1
+    assert summary.correct_first_try == 0
+    assert summary.skipped_count == 1
+    assert summary.total_attempts == 1
+
+
+def test_practice_summary_grades_the_tasks_already_chosen(tmp_path: Path) -> None:
+    """A pick still grades that Task and later Tasks with no first-try pass."""
+    session = _session(tmp_path)
+    lesson = _lesson(
+        tasks=[_task("l1__a"), _task("l1__b"), _task("l1__c"), _task("l1__d")]
+    )
+    session.record_attempt(lesson, lesson.tasks[0], TaskResult.INCORRECT)
+    session.record_attempt(lesson, lesson.tasks[2], TaskResult.FIRST_TRY_PASS)
+    session.record_attempt(lesson, lesson.tasks[3], TaskResult.INCORRECT)
+
+    picked = session.commit_practice_continuation(lesson, ANSWER_PICK, "l1__b")
+    assert [task.id for task in picked] == ["l1__b", "l1__d"]
+
+    session.begin_sitting([(lesson, task) for task in picked], review=False)
+    outside = session.submit(lesson, lesson.tasks[0], "ok")
+    assert outside.kind == TURN_CORRECT
+    assert session.finished_practice_summary() is None
+    session.submit(lesson, picked[0], "nope")
+    session.submit(lesson, picked[0], "ok")
+    session.submit(lesson, picked[1], "skip")
+
+    summary = session.finished_practice_summary()
+
+    assert summary is not None
+    assert summary.total_questions == 2
+    assert summary.correct_first_try == 0
+    assert summary.skipped_count == 1
+    assert summary.total_attempts == 3
+    assert session.lesson_standing(lesson).passed == 2
+
+
 def test_opening_practice_via_submit_path_still_marks_in_progress(tmp_path: Path) -> None:
     session = _session(tmp_path)
     lesson = _lesson()

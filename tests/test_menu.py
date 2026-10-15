@@ -185,7 +185,8 @@ def test_sitting_interrupt_closes_so_a_later_result_can_land(
     monkeypatch.setattr("conf_t.cli.console.input", answer)
     finished = _app(tmp_path, session)._run_sitting([(lesson, task)], review=review)
 
-    assert finished is None
+    assert finished is False
+    assert session.finished_practice_summary() is None
     assert session.stats().total_attempts == 1
     assert session.record_attempt(lesson, task, TaskResult.SKIP) is True
     passed = session.submit(lesson, task, "ok")
@@ -212,7 +213,8 @@ def test_confirmed_leave_in_the_sitting_closes_without_a_separate_close(
     )
     finished = _app(tmp_path, session)._run_sitting([(lesson, task)], review=review)
 
-    assert finished is None
+    assert finished is False
+    assert session.finished_practice_summary() is None
     assert session.record_attempt(lesson, task, TaskResult.FIRST_TRY_PASS) is True
     assert session.lesson_standing(lesson).passed == 1
     assert session.failed_queue([lesson]) == []
@@ -233,9 +235,13 @@ def test_cancelled_leave_in_the_sitting_keeps_this_showing(
     )
     finished = _app(tmp_path, session)._run_sitting([(lesson, task)], review=False)
 
-    assert finished is not None
-    assert [result.kind for result in finished] == [TURN_INCORRECT, TURN_CORRECT]
-    assert finished[-1].first_try is False
+    assert finished is True
+    summary = session.finished_practice_summary()
+    assert summary is not None
+    assert summary.total_questions == 1
+    assert summary.correct_first_try == 0
+    assert summary.skipped_count == 0
+    assert summary.total_attempts == 2
     assert session.lesson_standing(lesson).passed == 0
     assert session.failed_queue([lesson]) == [(lesson, task)]
     assert session.due_review([lesson]) == []

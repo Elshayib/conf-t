@@ -225,6 +225,12 @@ class Session:
             raise ProgressRefusal(unsaved.path, action="saving") from unsaved
         self._lost_first_try: set[str] = set()
         self._open_showings: set[str] = set()
+        self._sitting_tasks: tuple[tuple[Lesson, Task], ...] = ()
+        self._sitting_review = False
+        self._sitting_turns: list[TurnResult] = []
+        self._sitting_ended: set[str] = set()
+        self._sitting_left = False
+        self._sitting_open = False
 
     def mark_practice_opened(self, lesson: Lesson) -> bool:
         """Remember that this Lesson was opened. False means that save failed."""
@@ -234,6 +240,35 @@ class Session:
         """Start a fresh showing of the Task. This showing is first-try eligible."""
         self._lost_first_try.discard(task.id)
         self._open_showings.add(task.id)
+
+    def begin_sitting(
+        self,
+        tasks: Sequence[tuple[Lesson, Task]],
+        *,
+        review: bool,
+    ) -> None:
+        """These already chosen Tasks are the sitting. Review is not summarized."""
+        self._sitting_tasks = tuple(tasks)
+        self._sitting_review = review
+        self._sitting_turns = []
+        self._sitting_ended = set()
+        self._sitting_left = False
+        self._sitting_open = True
+
+    def finished_practice_summary(self) -> SessionStats | None:
+        """Stored turns when a Practice sitting finishes.
+
+        A leave, an interrupt, an unfinished sitting, and Review have none.
+        """
+        if not self._sitting_open or self._sitting_review or self._sitting_left:
+            return None
+        chosen = {task.id for _lesson, task in self._sitting_tasks}
+        if not chosen or chosen != self._sitting_ended:
+            return None
+        return practice_summary(
+            self._sitting_turns,
+            total_tasks=len(self._sitting_tasks),
+        )
 
     def submit(
         self,
@@ -251,6 +286,8 @@ class Session:
         """
         if confirmed_leave or interrupt:
             self._open_showings.discard(task.id)
+            if self._sitting_open:
+                self._sitting_left = True
             return TurnResult(kind=TURN_LEAVE)
 
         if task.id not in self._open_showings:
@@ -278,11 +315,14 @@ class Session:
                     first_try=first_try,
                     stored=False,
                 )
-            return TurnResult(
-                kind=TURN_SKIPPED,
-                explanation=task.explanation,
-                readable_command=format_display_answer(task),
-                first_try=first_try,
+            return self._remember_stored_turn(
+                task,
+                TurnResult(
+                    kind=TURN_SKIPPED,
+                    explanation=task.explanation,
+                    readable_command=format_display_answer(task),
+                    first_try=first_try,
+                ),
             )
 
         is_correct = validate_input(cleaned, task, lesson.platform)
@@ -298,12 +338,15 @@ class Session:
                     first_try=first_try,
                     stored=False,
                 )
-            return TurnResult(
-                kind=TURN_CORRECT,
-                explanation=task.explanation,
-                first_try=first_try,
-                left_the_drill=first_try,
-                rescheduled=not first_try,
+            return self._remember_stored_turn(
+                task,
+                TurnResult(
+                    kind=TURN_CORRECT,
+                    explanation=task.explanation,
+                    first_try=first_try,
+                    left_the_drill=first_try,
+                    rescheduled=not first_try,
+                ),
             )
 
         stored = self._store_result(lesson, task, TaskResult.INCORRECT)
@@ -315,7 +358,23 @@ class Session:
                 first_try=first_try,
                 stored=False,
             )
-        return TurnResult(kind=TURN_INCORRECT, first_try=first_try)
+        return self._remember_stored_turn(
+            task,
+            TurnResult(kind=TURN_INCORRECT, first_try=first_try),
+        )
+
+    def _remember_stored_turn(self, task: Task, result: TurnResult) -> TurnResult:
+        """Keep a stored answer for this sitting. An unstored line stays out."""
+        if not self._sitting_open or self._sitting_left or not result.stored:
+            return result
+        if result.kind not in {TURN_CORRECT, TURN_INCORRECT, TURN_SKIPPED}:
+            return result
+        if not any(item.id == task.id for _lesson, item in self._sitting_tasks):
+            return result
+        self._sitting_turns.append(result)
+        if result.kind in {TURN_CORRECT, TURN_SKIPPED}:
+            self._sitting_ended.add(task.id)
+        return result
 
     def record_attempt(
         self,

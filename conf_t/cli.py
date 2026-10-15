@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import argparse
-from collections.abc import Callable
 from pathlib import Path
 from typing import NoReturn
 import questionary
@@ -15,6 +14,7 @@ from rich import box
 from conf_t import __version__
 from conf_t.models import Lesson, Task
 from conf_t.catalog import Catalog, CatalogRefusal
+from conf_t.parser import first_set_command
 from conf_t.platform import Platform
 from conf_t.session import (
     ANSWER_PICK,
@@ -42,23 +42,9 @@ from conf_t.session import (
 console = Console()
 
 
-def _ordered_actions(
-    args: argparse.Namespace,
-) -> tuple[tuple[object, Callable[["ConfTCLI"], None]], ...]:
-    """List, stats, continue, review, review-all, then lesson."""
-    return (
-        (args.list, lambda app: app.list_lessons(args.platform, args.tags)),
-        (args.stats, lambda app: app.view_stats(interactive=False)),
-        (args.continue_session, lambda app: app.run_continue(interactive=False)),
-        (args.review, lambda app: app.daily_review_menu(interactive=False)),
-        (args.review_all, lambda app: app.review_failed_menu(interactive=False)),
-        (args.lesson, lambda app: app.run_lesson_by_id(args.lesson)),
-    )
-
-
 def has_cli_action(args: argparse.Namespace) -> bool:
     """True when one of the command flags is set."""
-    return any(is_set for is_set, _run in _ordered_actions(args))
+    return first_set_command(args) is not None
 
 
 MENU_DUE_REVIEW = "due_review"
@@ -333,11 +319,11 @@ class ConfTCLI:
 
     def run_from_args(self, args: argparse.Namespace) -> bool:
         """Run the first set command flag. False means the menu should open."""
-        for is_set, run in _ordered_actions(args):
-            if is_set:
-                run(self)
-                return True
-        return False
+        command = first_set_command(args)
+        if command is None:
+            return False
+        command.run(self, args)
+        return True
 
     def show_first_run_welcome(self) -> None:
         if not self.session.should_show_welcome():

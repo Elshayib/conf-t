@@ -25,11 +25,19 @@ def _write(directory: Path, filename: str, body: dict) -> None:
     (directory / filename).write_text(json.dumps(body), encoding="utf-8")
 
 
-def _lesson(lesson_id: str, *, title: str, task_id: str, expected: str = "^true$") -> dict:
-    return {
+def _lesson(
+    lesson_id: str,
+    *,
+    title: str,
+    task_id: str,
+    expected: str = "^true$",
+    platform: str = "Linux",
+    tags: list[str] | None = None,
+) -> dict:
+    body = {
         "id": lesson_id,
         "title": title,
-        "platform": "Linux",
+        "platform": platform,
         "description": "Desc",
         "tasks": [
             {
@@ -40,6 +48,9 @@ def _lesson(lesson_id: str, *, title: str, task_id: str, expected: str = "^true$
             }
         ],
     }
+    if tags:
+        body["tags"] = tags
+    return body
 
 
 def _install_fault(directory: Path, fault: str) -> str:
@@ -130,6 +141,7 @@ def test_unknown_lesson_is_not_a_file_that_will_not_parse(
 ) -> None:
     lessons = _use_isolated_files(monkeypatch, tmp_path)
     _write(lessons, "real.json", _lesson("real", title="Real", task_id="real__one"))
+    opened = _block_prompts(monkeypatch)
 
     with pytest.raises(SystemExit) as exc:
         main(["--lesson", "missing"])
@@ -140,6 +152,30 @@ def test_unknown_lesson_is_not_a_file_that_will_not_parse(
     assert "missing" in text
     assert "Use --list to see available lesson IDs." in text
     assert "does not parse" not in text
+    assert opened == []
+    captured = capsys.readouterr()
+    assert "Exiting Conf T..." not in captured.out
+    assert "Exiting Conf T..." not in captured.err
+
+
+def test_empty_lesson_id_is_a_refusal_and_does_not_open_the_menu(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    output: io.StringIO,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    lessons = _use_isolated_files(monkeypatch, tmp_path)
+    _write(lessons, "real.json", _lesson("real", title="Real", task_id="real__one"))
+    opened = _block_prompts(monkeypatch)
+
+    with pytest.raises(SystemExit) as exc:
+        main(["--lesson", ""])
+
+    assert exc.value.code == 1
+    text = output.getvalue()
+    assert "Lesson not found:" in text
+    assert "Welcome to Conf T" not in text
+    assert opened == []
     captured = capsys.readouterr()
     assert "Exiting Conf T..." not in captured.out
     assert "Exiting Conf T..." not in captured.err
@@ -777,6 +813,159 @@ def _block_prompts(monkeypatch: pytest.MonkeyPatch) -> list[str]:
     monkeypatch.setattr("conf_t.cli.questionary.press_any_key_to_continue", ask_nothing)
     monkeypatch.setattr("conf_t.cli.console.input", no_input)
     return opened
+
+
+_COMMAND_FLAGS_IN_RUN_ORDER = (
+    "--list",
+    "--stats",
+    "--continue",
+    "--review",
+    "--review-all",
+    "--lesson",
+)
+
+
+def test_help_lists_command_flags_in_the_order_the_first_set_flag_runs(
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    """The declaration order is the order that picks the command."""
+    with pytest.raises(SystemExit) as exc:
+        main(["--help"])
+
+    assert exc.value.code == 0
+    text = capsys.readouterr().out
+    found: list[str] = []
+    for line in text.splitlines():
+        stripped = line.strip()
+        for flag in _COMMAND_FLAGS_IN_RUN_ORDER:
+            if stripped.startswith(flag) and (
+                len(stripped) == len(flag) or stripped[len(flag)].isspace()
+            ):
+                found.append(flag)
+    assert found == list(_COMMAND_FLAGS_IN_RUN_ORDER)
+    assert "Exiting Conf T..." not in text
+
+
+def _commands_help_accepts(help_text: str) -> list[list[str]]:
+    """Command flags printed by --help, in that order.
+
+    An option line is indented two spaces. Platform, tags, and version are
+    filters or a version exit, not commands. A metavar such as ID means the
+    flag takes the Lesson id.
+    """
+    not_commands = {"--version", "--platform", "--tags"}
+    invocations: list[list[str]] = []
+    for line in help_text.splitlines():
+        if not line.startswith("  --"):
+            continue
+        parts = line.split()
+        option = parts[0]
+        if option in not_commands:
+            continue
+        argv = [option]
+        if len(parts) > 1 and parts[1].isupper():
+            argv.append("alpha")
+        invocations.append(argv)
+    return invocations
+
+
+def test_an_accepted_command_flag_does_not_open_the_menu(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    output: io.StringIO,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    """A flag the process accepts cannot fall through to the menu."""
+    lessons = _use_isolated_files(monkeypatch, tmp_path)
+    _write(lessons, "alpha.json", _lesson("alpha", title="Alpha", task_id="alpha__one"))
+    opened = _block_prompts(monkeypatch)
+
+    with pytest.raises(SystemExit) as exc:
+        main(["--help"])
+    assert exc.value.code == 0
+    invocations = _commands_help_accepts(capsys.readouterr().out)
+
+    for argv in invocations:
+        main(argv)
+
+    assert [argv[0] for argv in invocations] == list(_COMMAND_FLAGS_IN_RUN_ORDER)
+    assert all("Select an option:" not in prompt for prompt in opened)
+    assert "Welcome to Conf T" not in output.getvalue()
+
+
+def test_list_with_platform_and_tags_lists_the_filtered_lessons(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    output: io.StringIO,
+) -> None:
+    lessons = _use_isolated_files(monkeypatch, tmp_path)
+    _write(
+        lessons,
+        "vlan.json",
+        _lesson(
+            "vlan",
+            title="Switching VLAN",
+            task_id="vlan__one",
+            platform="Cisco",
+            tags=["vlan", "switching"],
+        ),
+    )
+    _write(
+        lessons,
+        "ospf.json",
+        _lesson(
+            "ospf",
+            title="Single Area OSPF",
+            task_id="ospf__one",
+            platform="Cisco",
+            tags=["ospf"],
+        ),
+    )
+    _write(
+        lessons,
+        "files.json",
+        _lesson(
+            "files",
+            title="Linux Files",
+            task_id="files__one",
+            platform="Linux",
+            tags=["vlan"],
+        ),
+    )
+    opened = _block_prompts(monkeypatch)
+
+    main(["--list", "--platform", "Cisco", "--tags", "vlan"])
+
+    text = output.getvalue()
+    assert "Switching VLAN" in text
+    assert "Single Area OSPF" not in text
+    assert "Linux Files" not in text
+    assert "1 lesson(s) shown" in text
+    assert opened == []
+
+
+def test_unknown_flag_is_rejected_before_any_command(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    output: io.StringIO,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    lessons = _use_isolated_files(monkeypatch, tmp_path)
+    _write(lessons, "alpha.json", _lesson("alpha", title="Alpha", task_id="alpha__one"))
+    opened = _block_prompts(monkeypatch)
+
+    with pytest.raises(SystemExit) as exc:
+        main(["--not-a-command"])
+
+    assert exc.value.code == 2
+    assert opened == []
+    text = output.getvalue()
+    assert "Welcome to Conf T" not in text
+    assert "Select an option:" not in text
+    captured = capsys.readouterr()
+    assert "unrecognized arguments" in captured.err
+    assert "Exiting Conf T..." not in captured.out
+    assert "Exiting Conf T..." not in captured.err
 
 
 @pytest.mark.parametrize(

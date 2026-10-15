@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from datetime import datetime
 from pathlib import Path
 from typing import Literal, Optional, Sequence
@@ -138,6 +138,17 @@ class PracticeChoice:
     picks: tuple[PracticePick, ...]
 
 
+@dataclass
+class _Sitting:
+    """The Tasks already chosen, and the turns stored in this sitting."""
+
+    tasks: tuple[tuple[Lesson, Task], ...]
+    review: bool
+    turns: list[TurnResult] = field(default_factory=list)
+    finished_task_ids: set[str] = field(default_factory=set)
+    left: bool = False
+
+
 @dataclass(frozen=True)
 class TurnResult:
     kind: str
@@ -225,12 +236,7 @@ class Session:
             raise ProgressRefusal(unsaved.path, action="saving") from unsaved
         self._lost_first_try: set[str] = set()
         self._open_showings: set[str] = set()
-        self._sitting_tasks: tuple[tuple[Lesson, Task], ...] = ()
-        self._sitting_review = False
-        self._sitting_turns: list[TurnResult] = []
-        self._sitting_ended: set[str] = set()
-        self._sitting_left = False
-        self._sitting_open = False
+        self._sitting: _Sitting | None = None
 
     def mark_practice_opened(self, lesson: Lesson) -> bool:
         """Remember that this Lesson was opened. False means that save failed."""
@@ -248,27 +254,20 @@ class Session:
         review: bool,
     ) -> None:
         """These already chosen Tasks are the sitting. Review is not summarized."""
-        self._sitting_tasks = tuple(tasks)
-        self._sitting_review = review
-        self._sitting_turns = []
-        self._sitting_ended = set()
-        self._sitting_left = False
-        self._sitting_open = True
+        self._sitting = _Sitting(tasks=tuple(tasks), review=review)
 
     def finished_practice_summary(self) -> SessionStats | None:
         """Stored turns when a Practice sitting finishes.
 
         A leave, an interrupt, an unfinished sitting, and Review have none.
         """
-        if not self._sitting_open or self._sitting_review or self._sitting_left:
+        sitting = self._sitting
+        if sitting is None or sitting.review or sitting.left:
             return None
-        chosen = {task.id for _lesson, task in self._sitting_tasks}
-        if not chosen or chosen != self._sitting_ended:
+        chosen = {task.id for _lesson, task in sitting.tasks}
+        if not chosen or chosen != sitting.finished_task_ids:
             return None
-        return practice_summary(
-            self._sitting_turns,
-            total_tasks=len(self._sitting_tasks),
-        )
+        return practice_summary(sitting.turns, total_tasks=len(sitting.tasks))
 
     def submit(
         self,
@@ -286,8 +285,8 @@ class Session:
         """
         if confirmed_leave or interrupt:
             self._open_showings.discard(task.id)
-            if self._sitting_open:
-                self._sitting_left = True
+            if self._sitting is not None:
+                self._sitting.left = True
             return TurnResult(kind=TURN_LEAVE)
 
         if task.id not in self._open_showings:
@@ -365,15 +364,16 @@ class Session:
 
     def _remember_stored_turn(self, task: Task, result: TurnResult) -> TurnResult:
         """Keep a stored answer for this sitting. An unstored line stays out."""
-        if not self._sitting_open or self._sitting_left or not result.stored:
+        sitting = self._sitting
+        if sitting is None or sitting.left or not result.stored:
             return result
         if result.kind not in {TURN_CORRECT, TURN_INCORRECT, TURN_SKIPPED}:
             return result
-        if not any(item.id == task.id for _lesson, item in self._sitting_tasks):
+        if not any(item.id == task.id for _lesson, item in sitting.tasks):
             return result
-        self._sitting_turns.append(result)
+        sitting.turns.append(result)
         if result.kind in {TURN_CORRECT, TURN_SKIPPED}:
-            self._sitting_ended.add(task.id)
+            sitting.finished_task_ids.add(task.id)
         return result
 
     def record_attempt(
